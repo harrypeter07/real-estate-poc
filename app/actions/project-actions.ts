@@ -140,6 +140,7 @@ export async function getProjectWithStats(
 	id: string
 ): Promise<ProjectWithStats | null> {
 	const supabase = await createClient();
+	if (!supabase) return null;
 
 	// Fetch project
 	const { data: project, error: projectError } = await supabase
@@ -219,6 +220,7 @@ export async function getProjectWithStats(
 
 export async function getProjectsWithPlotCounts() {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	const { data: projects, error } = await supabase
 		.from("projects")

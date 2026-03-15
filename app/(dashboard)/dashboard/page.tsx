@@ -8,6 +8,14 @@ import Link from "next/link";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  if (!supabase) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500 font-semibold">Database connection failed</p>
+        <p className="text-sm text-zinc-500 mt-2">Please check your environment variables.</p>
+      </div>
+    );
+  }
 
   // Fetch summary stats
   const { count: projectsCount } = await supabase.from("projects").select("*", { count: "exact", head: true });

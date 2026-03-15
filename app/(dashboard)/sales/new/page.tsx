@@ -5,32 +5,33 @@ import { getAdvisors } from "@/app/actions/advisors";
 import { getCustomers } from "@/app/actions/customers";
 
 export default async function NewSalePage() {
-  const supabase = await createClient();
-  
-  // Fetch available plots
-  const { data: plots } = await supabase
-    .from("plots")
-    .select("*, projects(name)")
-    .eq("status", "available")
-    .order("plot_number", { ascending: true });
+	const supabase = await createClient();
+	if (!supabase) return <div>Database connection failed</div>;
 
-  const advisors = await getAdvisors();
-  const customers = await getCustomers();
+	// Fetch available plots
+	const { data: plots } = await supabase
+		.from("plots")
+		.select("*, projects(name)")
+		.eq("status", "available")
+		.order("plot_number", { ascending: true });
 
-  return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Record New Sale" 
-        subtitle="Create a booking or full sale for a plot" 
-        showBackButton
-      />
-      <div className="flex justify-center">
-        <SaleForm 
-          plots={plots || []} 
-          customers={customers} 
-          advisors={advisors} 
-        />
-      </div>
-    </div>
-  );
+	const advisors = await getAdvisors();
+	const customers = await getCustomers();
+
+	return (
+		<div className="space-y-6">
+			<PageHeader
+				title="Record New Sale"
+				subtitle="Create a booking or full sale for a plot"
+				showBackButton
+			/>
+			<div className="flex justify-center">
+				<SaleForm
+					plots={plots || []}
+					customers={customers}
+					advisors={advisors}
+				/>
+			</div>
+		</div>
+	);
 }

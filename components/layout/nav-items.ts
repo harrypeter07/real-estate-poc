@@ -1,0 +1,32 @@
+import {
+  LayoutDashboard,
+  Building2,
+  UserCheck,
+  Users,
+  Handshake,
+  CreditCard,
+  Banknote,
+  Receipt,
+  Bell,
+  BarChart3,
+  type LucideIcon,
+} from "lucide-react";
+
+export interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Projects", href: "/projects", icon: Building2 },
+  { label: "Advisors", href: "/advisors", icon: UserCheck },
+  { label: "Customers", href: "/customers", icon: Users },
+  { label: "Sales", href: "/sales", icon: Handshake },
+  { label: "Payments", href: "/payments", icon: CreditCard },
+  { label: "Commissions", href: "/commissions", icon: Banknote },
+  { label: "Expenses", href: "/expenses", icon: Receipt },
+  { label: "Reminders", href: "/reminders", icon: Bell },
+  { label: "Reports", href: "/reports", icon: BarChart3 },
+];

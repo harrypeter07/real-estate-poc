@@ -49,6 +49,7 @@ export async function createPayment(
 
 export async function getPayments() {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	const { data, error } = await supabase
 		.from("payments")
@@ -69,6 +70,7 @@ export async function getPayments() {
 
 export async function confirmPayment(id: string) {
 	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
 	const { error } = await supabase
 		.from("payments")

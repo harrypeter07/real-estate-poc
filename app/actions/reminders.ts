@@ -24,6 +24,9 @@ export async function createReminder(
 	}
 
 	const supabase = await createClient();
+	if (!supabase) {
+		return { success: false, error: "Database connection failed" };
+	}
 
 	const { error } = await supabase.from("reminders").insert({
 		title: parsed.data.title,
@@ -58,6 +61,9 @@ export async function updateReminder(
 	}
 
 	const supabase = await createClient();
+	if (!supabase) {
+		return { success: false, error: "Database connection failed" };
+	}
 
 	const { error } = await supabase
 		.from("reminders")
@@ -84,6 +90,9 @@ export async function updateReminder(
 
 export async function deleteReminder(id: string): Promise<ActionResponse> {
 	const supabase = await createClient();
+	if (!supabase) {
+		return { success: false, error: "Database connection failed" };
+	}
 
 	const { error } = await supabase.from("reminders").delete().eq("id", id);
 
@@ -98,6 +107,7 @@ export async function deleteReminder(id: string): Promise<ActionResponse> {
 
 export async function getReminders() {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	const { data, error } = await supabase
 		.from("reminders")
@@ -115,6 +125,9 @@ export async function getReminders() {
 
 export async function toggleReminder(id: string, isCompleted: boolean) {
 	const supabase = await createClient();
+	if (!supabase) {
+		return { success: false, error: "Database connection failed" };
+	}
 
 	const { error } = await supabase
 		.from("reminders")

@@ -21,6 +21,7 @@ export async function createSale(
 	}
 
 	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
 	// 1. Create the sale record
 	const { data: sale, error: saleError } = await supabase
@@ -99,6 +100,7 @@ export async function createSale(
 
 export async function getSales() {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	const { data, error } = await supabase
 		.from("plot_sales")
@@ -118,6 +120,7 @@ export async function getSales() {
 
 export async function getSaleById(id: string) {
 	const supabase = await createClient();
+	if (!supabase) return null;
 
 	const { data, error } = await supabase
 		.from("plot_sales")

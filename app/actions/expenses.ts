@@ -24,6 +24,9 @@ export async function createExpense(
 	}
 
 	const supabase = await createClient();
+	if (!supabase) {
+		return { success: false, error: "Database connection failed" };
+	}
 
 	const { error } = await supabase.from("office_expenses").insert({
 		description: parsed.data.description,
@@ -43,6 +46,7 @@ export async function createExpense(
 
 export async function getExpenses() {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	const { data, error } = await supabase
 		.from("office_expenses")

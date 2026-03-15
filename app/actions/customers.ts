@@ -59,6 +59,7 @@ export async function updateCustomer(
 	}
 
 	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
 	const { error } = await supabase
 		.from("customers")
@@ -87,6 +88,7 @@ export async function updateCustomer(
 
 export async function getCustomers() {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	const { data, error } = await supabase
 		.from("customers")
@@ -104,6 +106,7 @@ export async function getCustomers() {
 
 export async function getCustomerById(id: string) {
 	const supabase = await createClient();
+	if (!supabase) return null;
 
 	const { data, error } = await supabase
 		.from("customers")

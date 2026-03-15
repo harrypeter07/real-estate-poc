@@ -3,171 +3,184 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { projectSchema, type ProjectFormValues } from "@/lib/validations/project";
+import {
+	projectSchema,
+	type ProjectFormValues,
+} from "@/lib/validations/project";
 
 export type ActionResponse = {
-  success: boolean;
-  error?: string;
+	success: boolean;
+	error?: string;
 };
 
 export async function createProject(
-	values: ProjectFormValues,
+	values: ProjectFormValues
 ): Promise<ActionResponse> {
 	const parsed = projectSchema.safeParse(values);
 	if (!parsed.success) {
-		return { success: false, error: parsed.error.issues[0]?.message || "Validation failed" };
+		return {
+			success: false,
+			error: parsed.error.issues[0]?.message || "Validation failed",
+		};
 	}
 
-  const supabase = await createClient();
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
-  const { error } = await supabase.from("projects").insert({
-    name: parsed.data.name,
-    location: parsed.data.location,
-    total_plots_count: parsed.data.total_plots_count,
-    layout_expense: parsed.data.layout_expense ?? 0,
-    description: parsed.data.description ?? "",
-  });
+	const { error } = await supabase.from("projects").insert({
+		name: parsed.data.name,
+		location: parsed.data.location,
+		total_plots_count: parsed.data.total_plots_count,
+		layout_expense: parsed.data.layout_expense ?? 0,
+		description: parsed.data.description ?? "",
+	});
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
+	if (error) {
+		return { success: false, error: error.message };
+	}
 
-  revalidatePath("/projects");
-  return { success: true };
+	revalidatePath("/projects");
+	return { success: true };
 }
 
 export async function updateProject(
 	id: string,
-	values: ProjectFormValues,
+	values: ProjectFormValues
 ): Promise<ActionResponse> {
 	const parsed = projectSchema.safeParse(values);
 	if (!parsed.success) {
-		return { success: false, error: parsed.error.issues[0]?.message || "Validation failed" };
+		return {
+			success: false,
+			error: parsed.error.issues[0]?.message || "Validation failed",
+		};
 	}
 
-  const supabase = await createClient();
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
-  const { error } = await supabase
-    .from("projects")
-    .update({
-      name: parsed.data.name,
-      location: parsed.data.location,
-      total_plots_count: parsed.data.total_plots_count,
-      layout_expense: parsed.data.layout_expense ?? 0,
-      description: parsed.data.description ?? "",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
+	const { error } = await supabase
+		.from("projects")
+		.update({
+			name: parsed.data.name,
+			location: parsed.data.location,
+			total_plots_count: parsed.data.total_plots_count,
+			layout_expense: parsed.data.layout_expense ?? 0,
+			description: parsed.data.description ?? "",
+			updated_at: new Date().toISOString(),
+		})
+		.eq("id", id);
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
+	if (error) {
+		return { success: false, error: error.message };
+	}
 
-  revalidatePath("/projects");
-  revalidatePath(`/projects/${id}`);
-  return { success: true };
+	revalidatePath("/projects");
+	revalidatePath(`/projects/${id}`);
+	return { success: true };
 }
 
 export async function getProjects() {
-  const supabase = await createClient();
+	const supabase = await createClient();
+	if (!supabase) return [];
 
-  const { data: projects, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+	const { data: projects, error } = await supabase
+		.from("projects")
+		.select("*")
+		.eq("is_active", true)
+		.order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+	if (error) {
+		throw new Error(error.message);
+	}
 
-  return projects;
+	return projects;
 }
 
 export async function getProjectById(id: string) {
-  const supabase = await createClient();
+	const supabase = await createClient();
+	if (!supabase) return null;
 
-  const { data: project, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("id", id)
-    .single();
+	const { data: project, error } = await supabase
+		.from("projects")
+		.select("*")
+		.eq("id", id)
+		.single();
 
-  if (error) {
-    return null;
-  }
+	if (error) {
+		return null;
+	}
 
-  return project;
+	return project;
 }
 
 export type PlotStatusCounts = {
-  available: number;
-  token: number;
-  agreement: number;
-  sold: number;
-  total: number;
+	available: number;
+	token: number;
+	agreement: number;
+	sold: number;
+	total: number;
 };
 
 export type ProjectWithStats = {
-  project: NonNullable<Awaited<ReturnType<typeof getProjectById>>>;
-  plotCounts: PlotStatusCounts;
-  totalRevenue: number;
-  recentSales: Array<{
-    id: string;
-    plot_number: string;
-    customer_name: string;
-    advisor_name: string;
-    total_sale_amount: number;
-    token_date: string | null;
-    sale_phase: string;
-  }>;
+	project: NonNullable<Awaited<ReturnType<typeof getProjectById>>>;
+	plotCounts: PlotStatusCounts;
+	totalRevenue: number;
+	recentSales: Array<{
+		id: string;
+		plot_number: string;
+		customer_name: string;
+		advisor_name: string;
+		total_sale_amount: number;
+		token_date: string | null;
+		sale_phase: string;
+	}>;
 };
 
 export async function getProjectWithStats(
-  id: string
+	id: string
 ): Promise<ProjectWithStats | null> {
-  const supabase = await createClient();
+	const supabase = await createClient();
 
-  // Fetch project
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("id", id)
-    .single();
+	// Fetch project
+	const { data: project, error: projectError } = await supabase
+		.from("projects")
+		.select("*")
+		.eq("id", id)
+		.single();
 
-  if (projectError || !project) return null;
+	if (projectError || !project) return null;
 
-  // Fetch all plots for this project
-  const { data: plots } = await supabase
-    .from("plots")
-    .select("id, status")
-    .eq("project_id", id);
+	// Fetch all plots for this project
+	const { data: plots } = await supabase
+		.from("plots")
+		.select("id, status")
+		.eq("project_id", id);
 
-  const plotCounts: PlotStatusCounts = {
-    available: 0,
-    token: 0,
-    agreement: 0,
-    sold: 0,
-    total: plots?.length ?? 0,
-  };
+	const plotCounts: PlotStatusCounts = {
+		available: 0,
+		token: 0,
+		agreement: 0,
+		sold: 0,
+		total: plots?.length ?? 0,
+	};
 
-  plots?.forEach((plot) => {
-    if (plot.status && plot.status in plotCounts) {
-      plotCounts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
-    }
-  });
+	plots?.forEach((plot) => {
+		if (plot.status && plot.status in plotCounts) {
+			plotCounts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
+		}
+	});
 
-  // Fetch sales for this project's plots
-  const plotIds = plots?.map((p) => p.id) ?? [];
+	// Fetch sales for this project's plots
+	const plotIds = plots?.map((p) => p.id) ?? [];
 
-  let totalRevenue = 0;
-  let recentSales: ProjectWithStats["recentSales"] = [];
+	let totalRevenue = 0;
+	let recentSales: ProjectWithStats["recentSales"] = [];
 
-  if (plotIds.length > 0) {
-    const { data: sales } = await supabase
-      .from("plot_sales")
-      .select(
-        `
+	if (plotIds.length > 0) {
+		const { data: sales } = await supabase
+			.from("plot_sales")
+			.select(
+				`
         id,
         total_sale_amount,
         token_date,
@@ -177,83 +190,83 @@ export async function getProjectWithStats(
         customers!inner(name),
         advisors!inner(name)
       `
-      )
-      .in("plot_id", plotIds)
-      .eq("is_cancelled", false)
-      .order("created_at", { ascending: false })
-      .limit(5);
+			)
+			.in("plot_id", plotIds)
+			.eq("is_cancelled", false)
+			.order("created_at", { ascending: false })
+			.limit(5);
 
-    if (sales) {
-      totalRevenue = sales.reduce(
-        (sum, s) => sum + Number(s.total_sale_amount ?? 0),
-        0
-      );
+		if (sales) {
+			totalRevenue = sales.reduce(
+				(sum, s) => sum + Number(s.total_sale_amount ?? 0),
+				0
+			);
 
-      recentSales = sales.map((s: any) => ({
-        id: s.id,
-        plot_number: s.plots?.plot_number ?? "—",
-        customer_name: s.customers?.name ?? "—",
-        advisor_name: s.advisors?.name ?? "—",
-        total_sale_amount: Number(s.total_sale_amount),
-        token_date: s.token_date,
-        sale_phase: s.sale_phase,
-      }));
-    }
-  }
+			recentSales = sales.map((s: any) => ({
+				id: s.id,
+				plot_number: s.plots?.plot_number ?? "—",
+				customer_name: s.customers?.name ?? "—",
+				advisor_name: s.advisors?.name ?? "—",
+				total_sale_amount: Number(s.total_sale_amount),
+				token_date: s.token_date,
+				sale_phase: s.sale_phase,
+			}));
+		}
+	}
 
-  return { project, plotCounts, totalRevenue, recentSales };
+	return { project, plotCounts, totalRevenue, recentSales };
 }
 
 export async function getProjectsWithPlotCounts() {
-  const supabase = await createClient();
+	const supabase = await createClient();
 
-  const { data: projects, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+	const { data: projects, error } = await supabase
+		.from("projects")
+		.select("*")
+		.eq("is_active", true)
+		.order("created_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
-  if (!projects) return [];
+	if (error) throw new Error(error.message);
+	if (!projects) return [];
 
-  // For each project, get plot status counts
-  const projectIds = projects.map((p) => p.id);
+	// For each project, get plot status counts
+	const projectIds = projects.map((p) => p.id);
 
-  const { data: allPlots } = await supabase
-    .from("plots")
-    .select("project_id, status")
-    .in("project_id", projectIds);
+	const { data: allPlots } = await supabase
+		.from("plots")
+		.select("project_id, status")
+		.in("project_id", projectIds);
 
-  const plotCountsMap = new Map<string, PlotStatusCounts>();
+	const plotCountsMap = new Map<string, PlotStatusCounts>();
 
-  projects.forEach((p) => {
-    plotCountsMap.set(p.id, {
-      available: 0,
-      token: 0,
-      agreement: 0,
-      sold: 0,
-      total: 0,
-    });
-  });
+	projects.forEach((p) => {
+		plotCountsMap.set(p.id, {
+			available: 0,
+			token: 0,
+			agreement: 0,
+			sold: 0,
+			total: 0,
+		});
+	});
 
-  allPlots?.forEach((plot) => {
-    const counts = plotCountsMap.get(plot.project_id);
-    if (counts) {
-      counts.total++;
-      if (plot.status && plot.status in counts) {
-        counts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
-      }
-    }
-  });
+	allPlots?.forEach((plot) => {
+		const counts = plotCountsMap.get(plot.project_id);
+		if (counts) {
+			counts.total++;
+			if (plot.status && plot.status in counts) {
+				counts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
+			}
+		}
+	});
 
-  return projects.map((project) => ({
-    ...project,
-    plotCounts: plotCountsMap.get(project.id) ?? {
-      available: 0,
-      token: 0,
-      agreement: 0,
-      sold: 0,
-      total: 0,
-    },
-  }));
+	return projects.map((project) => ({
+		...project,
+		plotCounts: plotCountsMap.get(project.id) ?? {
+			available: 0,
+			token: 0,
+			agreement: 0,
+			sold: 0,
+			total: 0,
+		},
+	}));
 }

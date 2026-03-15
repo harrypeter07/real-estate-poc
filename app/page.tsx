@@ -4,13 +4,22 @@ import { createClient } from "@/lib/supabase/server";
 export default async function RootPage() {
   const supabase = await createClient();
   
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  if (!supabase) {
     redirect("/login");
   }
 
-  redirect("/dashboard");
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/login");
+    }
+
+    redirect("/dashboard");
+  } catch (error) {
+    console.error("Auth error in root page:", error);
+    redirect("/login");
+  }
 }

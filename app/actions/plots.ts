@@ -64,9 +64,9 @@ export async function createBulkPlots(
 	}
 
 	const supabase = await createClient();
-  if (!supabase) return { success: false, error: "Database connection failed" };
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
-  const plots = [];
+	const plots = [];
 	for (let i = data.from_number; i <= data.to_number; i++) {
 		const plotNumber = `${data.prefix}${String(i).padStart(2, "0")}`;
 		plots.push({
@@ -109,6 +109,7 @@ export async function updatePlot(
 	}
 
 	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
 	// Verify plot is still available
 	const { data: plot } = await supabase
@@ -160,6 +161,7 @@ export async function deletePlot(
 	projectId: string
 ): Promise<ActionResponse> {
 	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
 
 	const { data: plot } = await supabase
 		.from("plots")
@@ -227,6 +229,7 @@ export async function getPlotsByProject(
 	projectId: string
 ): Promise<PlotWithSaleInfo[]> {
 	const supabase = await createClient();
+	if (!supabase) return [];
 
 	// Fetch all plots for this project
 	const { data: plots, error } = await supabase
@@ -299,6 +302,7 @@ export async function getPlotWithPayments(
 	plotId: string
 ): Promise<PlotWithSaleInfo | null> {
 	const supabase = await createClient();
+	if (!supabase) return null;
 
 	const { data: plot, error } = await supabase
 		.from("plots")

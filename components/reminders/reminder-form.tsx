@@ -26,6 +26,7 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
+	Checkbox,
 } from "@/components/ui";
 import {
 	reminderSchema,

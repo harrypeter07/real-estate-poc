@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus, LayoutGrid, Building2 } from "lucide-react";
+import { Plus, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { getPlotsByProject } from "@/app/actions/plots";
 import { PlotCard } from "@/components/projects/plot-card";
+import { PlotLayoutGrid } from "@/components/projects/plot-layout-grid";
 
 interface Props {
   params: { id: string };
@@ -28,6 +29,20 @@ export default async function PlotsPage({ params }: Props) {
           </Link>
         }
       />
+
+      {plots.length > 0 && (
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-800">
+              Interactive Layout View
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Similar to a movie seat screen – tap a plot to view details.
+            </p>
+          </div>
+          <PlotLayoutGrid plots={plots} projectId={id} />
+        </div>
+      )}
 
       {plots.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">

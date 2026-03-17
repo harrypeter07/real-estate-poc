@@ -1,0 +1,449 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Button, Input, Textarea, Badge } from "@/components/ui";
+import { updatePlot, deletePlot } from "@/app/actions/plots";
+
+interface PlotForGrid {
+	id: string;
+	plot_number: string;
+	size_sqft: number;
+	rate_per_sqft: number;
+	status: "available" | "token" | "agreement" | "sold" | string;
+	facing: string | null;
+	sale?: {
+		customer_name: string;
+		advisor_name: string;
+		total_sale_amount: number;
+		amount_paid: number;
+		remaining_amount: number;
+		sale_phase: string;
+		token_date: string | null;
+		agreement_date: string | null;
+		monthly_emi: number | null;
+	} | null;
+}
+
+interface PlotLayoutGridProps {
+	plots: PlotForGrid[];
+	projectName?: string;
+	projectId: string;
+}
+
+type StatusKey = "available" | "token" | "agreement" | "sold";
+
+const STATUS_CONFIG: Record<
+	StatusKey,
+	{
+		label: string;
+		className: string;
+		badgeClassName: string;
+	}
+> = {
+	available: {
+		label: "Available",
+		className:
+			"bg-emerald-100 border-emerald-400 hover:bg-emerald-200 text-emerald-900",
+		badgeClassName: "bg-emerald-300",
+	},
+	token: {
+		label: "Token",
+		className:
+			"bg-amber-100 border-amber-400 hover:bg-amber-200 text-amber-900",
+		badgeClassName: "bg-amber-300",
+	},
+	agreement: {
+		label: "Agreement",
+		className:
+			"bg-sky-100 border-sky-400 hover:bg-sky-200 text-sky-900",
+		badgeClassName: "bg-sky-300",
+	},
+	sold: {
+		label: "Sold",
+		className: "bg-rose-100 border-rose-400 hover:bg-rose-200 text-rose-900",
+		badgeClassName: "bg-rose-300",
+	},
+};
+
+export function PlotLayoutGrid({ plots, projectName, projectId }: PlotLayoutGridProps) {
+	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
+	const [editing, setEditing] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const router = useRouter();
+
+	const sortedPlots = useMemo(
+		() => {
+			const collator = new Intl.Collator(undefined, {
+				numeric: true,
+				sensitivity: "base",
+			});
+			return [...plots].sort((a, b) =>
+				collator.compare(String(a.plot_number), String(b.plot_number)),
+			);
+		},
+		[plots],
+	);
+
+	const columns = useMemo(() => {
+		if (sortedPlots.length === 0) return 1;
+		return Math.ceil(Math.sqrt(sortedPlots.length));
+	}, [sortedPlots.length]);
+
+	const selectedPlot =
+		sortedPlots.find((plot) => plot.id === selectedPlotId) ??
+		sortedPlots[0] ??
+		null;
+
+	const [formState, setFormState] = useState<{
+		size_sqft: number;
+		rate_per_sqft: number;
+		facing: string;
+		notes: string;
+	}>({
+		size_sqft: selectedPlot?.size_sqft ?? 0,
+		rate_per_sqft: selectedPlot?.rate_per_sqft ?? 0,
+		facing: selectedPlot?.facing ?? "",
+		notes: "",
+	});
+
+	// keep form in sync when selection changes
+	useMemo(() => {
+		if (!selectedPlot) return;
+		setEditing(false);
+		setFormState({
+			size_sqft: selectedPlot.size_sqft ?? 0,
+			rate_per_sqft: selectedPlot.rate_per_sqft ?? 0,
+			facing: selectedPlot.facing ?? "",
+			notes: (selectedPlot as any).notes ?? "",
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedPlotId]);
+
+	return (
+		<div className="space-y-4">
+			<div className="flex items-center justify-between">
+				<div>
+					<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+						Plot Layout
+					</p>
+					<p className="text-sm text-zinc-600">
+						{projectName
+							? `Interactive layout for ${projectName}`
+							: `Tap on a plot to view details`}
+					</p>
+				</div>
+
+				<div className="flex gap-3 text-[11px] text-zinc-600">
+					<LegendPill colorClass="bg-emerald-300" label="Available" />
+					<LegendPill colorClass="bg-amber-300" label="Token" />
+					<LegendPill colorClass="bg-sky-300" label="Agreement" />
+					<LegendPill colorClass="bg-rose-300" label="Sold" />
+				</div>
+			</div>
+
+			<div className="flex flex-col lg:flex-row gap-4">
+				<div className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-inner">
+					<div
+						className="grid gap-2"
+						style={{
+							gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+						}}
+					>
+						{sortedPlots.map((plot) => {
+							const statusKey: StatusKey =
+								(plot.status as StatusKey) || "available";
+							const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.available;
+
+							return (
+								<button
+									key={plot.id}
+									type="button"
+									onClick={() => setSelectedPlotId(plot.id)}
+									className={[
+										// Smaller, more "seat-map" cell shape
+										"relative aspect-square rounded-md border text-xs font-semibold",
+										"flex items-center justify-center transition-all",
+										"focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2",
+										cfg.className,
+										selectedPlotId === plot.id
+											? "ring-2 ring-sky-500 ring-offset-2"
+											: "",
+									].join(" ")}
+								>
+									<span className="text-[13px] font-bold">
+										{plot.plot_number}
+									</span>
+									<span className="pointer-events-none absolute bottom-1 left-0 right-0 text-[10px] font-medium text-zinc-700">
+										{cfg.label}
+									</span>
+								</button>
+							);
+						})}
+					</div>
+					{sortedPlots.length > 0 && (
+						<div className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-400">
+							9m Wide Road
+						</div>
+					)}
+				</div>
+
+				<div className="w-full lg:w-96 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+					{selectedPlot ? (
+						<>
+							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-1">
+								Plot Details
+							</p>
+							<h3 className="text-lg font-bold text-zinc-900 mb-3">
+								Plot #{selectedPlot.plot_number}
+							</h3>
+
+							<div className="flex flex-wrap gap-2 mb-3">
+								<Badge variant="secondary" className="capitalize">
+									{(selectedPlot.status || "available") as string}
+								</Badge>
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() => setEditing((v) => !v)}
+									disabled={saving || selectedPlot.status !== "available"}
+								>
+									{editing ? "Cancel Edit" : "Edit"}
+								</Button>
+								<Link href={`/sales/new?plotId=${selectedPlot.id}`}>
+									<Button size="sm" disabled={saving || selectedPlot.status !== "available"}>
+										Sell / Book
+									</Button>
+								</Link>
+								<Button
+									size="sm"
+									variant="destructive"
+									disabled={saving || selectedPlot.status !== "available"}
+									onClick={async () => {
+										setSaving(true);
+										try {
+											const res = await deletePlot(selectedPlot.id, projectId);
+											if (!res.success) {
+												toast.error("Delete failed", { description: res.error });
+												return;
+											}
+											toast.success("Plot deleted");
+											router.refresh();
+										} finally {
+											setSaving(false);
+										}
+									}}
+								>
+									Delete
+								</Button>
+							</div>
+
+							{editing ? (
+								<div className="space-y-3">
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+												Size (sqft)
+											</p>
+											<Input
+												type="number"
+												value={formState.size_sqft}
+												onChange={(e) =>
+													setFormState((s) => ({
+														...s,
+														size_sqft: Number(e.target.value || 0),
+													}))
+												}
+											/>
+										</div>
+										<div>
+											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+												Rate / sqft
+											</p>
+											<Input
+												type="number"
+												value={formState.rate_per_sqft}
+												onChange={(e) =>
+													setFormState((s) => ({
+														...s,
+														rate_per_sqft: Number(e.target.value || 0),
+													}))
+												}
+											/>
+										</div>
+									</div>
+									<div>
+										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+											Facing
+										</p>
+										<Input
+											value={formState.facing}
+											onChange={(e) =>
+												setFormState((s) => ({ ...s, facing: e.target.value }))
+											}
+										/>
+									</div>
+									<div>
+										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+											Notes
+										</p>
+										<Textarea
+											rows={3}
+											value={formState.notes}
+											onChange={(e) =>
+												setFormState((s) => ({ ...s, notes: e.target.value }))
+											}
+										/>
+									</div>
+									<Button
+										disabled={saving}
+										onClick={async () => {
+											setSaving(true);
+											try {
+												const res = await updatePlot(selectedPlot.id, projectId, {
+													plot_number: selectedPlot.plot_number,
+													size_sqft: formState.size_sqft,
+													rate_per_sqft: formState.rate_per_sqft,
+													facing: formState.facing,
+													notes: formState.notes,
+												} as any);
+												if (!res.success) {
+													toast.error("Save failed", { description: res.error });
+													return;
+												}
+												toast.success("Plot updated");
+												setEditing(false);
+												router.refresh();
+											} finally {
+												setSaving(false);
+											}
+										}}
+									>
+										Save Changes
+									</Button>
+								</div>
+							) : (
+								<div className="grid grid-cols-1 gap-2 text-sm">
+									<ModalField label="Facing">
+										{selectedPlot.facing || "—"}
+									</ModalField>
+									<ModalField label="Size">
+										{selectedPlot.size_sqft || 0} sqft
+									</ModalField>
+									<ModalField label="Rate / sqft">
+										₹ {(selectedPlot.rate_per_sqft || 0).toLocaleString("en-IN")}
+									</ModalField>
+									<ModalField label="Total Value">
+										₹{" "}
+										{(
+											(selectedPlot.size_sqft || 0) *
+											(selectedPlot.rate_per_sqft || 0)
+										).toLocaleString("en-IN")}
+									</ModalField>
+								</div>
+							)}
+
+							{selectedPlot.sale && (
+								<div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+									<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-2">
+										Sale Details
+									</p>
+									<div className="grid grid-cols-1 gap-2 text-sm">
+										<ModalField label="Customer">
+											{selectedPlot.sale.customer_name}
+										</ModalField>
+										<ModalField label="Advisor">
+											{selectedPlot.sale.advisor_name}
+										</ModalField>
+										<ModalField label="Sale Phase">
+											{selectedPlot.sale.sale_phase}
+										</ModalField>
+										<ModalField label="Total Sale Amount">
+											₹{" "}
+											{selectedPlot.sale.total_sale_amount.toLocaleString(
+												"en-IN",
+											)}
+										</ModalField>
+										<ModalField label="Amount Paid">
+											₹{" "}
+											{selectedPlot.sale.amount_paid.toLocaleString("en-IN")}
+										</ModalField>
+										<ModalField label="Pending Amount">
+											₹{" "}
+											{selectedPlot.sale.remaining_amount.toLocaleString(
+												"en-IN",
+											)}
+										</ModalField>
+									</div>
+								</div>
+							)}
+						</>
+					) : (
+						<div className="flex h-full flex-col items-center justify-center text-center text-xs text-zinc-500">
+							<p className="mb-1 font-medium">No plot selected</p>
+							<p>Tap a plot on the left to view details.</p>
+						</div>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function LegendPill({
+	colorClass,
+	label,
+}: {
+	colorClass: string;
+	label: string;
+}) {
+	return (
+		<span className="inline-flex items-center gap-1">
+			<span
+				className={`h-3 w-3 rounded-full border border-white shadow ${colorClass}`}
+			/>
+			{label}
+		</span>
+	);
+}
+
+function DetailRow({
+	label,
+	children,
+	icon: Icon,
+}: {
+	label: string;
+	children: React.ReactNode;
+	icon?: LucideIcon;
+}) {
+	return (
+		<div className="flex items-center justify-between gap-2">
+			<div className="flex items-center gap-1.5 text-zinc-500">
+				{Icon && <Icon className="h-3 w-3" />}
+				<span>{label}</span>
+			</div>
+			<div className="font-medium text-zinc-900">{children}</div>
+		</div>
+	);
+}
+
+function ModalField({
+	label,
+	children,
+}: {
+	label: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="rounded-lg border border-zinc-200 bg-white p-3">
+			<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+				{label}
+			</p>
+			<p className="mt-1 font-medium text-zinc-900">{children}</p>
+		</div>
+	);
+}
+

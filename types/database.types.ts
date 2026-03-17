@@ -5,7 +5,8 @@ export type Project = {
   name: string;
   location?: string;
   total_plots_count: number;
-  layout_expense?: number;
+  min_plot_rate?: number;
+  starting_plot_number?: number;
   description?: string;
   is_active?: boolean;
   created_at?: string;

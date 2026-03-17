@@ -23,6 +23,45 @@ export async function createSale(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	// Fetch plot + project min rate
+	const { data: plotRow, error: plotFetchError } = await supabase
+		.from("plots")
+		.select("id, project_id, size_sqft, plot_number, projects(min_plot_rate)")
+		.eq("id", parsed.data.plot_id)
+		.single();
+
+	if (plotFetchError || !plotRow) {
+		return { success: false, error: "Plot not found" };
+	}
+
+	const minRate = Number((plotRow as any).projects?.min_plot_rate ?? 0);
+	const plotSize = Number(plotRow.size_sqft ?? 0);
+	const minTotal = plotSize * minRate;
+	if (minTotal > 0 && Number(parsed.data.total_sale_amount) < minTotal) {
+		return {
+			success: false,
+			error: `Total sale amount is below project minimum. Minimum allowed: ₹ ${minTotal.toLocaleString(
+				"en-IN",
+			)}`,
+		};
+	}
+
+	// Advisor must be assigned to this project (project-wise commission)
+	const { data: assignment } = await supabase
+		.from("advisor_project_commissions")
+		.select("*")
+		.eq("project_id", plotRow.project_id)
+		.eq("advisor_id", parsed.data.advisor_id)
+		.maybeSingle();
+
+	if (!assignment) {
+		return {
+			success: false,
+			error:
+				"Advisor is not assigned to this project. Assign advisor in the project dashboard first.",
+		};
+	}
+
 	// 1. Create the sale record
 	const { data: sale, error: saleError } = await supabase
 		.from("plot_sales")
@@ -71,26 +110,25 @@ export async function createSale(
 	}
 
 	// 3. Create commission record
-	const { data: advisor } = await supabase
-		.from("advisors")
-		.select("*")
-		.eq("id", parsed.data.advisor_id)
-		.single();
+	const commPercent =
+		parsed.data.sale_phase === "token"
+			? Number(assignment.commission_token ?? 0)
+			: parsed.data.sale_phase === "agreement"
+				? Number(assignment.commission_agreement ?? 0)
+				: parsed.data.sale_phase === "registry"
+					? Number(assignment.commission_registry ?? 0)
+					: Number(assignment.commission_full_payment ?? 0);
 
-	if (advisor) {
-		// Determine commission percentage based on project phase (simplified to Face 1 for now)
-		const commPercent = advisor.commission_face1 || 0;
-		const commAmount = (parsed.data.total_sale_amount * commPercent) / 100;
+	const commAmount = (parsed.data.total_sale_amount * commPercent) / 100;
 
-		await supabase.from("advisor_commissions").insert({
-			advisor_id: parsed.data.advisor_id,
-			sale_id: sale.id,
-			commission_percentage: commPercent,
-			total_commission_amount: commAmount,
-			amount_paid: 0,
-			notes: `Commission for sale of plot ${parsed.data.plot_id}`,
-		});
-	}
+	await supabase.from("advisor_commissions").insert({
+		advisor_id: parsed.data.advisor_id,
+		sale_id: sale.id,
+		commission_percentage: commPercent,
+		total_commission_amount: commAmount,
+		amount_paid: 0,
+		notes: `Commission for sale of plot ${plotRow.plot_number}`,
+	});
 
 	revalidatePath("/sales");
 	revalidatePath("/commissions");

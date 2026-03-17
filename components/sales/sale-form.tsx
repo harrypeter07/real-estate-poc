@@ -35,16 +35,17 @@ interface SaleFormProps {
   plots: any[];
   customers: any[];
   advisors: any[];
+  initialPlotId?: string;
 }
 
-export function SaleForm({ plots, customers, advisors }: SaleFormProps) {
+export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
     defaultValues: {
-      plot_id: "",
+      plot_id: initialPlotId || "",
       customer_id: "",
       advisor_id: "",
       sale_phase: "token",

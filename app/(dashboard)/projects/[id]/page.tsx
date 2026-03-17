@@ -18,6 +18,11 @@ import { StatCard } from "@/components/shared/stat-card";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { getProjectWithStats } from "@/app/actions/project-actions";
 import { ProjectEditWrapper } from "@/components/projects/project-edit-wrapper";
+import { getPlotsByProject } from "@/app/actions/plots";
+import { PlotLayoutGrid } from "@/components/projects/plot-layout-grid";
+import { getAdvisors } from "@/app/actions/advisors";
+import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
+import { ProjectAdvisorAssignments } from "@/components/projects/project-advisor-assignments";
 
 interface Props {
 	params: { id: string };
@@ -31,12 +36,41 @@ export default async function ProjectDetailPage({
 	const { id } = await params;
 	const { edit } = await searchParams;
 	const data = await getProjectWithStats(id);
+	const plots = await getPlotsByProject(id);
+	const advisors = await getAdvisors();
+	const advisorAssignments = await getAdvisorAssignmentsByProject(id);
 
 	if (!data) {
 		notFound();
 	}
 
 	const { project, plotCounts, totalRevenue, recentSales } = data;
+
+	const plannedCount = Number(project.total_plots_count ?? 0);
+	const plotByNumber = new Map(plots.map((p) => [p.plot_number, p]));
+	const layoutPlots =
+		plannedCount > 0
+			? Array.from({ length: plannedCount }, (_, idx) => {
+					const plotNumber = String(idx + 1);
+					return (
+						plotByNumber.get(plotNumber) ?? {
+							id: `planned-${plotNumber}`,
+							project_id: project.id,
+							plot_number: plotNumber,
+							size_sqft: 0,
+							rate_per_sqft: 0,
+							total_amount: 0,
+							status: "available" as const,
+							facing: null,
+							notes: null,
+							created_at: new Date().toISOString(),
+							updated_at: new Date().toISOString(),
+							sale: null,
+							payments: [],
+						}
+					);
+				})
+			: plots;
 
 	// If ?edit=true, show the edit form
 	if (edit === "true") {
@@ -109,6 +143,40 @@ export default async function ProjectDetailPage({
 				/>
 			</div>
 
+			{/* Plot Layout */}
+			{layoutPlots.length > 0 && (
+				<Card className="mb-6">
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm font-medium text-zinc-500">
+							Interactive Plot Layout
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<PlotLayoutGrid
+							plots={layoutPlots}
+							projectName={project.name}
+							projectId={project.id}
+						/>
+					</CardContent>
+				</Card>
+			)}
+
+			{/* Advisor assignments */}
+			<Card className="mb-6">
+				<CardHeader className="pb-2">
+					<CardTitle className="text-sm font-medium text-zinc-500">
+						Advisor Assignment & Commission (Project-wise)
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<ProjectAdvisorAssignments
+						projectId={project.id}
+						advisors={advisors}
+						assignments={advisorAssignments}
+					/>
+				</CardContent>
+			</Card>
+
 			{/* Revenue + Info */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 				<Card>
@@ -128,12 +196,12 @@ export default async function ProjectDetailPage({
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium text-zinc-500">
-							Layout Expense
+							Minimum Plot Rate
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold">
-							{formatCurrency(Number(project.layout_expense ?? 0))}
+							₹ {Number(project.min_plot_rate ?? 0).toLocaleString("en-IN")}/sqft
 						</p>
 					</CardContent>
 				</Card>

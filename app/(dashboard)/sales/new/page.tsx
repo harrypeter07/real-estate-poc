@@ -4,7 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdvisors } from "@/app/actions/advisors";
 import { getCustomers } from "@/app/actions/customers";
 
-export default async function NewSalePage() {
+export default async function NewSalePage({
+	searchParams,
+}: {
+	searchParams?: { plotId?: string };
+}) {
 	const supabase = await createClient();
 	if (!supabase) return <div>Database connection failed</div>;
 
@@ -30,6 +34,7 @@ export default async function NewSalePage() {
 					plots={plots || []}
 					customers={customers}
 					advisors={advisors}
+					initialPlotId={searchParams?.plotId}
 				/>
 			</div>
 		</div>

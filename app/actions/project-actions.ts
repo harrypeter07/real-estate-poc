@@ -27,16 +27,48 @@ export async function createProject(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	const { error } = await supabase.from("projects").insert({
-		name: parsed.data.name,
-		location: parsed.data.location,
-		total_plots_count: parsed.data.total_plots_count,
-		layout_expense: parsed.data.layout_expense ?? 0,
-		description: parsed.data.description ?? "",
-	});
+	const { data: projectRow, error } = await supabase
+		.from("projects")
+		.insert({
+			name: parsed.data.name,
+			location: parsed.data.location,
+			total_plots_count: parsed.data.total_plots_count,
+			min_plot_rate: parsed.data.min_plot_rate,
+			starting_plot_number: parsed.data.starting_plot_number ?? 1,
+			description: parsed.data.description ?? "",
+		})
+		.select("*")
+		.single();
 
 	if (error) {
 		return { success: false, error: error.message };
+	}
+
+	// Auto-create basic plot records for this project
+	const count = parsed.data.total_plots_count;
+	const start = parsed.data.starting_plot_number ?? 1;
+	if (projectRow && count > 0) {
+		const plotsToInsert = Array.from({ length: count }, (_, idx) => {
+			const plotNumber = String(start + idx);
+			return {
+				project_id: projectRow.id,
+				plot_number: plotNumber,
+				size_sqft: 0,
+				rate_per_sqft: parsed.data.min_plot_rate,
+				facing: null,
+			};
+		});
+
+		const { error: plotError } = await supabase
+			.from("plots")
+			.insert(plotsToInsert);
+
+		if (plotError) {
+			return {
+				success: false,
+				error: `Project created but failed to create plots: ${plotError.message}`,
+			};
+		}
 	}
 
 	revalidatePath("/projects");
@@ -64,7 +96,8 @@ export async function updateProject(
 			name: parsed.data.name,
 			location: parsed.data.location,
 			total_plots_count: parsed.data.total_plots_count,
-			layout_expense: parsed.data.layout_expense ?? 0,
+			min_plot_rate: parsed.data.min_plot_rate,
+			starting_plot_number: parsed.data.starting_plot_number ?? 1,
 			description: parsed.data.description ?? "",
 			updated_at: new Date().toISOString(),
 		})

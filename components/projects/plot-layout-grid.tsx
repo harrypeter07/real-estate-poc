@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,6 +15,7 @@ interface PlotForGrid {
 	rate_per_sqft: number;
 	status: "available" | "token" | "agreement" | "sold" | string;
 	facing: string | null;
+	notes?: string | null;
 	sale?: {
 		customer_name: string;
 		advisor_name: string;
@@ -32,6 +33,7 @@ interface PlotLayoutGridProps {
 	plots: PlotForGrid[];
 	projectName?: string;
 	projectId: string;
+	initialPlotId?: string | null;
 }
 
 type StatusKey = "available" | "token" | "agreement" | "sold";
@@ -69,11 +71,17 @@ const STATUS_CONFIG: Record<
 	},
 };
 
-export function PlotLayoutGrid({ plots, projectName, projectId }: PlotLayoutGridProps) {
-	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
+export function PlotLayoutGrid({ plots, projectName, projectId, initialPlotId }: PlotLayoutGridProps) {
+	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(initialPlotId ?? null);
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const router = useRouter();
+
+	useEffect(() => {
+		if (initialPlotId && plots.some((p) => p.id === initialPlotId)) {
+			setSelectedPlotId(initialPlotId);
+		}
+	}, [initialPlotId, plots]);
 
 	const sortedPlots = useMemo(
 		() => {
@@ -98,6 +106,9 @@ export function PlotLayoutGrid({ plots, projectName, projectId }: PlotLayoutGrid
 		sortedPlots[0] ??
 		null;
 
+	const isPlaceholder = selectedPlot?.id?.startsWith?.("planned-") ?? false;
+	const canEdit = selectedPlot && !isPlaceholder && selectedPlot.status === "available";
+
 	const [formState, setFormState] = useState<{
 		size_sqft: number;
 		rate_per_sqft: number;
@@ -118,7 +129,7 @@ export function PlotLayoutGrid({ plots, projectName, projectId }: PlotLayoutGrid
 			size_sqft: selectedPlot.size_sqft ?? 0,
 			rate_per_sqft: selectedPlot.rate_per_sqft ?? 0,
 			facing: selectedPlot.facing ?? "",
-			notes: (selectedPlot as any).notes ?? "",
+			notes: selectedPlot.notes ?? "",
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [selectedPlotId]);
@@ -209,19 +220,19 @@ export function PlotLayoutGrid({ plots, projectName, projectId }: PlotLayoutGrid
 									size="sm"
 									variant="outline"
 									onClick={() => setEditing((v) => !v)}
-									disabled={saving || selectedPlot.status !== "available"}
+									disabled={saving || !canEdit}
 								>
 									{editing ? "Cancel Edit" : "Edit"}
 								</Button>
 								<Link href={`/sales/new?plotId=${selectedPlot.id}`}>
-									<Button size="sm" disabled={saving || selectedPlot.status !== "available"}>
+									<Button size="sm" disabled={saving || !canEdit}>
 										Sell / Book
 									</Button>
 								</Link>
 								<Button
 									size="sm"
 									variant="destructive"
-									disabled={saving || selectedPlot.status !== "available"}
+									disabled={saving || !canEdit}
 									onClick={async () => {
 										setSaving(true);
 										try {
@@ -343,6 +354,16 @@ export function PlotLayoutGrid({ plots, projectName, projectId }: PlotLayoutGrid
 											(selectedPlot.rate_per_sqft || 0)
 										).toLocaleString("en-IN")}
 									</ModalField>
+									{selectedPlot.notes && (
+										<div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 col-span-full">
+											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+												Notes
+											</p>
+											<p className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap">
+												{selectedPlot.notes}
+											</p>
+										</div>
+									)}
 								</div>
 							)}
 

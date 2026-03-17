@@ -69,31 +69,20 @@ export function PlotCard({ plot, projectId }: PlotCardProps) {
 			onClick={() => router.push(`/projects/${projectId}/plots/${plot.id}`)}
 			className="block h-full cursor-pointer group"
 		>
-			<Card className="overflow-hidden border-zinc-200 group-hover:border-zinc-400 transition-colors h-full">
-				<CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+			<Card className="h-full overflow-hidden transition-colors border-zinc-200 group-hover:border-zinc-400">
+				<CardHeader className="flex flex-row items-center justify-between p-4 pb-2 space-y-0">
 					<div className="flex items-center gap-2">
 						<Badge
 							variant="outline"
 							className={`${config.className} font-medium px-2 py-0.5`}
 						>
-							<StatusIcon className="h-3 w-3 mr-1" />
+							<StatusIcon className="w-3 h-3 mr-1" />
 							{config.label}
 						</Badge>
-						<span className="font-bold text-lg text-zinc-900">
+						<span className="text-lg font-bold text-zinc-900">
 							{plot.plot_number}
 						</span>
 					</div>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="h-8 w-8 text-zinc-400 hover:text-zinc-600"
-						onClick={(e) => {
-							e.stopPropagation();
-							router.push(`/projects/${projectId}/plots/${plot.id}/edit`);
-						}}
-					>
-						<Pencil className="h-4 w-4" />
-					</Button>
 				</CardHeader>
 				<CardContent className="p-4 pt-2 space-y-3">
 					<div className="grid grid-cols-2 gap-4">

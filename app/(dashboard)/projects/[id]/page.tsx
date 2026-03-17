@@ -25,8 +25,8 @@ import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 import { ProjectAdvisorAssignments } from "@/components/projects/project-advisor-assignments";
 
 interface Props {
-	params: { id: string };
-	searchParams: { edit?: string };
+	params: Promise<{ id: string }>;
+	searchParams: Promise<{ edit?: string; plotId?: string }>;
 }
 
 export default async function ProjectDetailPage({
@@ -34,7 +34,7 @@ export default async function ProjectDetailPage({
 	searchParams,
 }: Props) {
 	const { id } = await params;
-	const { edit } = await searchParams;
+	const { edit, plotId } = await searchParams;
 	const data = await getProjectWithStats(id);
 	const plots = await getPlotsByProject(id);
 	const advisors = await getAdvisors();
@@ -156,6 +156,7 @@ export default async function ProjectDetailPage({
 							plots={layoutPlots}
 							projectName={project.name}
 							projectId={project.id}
+							initialPlotId={plotId}
 						/>
 					</CardContent>
 				</Card>

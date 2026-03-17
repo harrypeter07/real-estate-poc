@@ -7,11 +7,13 @@ import { PlotCard } from "@/components/projects/plot-card";
 import { PlotLayoutGrid } from "@/components/projects/plot-layout-grid";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ plotId?: string }>;
 }
 
-export default async function PlotsPage({ params }: Props) {
+export default async function PlotsPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { plotId } = await searchParams;
   const plots = await getPlotsByProject(id);
 
   return (
@@ -40,7 +42,7 @@ export default async function PlotsPage({ params }: Props) {
               Similar to a movie seat screen – tap a plot to view details.
             </p>
           </div>
-          <PlotLayoutGrid plots={plots} projectId={id} />
+          <PlotLayoutGrid plots={plots} projectId={id} initialPlotId={plotId} />
         </div>
       )}
 

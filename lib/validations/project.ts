@@ -7,8 +7,10 @@ export const projectSchema = z.object({
 		.number()
 		.int("Must be a whole number")
 		.positive("Must be greater than 0"),
-	layout_expense: z.number().min(0, "Cannot be negative"),
-	description: z.string(),
+	layout_expense: z.number().min(0, "Cannot be negative").default(0),
+	min_plot_rate: z.number().min(0, "Cannot be negative").default(0),
+	starting_plot_number: z.number().int().min(1, "Must be at least 1").default(1),
+	description: z.string().default(""),
 });
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;

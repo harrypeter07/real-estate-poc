@@ -43,7 +43,6 @@ export async function createPayment(
 
 	revalidatePath("/payments");
 	revalidatePath("/sales");
-	revalidatePath(`/sales/${parsed.data.sale_id}`);
 	return { success: true };
 }
 

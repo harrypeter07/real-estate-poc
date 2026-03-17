@@ -123,6 +123,43 @@ export async function getReminders() {
 	return data || [];
 }
 
+export async function getPeopleWithBirthdayToday(): Promise<{
+	customers: Array<{ id: string; name: string; phone: string; birth_date: string }>;
+	advisors: Array<{ id: string; name: string; phone: string; birth_date: string }>;
+}> {
+	const supabase = await createClient();
+	if (!supabase)
+		return { customers: [], advisors: [] };
+
+	const today = new Date();
+	const month = today.getMonth() + 1;
+	const day = today.getDate();
+
+	const { data: customers } = await supabase
+		.from("customers")
+		.select("id, name, phone, birth_date")
+		.not("birth_date", "is", null)
+		.eq("is_active", true);
+
+	const { data: advisors } = await supabase
+		.from("advisors")
+		.select("id, name, phone, birth_date")
+		.not("birth_date", "is", null)
+		.eq("is_active", true);
+
+	const filterByToday = (rows: any[] | null) =>
+		(rows || []).filter((r) => {
+			if (!r.birth_date) return false;
+			const d = new Date(r.birth_date);
+			return d.getMonth() + 1 === month && d.getDate() === day;
+		});
+
+	return {
+		customers: filterByToday(customers),
+		advisors: filterByToday(advisors),
+	};
+}
+
 export async function toggleReminder(id: string, isCompleted: boolean) {
 	const supabase = await createClient();
 	if (!supabase) {

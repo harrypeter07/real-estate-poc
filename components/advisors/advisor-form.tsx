@@ -43,8 +43,11 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 			name: initialData?.name ?? "",
 			code: initialData?.code ?? "",
 			phone: initialData?.phone ?? "",
+			email: initialData?.email ?? "",
 			address: initialData?.address ?? "",
 			birth_date: initialData?.birth_date ?? "",
+			password: "",
+			use_phone_as_password: true,
 			commission_face1: initialData?.commission_face1 ?? 2,
 			commission_face2: initialData?.commission_face2 ?? 2,
 			commission_face3: initialData?.commission_face3 ?? 2,
@@ -77,14 +80,18 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 		];
 		const randomArea = areas[Math.floor(Math.random() * areas.length)];
 
+		const phone = `98${Math.floor(Math.random() * 90000000) + 10000000}`;
 		form.reset({
 			name: randomName,
 			code: randomCode,
-			phone: `98${Math.floor(Math.random() * 90000000) + 10000000}`,
+			phone,
+			email: "",
 			address: `${
 				Math.floor(Math.random() * 100) + 1
 			}, Main Road, ${randomArea}, Nagpur`,
 			birth_date: "1985-05-15",
+			password: "",
+			use_phone_as_password: true,
 			commission_face1: 2.5,
 			commission_face2: 2.5,
 			commission_face3: 2.0,
@@ -198,6 +205,53 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 								)}
 							/>
 						</div>
+
+						{mode === "create" && (
+							<div className="rounded-lg border border-zinc-200 p-4 space-y-3 bg-zinc-50/50">
+								<h3 className="text-sm font-semibold">Login Credentials</h3>
+								<p className="text-xs text-zinc-500">
+									Advisor can login with phone + password. Default password is phone number.
+								</p>
+								<FormField
+									control={form.control}
+									name="use_phone_as_password"
+									render={({ field }) => (
+										<FormItem className="flex items-center gap-2 space-y-0">
+											<FormControl>
+												<input
+													type="checkbox"
+													checked={field.value}
+													onChange={(e) => field.onChange(e.target.checked)}
+													className="rounded border-zinc-300"
+												/>
+											</FormControl>
+											<FormLabel className="!mt-0 cursor-pointer font-normal">
+												Use phone number as default password
+											</FormLabel>
+										</FormItem>
+									)}
+								/>
+								{!form.watch("use_phone_as_password") && (
+									<FormField
+										control={form.control}
+										name="password"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Custom Password</FormLabel>
+												<FormControl>
+													<Input
+														type="password"
+														placeholder="Min 6 characters"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+							</div>
+						)}
 
 						<FormField
 							control={form.control}

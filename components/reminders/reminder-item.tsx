@@ -35,6 +35,7 @@ import {
 } from "@/components/ui";
 import { formatDate } from "@/lib/utils/formatters";
 import { toggleReminder, deleteReminder } from "@/app/actions/reminders";
+import { getTemplateForType, fillTemplate, type ReminderType } from "@/lib/reminder-templates";
 import { toast } from "sonner";
 import { ReminderForm } from "./reminder-form";
 
@@ -62,33 +63,17 @@ export function ReminderItem({ reminder, customers = [] }: ReminderItemProps) {
 		const phone = rawPhone.replace(/\D/g, "");
 		const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
 
-		let message = "";
 		const customerName = reminder.customers?.name || "there";
-		const companyInfo =
-			"\n\nRegards,\nMG Infra Nagpur\nContact: +91 9876543210";
-
-		switch (reminder.type) {
-			case "birthday_customer":
-				message = `Wishing you a very Happy Birthday, ${customerName}! 🎂 May this year bring you joy and prosperity. ${companyInfo}`;
-				break;
-			case "token_expiry":
-				message = `Hello ${customerName}, your token period for the plot at MG Infra is expiring soon. Kindly complete the process to avoid cancellation. ${companyInfo}`;
-				break;
-			case "agreement_expiry":
-				message = `Hello ${customerName}, your agreement period is approaching its deadline. Please visit our office for the next steps. ${companyInfo}`;
-				break;
-			case "installment_due":
-				message = `Hello ${customerName}, this is a reminder for your plot installment due at MG Infra. Kindly ignore if already paid. ${companyInfo}`;
-				break;
-			case "payment":
-				message = `Hello ${customerName}, gentle reminder regarding your pending payment for the plot. ${companyInfo}`;
-				break;
-			case "crm_followup":
-				message = `Hello ${customerName}, following up on our previous discussion regarding the MG Infra projects in Nagpur. ${companyInfo}`;
-				break;
-			default:
-				message = `Hello ${customerName}, regarding your task: ${reminder.title}. ${companyInfo}`;
-		}
+		const type = (reminder.type || "other") as ReminderType;
+		const template = getTemplateForType(type);
+		const message = template
+			? fillTemplate(template.body, {
+					name: customerName,
+					date: formatDate(reminder.reminder_date),
+					title: reminder.title,
+					description: reminder.description || "",
+				})
+			: `Hello ${customerName}, regarding your task: ${reminder.title}.\n\nRegards,\nMG Infra Nagpur\nContact: +91 9876543210`;
 
 		const encodedMessage = encodeURIComponent(message);
 		window.open(

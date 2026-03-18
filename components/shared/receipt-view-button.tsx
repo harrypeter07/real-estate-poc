@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Receipt } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { ReceiptViewer } from "@/components/shared/receipt-viewer";
 
 export function ReceiptViewButton({
   receiptPath,
@@ -42,16 +43,7 @@ export function ReceiptViewButton({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={url}
-            alt="Receipt"
-            className="w-full rounded-md border border-zinc-200"
-          />
-        ) : (
-          <div className="text-sm text-zinc-500">Receipt not available.</div>
-        )}
+        <ReceiptViewer receiptPath={receiptPath} title={title} bucket={bucket} />
       </DialogContent>
     </Dialog>
   );

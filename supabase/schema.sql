@@ -142,6 +142,7 @@ CREATE TABLE payments (
   sale_id UUID NOT NULL REFERENCES plot_sales(id) ON DELETE CASCADE,
   customer_id UUID NOT NULL REFERENCES customers(id),
   slip_number TEXT,
+  receipt_path TEXT,
   amount DECIMAL(12,2) NOT NULL,
   payment_date DATE NOT NULL,
   payment_mode payment_mode NOT NULL DEFAULT 'cash',
@@ -181,6 +182,7 @@ CREATE TABLE office_expenses (
   expense_date DATE NOT NULL,
   category expense_category DEFAULT 'misc',
   receipt_note TEXT,
+  receipt_path TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

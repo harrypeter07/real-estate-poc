@@ -6,6 +6,7 @@ export const expenseSchema = z.object({
   expense_date: z.string().min(1, "Date is required"),
   category: z.enum(["office", "marketing", "travel", "layout_dev", "legal", "salary", "misc"]),
   receipt_note: z.string().optional().default(""),
+  receipt_path: z.string().optional().default(""),
 });
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;

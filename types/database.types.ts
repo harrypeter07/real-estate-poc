@@ -86,6 +86,7 @@ export type Payment = {
   sale_id: string;
   customer_id: string;
   slip_number?: string;
+  receipt_path?: string;
   amount: number;
   payment_date: string;
   payment_mode: 'cash' | 'online' | 'cheque';
@@ -116,6 +117,7 @@ export type OfficeExpense = {
   expense_date: string;
   category?: 'salary' | 'utilities' | 'maintenance' | 'marketing' | 'misc';
   receipt_note?: string;
+  receipt_path?: string;
   created_at?: string;
   updated_at?: string;
 };

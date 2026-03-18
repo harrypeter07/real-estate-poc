@@ -33,6 +33,7 @@ export async function createPayment(
 		payment_date: parsed.data.payment_date,
 		payment_mode: parsed.data.payment_mode,
 		slip_number: parsed.data.slip_number || null,
+		receipt_path: parsed.data.receipt_path || null,
 		is_confirmed: parsed.data.is_confirmed,
 		notes: parsed.data.notes || null,
 	});

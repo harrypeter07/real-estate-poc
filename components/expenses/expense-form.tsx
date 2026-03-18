@@ -29,10 +29,16 @@ import {
 } from "@/components/ui";
 import { expenseSchema, type ExpenseFormValues } from "@/lib/validations/expense";
 import { createExpense } from "@/app/actions/expenses";
+import { ReceiptUpload } from "@/components/shared/receipt-upload";
 
 export function ExpenseForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [draftId] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : String(Date.now())
+  );
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema) as any,
@@ -42,6 +48,7 @@ export function ExpenseForm() {
       expense_date: new Date().toISOString().split('T')[0],
       category: "misc",
       receipt_note: "",
+      receipt_path: "",
     },
   });
 
@@ -182,6 +189,24 @@ export function ExpenseForm() {
                 <FormItem>
                   <FormLabel>Receipt Note</FormLabel>
                   <FormControl><Input placeholder="Bill number or reference" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="receipt_path"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ReceiptUpload
+                      folder="expenses"
+                      recordId={draftId}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

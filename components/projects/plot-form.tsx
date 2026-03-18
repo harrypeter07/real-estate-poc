@@ -47,8 +47,9 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 		resolver: zodResolver(plotSchema) as any,
 		defaultValues: {
 			plot_number: initialData?.plot_number ?? "",
-			size_sqft: initialData?.size_sqft ?? 0,
-			rate_per_sqft: initialData?.rate_per_sqft ?? 0,
+			// Keep numeric fields visually blank until user fills them
+			size_sqft: (initialData?.size_sqft as any) ?? (undefined as any),
+			rate_per_sqft: (initialData?.rate_per_sqft as any) ?? (undefined as any),
 			facing: initialData?.facing ?? "",
 			notes: initialData?.notes ?? "",
 		},
@@ -174,12 +175,13 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 												type="number"
 												placeholder="e.g. 1500"
 												{...field}
+												value={field.value ?? ""}
 												onChange={(e) => {
 													const raw = e.target.value;
 													const sanitized = raw.replace(/^0+(?=\d)/, "");
 													field.onChange(
 														sanitized === ""
-															? 0
+															? undefined
 															: parseInt(sanitized) || 0
 													);
 												}}
@@ -203,12 +205,13 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 												type="number"
 												placeholder="e.g. 1200"
 												{...field}
+												value={field.value ?? ""}
 												onChange={(e) => {
 													const raw = e.target.value;
 													const sanitized = raw.replace(/^0+(?=\d)/, "");
 													field.onChange(
 														sanitized === ""
-															? 0
+															? undefined
 															: parseInt(sanitized) || 0
 													);
 												}}

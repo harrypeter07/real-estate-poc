@@ -6,7 +6,6 @@ import {
 	Clock,
 	User,
 	Home,
-	Receipt,
 } from "lucide-react";
 import {
 	Button,
@@ -23,6 +22,7 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { getPayments } from "@/app/actions/payments";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { PaymentRowActions } from "@/components/payments/payment-row-actions";
 
 export default async function PaymentsPage() {
 	const payments = await getPayments();
@@ -120,15 +120,7 @@ export default async function PaymentsPage() {
 										</TableCell>
 										<TableCell className="text-right">
 											<div className="flex justify-end gap-2">
-												<Link href={`/payments/${payment.id}`}>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8"
-													>
-														<Receipt className="h-4 w-4" />
-													</Button>
-												</Link>
+												<PaymentRowActions payment={payment} />
 											</div>
 										</TableCell>
 									</TableRow>

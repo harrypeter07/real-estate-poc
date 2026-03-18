@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus, Receipt, IndianRupee, Tag, Calendar } from "lucide-react";
+import { Plus, Receipt, IndianRupee } from "lucide-react";
 import { Button, Card, CardContent, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
 import { getExpenses } from "@/app/actions/expenses";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { ReceiptViewButton } from "@/components/shared/receipt-view-button";
 
 export default async function ExpensesPage() {
   const expenses = await getExpenses();
@@ -73,6 +74,7 @@ export default async function ExpensesPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Receipt</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -98,6 +100,14 @@ export default async function ExpensesPage() {
                       </TableCell>
                       <TableCell className="text-right font-bold text-red-600">
                         {formatCurrency(expense.amount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end">
+                          <ReceiptViewButton
+                            receiptPath={(expense as any).receipt_path}
+                            title="Expense Receipt"
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

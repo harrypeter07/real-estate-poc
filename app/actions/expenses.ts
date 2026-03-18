@@ -34,6 +34,7 @@ export async function createExpense(
 		expense_date: parsed.data.expense_date,
 		category: parsed.data.category,
 		receipt_note: parsed.data.receipt_note || null,
+		receipt_path: parsed.data.receipt_path || null,
 	});
 
 	if (error) {

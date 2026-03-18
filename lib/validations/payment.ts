@@ -7,6 +7,7 @@ export const paymentSchema = z.object({
   payment_date: z.string().min(1, "Payment date is required"),
   payment_mode: z.enum(["cash", "cheque", "online", "other"]),
   slip_number: z.string().optional().default(""),
+  receipt_path: z.string().optional().default(""),
   is_confirmed: z.boolean().default(false),
   notes: z.string().optional().default(""),
 });

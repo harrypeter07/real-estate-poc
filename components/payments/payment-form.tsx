@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,7 @@ import {
 import { paymentSchema, type PaymentFormValues } from "@/lib/validations/payment";
 import { createPayment } from "@/app/actions/payments";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { ReceiptUpload } from "@/components/shared/receipt-upload";
 
 interface PaymentFormProps {
   sales: any[];
@@ -40,6 +41,11 @@ interface PaymentFormProps {
 export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [draftId] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : String(Date.now())
+  );
 
   const selectedSale = sales.find(s => s.id === initialSaleId);
 
@@ -52,7 +58,9 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       payment_date: new Date().toISOString().split('T')[0],
       payment_mode: "cash",
       slip_number: "",
-      is_confirmed: false,
+      receipt_path: "",
+      // Payments recorded through this form are always treated as confirmed
+      is_confirmed: true,
       notes: "",
     },
   });
@@ -210,21 +218,18 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
 
             <FormField
               control={form.control}
-              name="is_confirmed"
+              name="receipt_path"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Confirmed Payment</FormLabel>
-                    <div className="text-sm text-zinc-500">
-                      Mark as 'Pakka' if payment is verified in bank/cashbox
-                    </div>
-                  </div>
+                <FormItem>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                    <ReceiptUpload
+                      folder="payments"
+                      recordId={draftId}
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

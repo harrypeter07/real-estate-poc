@@ -218,8 +218,12 @@ function RateInput({
 				type="number"
 				min={0}
 				step={0.5}
-				value={value}
-				onChange={(e) => onChange(Number(e.target.value || 0))}
+				value={value || ""}
+				onChange={(e) => {
+					const raw = e.target.value;
+					const sanitized = raw.replace(/^0+(?=\d)/, "");
+					onChange(sanitized === "" ? 0 : Number(sanitized) || 0);
+				}}
 			/>
 		</div>
 	);

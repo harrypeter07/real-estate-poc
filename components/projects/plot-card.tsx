@@ -66,7 +66,9 @@ export function PlotCard({ plot, projectId }: PlotCardProps) {
 
 	return (
 		<div
-			onClick={() => router.push(`/projects/${projectId}/plots/${plot.id}`)}
+			onClick={() =>
+				router.push(`/projects/${projectId}/plots?plotId=${plot.id}`)
+			}
 			className="block h-full cursor-pointer group"
 		>
 			<Card className="h-full overflow-hidden transition-colors border-zinc-200 group-hover:border-zinc-400">

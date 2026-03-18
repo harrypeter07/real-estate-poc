@@ -51,17 +51,18 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
       sale_phase: "token",
       token_date: new Date().toISOString().split('T')[0],
       agreement_date: "",
-      total_sale_amount: 0,
-      down_payment: 0,
-      monthly_emi: 0,
+      // Keep amount fields visually blank until user/plot sets them.
+      total_sale_amount: undefined as any,
+      down_payment: undefined as any,
+      monthly_emi: undefined as any,
       emi_day: 5,
       notes: "",
     },
   });
 
   const selectedPlotId = form.watch("plot_id");
-  const totalSaleAmount = form.watch("total_sale_amount");
-  const downPayment = form.watch("down_payment");
+  const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
+  const downPayment = form.watch("down_payment") ?? 0;
   const remaining = totalSaleAmount - downPayment;
 
   // Auto-fill total amount when plot is selected
@@ -227,12 +228,11 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                           <Input
                             type="number"
                             {...field}
+                            value={field.value ?? ""}
                             onChange={(e) => {
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(
-                                sanitized === "" ? 0 : Number(sanitized)
-                              );
+                              field.onChange(sanitized === "" ? undefined : Number(sanitized));
                             }}
                           />
                         </FormControl>
@@ -250,12 +250,11 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                           <Input
                             type="number"
                             {...field}
+                            value={field.value ?? ""}
                             onChange={(e) => {
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(
-                                sanitized === "" ? 0 : Number(sanitized)
-                              );
+                              field.onChange(sanitized === "" ? undefined : Number(sanitized));
                             }}
                           />
                         </FormControl>
@@ -283,13 +282,11 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                           <Input
                             type="number"
                             {...field}
-                            value={field.value || ""}
+                            value={field.value ?? ""}
                             onChange={(e) => {
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(
-                                sanitized === "" ? 0 : Number(sanitized)
-                              );
+                              field.onChange(sanitized === "" ? undefined : Number(sanitized));
                             }}
                           />
                         </FormControl>

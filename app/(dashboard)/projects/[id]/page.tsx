@@ -23,6 +23,8 @@ import { PlotLayoutGrid } from "@/components/projects/plot-layout-grid";
 import { getAdvisors } from "@/app/actions/advisors";
 import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 import { ProjectAdvisorAssignmentsModal } from "@/components/projects/project-advisor-assignments-modal";
+import { PlotForm } from "@/components/projects/plot-form";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Props {
 	params: Promise<{ id: string }>;
@@ -99,12 +101,17 @@ export default async function ProjectDetailPage({
 								Edit
 							</Button>
 						</Link>
-						<Link href={`/projects/${project.id}/plots`}>
-							<Button size="sm">
-								<LayoutGrid className="h-4 w-4 mr-2" />
-								Manage Plots
-							</Button>
-						</Link>
+						<Dialog>
+							<DialogTrigger asChild>
+								<Button size="sm">
+									<LayoutGrid className="h-4 w-4 mr-2" />
+									Add Single Plot
+								</Button>
+							</DialogTrigger>
+							<DialogContent className="max-w-2xl">
+								<PlotForm mode="create" projectId={project.id} />
+							</DialogContent>
+						</Dialog>
 					</div>
 				}
 			/>

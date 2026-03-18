@@ -23,7 +23,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui";
-import { signInAdvisor } from "@/app/actions/auth";
+import { signInWithEmailOrPhone } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 
 const adminSchema = z.object({
@@ -73,7 +73,10 @@ export default function LoginPage() {
 
 	async function onAdvisorSubmit(values: AdvisorFormValues) {
 		setLoading(true);
-		const result = await signInAdvisor(values.phone, values.password);
+		const result = await signInWithEmailOrPhone(
+			values.phone,
+			values.password
+		);
 		if (!result.success) {
 			toast.error("Login failed", { description: result.error });
 			setLoading(false);

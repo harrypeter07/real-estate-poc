@@ -223,7 +223,19 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Total Sale Amount *</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const sanitized = raw.replace(/^0+(?=\d)/, "");
+                              field.onChange(
+                                sanitized === "" ? 0 : Number(sanitized)
+                              );
+                            }}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -234,7 +246,19 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Down Payment</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const sanitized = raw.replace(/^0+(?=\d)/, "");
+                              field.onChange(
+                                sanitized === "" ? 0 : Number(sanitized)
+                              );
+                            }}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -255,7 +279,20 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Monthly EMI</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value || ""} /></FormControl>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const sanitized = raw.replace(/^0+(?=\d)/, "");
+                              field.onChange(
+                                sanitized === "" ? 0 : Number(sanitized)
+                              );
+                            }}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -266,7 +303,20 @@ export function SaleForm({ plots, customers, advisors, initialPlotId }: SaleForm
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>EMI Day (1-31)</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value || ""} /></FormControl>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const sanitized = raw.replace(/^0+(?=\d)/, "");
+                              field.onChange(
+                                sanitized === "" ? 0 : Number(sanitized)
+                              );
+                            }}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -29,6 +29,7 @@ import {
 	Home,
 	User as UserIcon,
 } from "lucide-react";
+import { PasswordResetButton } from "@/components/advisors/password-reset-button";
 
 const phaseLabels: Record<string, string> = {
 	token: "Token",
@@ -95,6 +96,13 @@ export default async function AdvisorDetailPage({
 									Login: {advisor.email}
 								</p>
 							)}
+							<div className="pt-2">
+								<PasswordResetButton
+									advisorId={advisor.id}
+									advisorPhone={advisor.phone}
+									className="h-9"
+								/>
+							</div>
 						</div>
 						{advisor.notes && (
 							<div>

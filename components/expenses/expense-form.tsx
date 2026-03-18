@@ -118,7 +118,19 @@ export function ExpenseForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Amount (₹) *</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const sanitized = raw.replace(/^0+(?=\d)/, "");
+                        field.onChange(
+                          sanitized === "" ? 0 : Number(sanitized)
+                        );
+                      }}
+                    />
+                  </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

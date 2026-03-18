@@ -18,10 +18,11 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-export const NAV_ITEMS: NavItem[] = [
+export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Projects", href: "/projects", icon: Building2 },
   { label: "Advisors", href: "/advisors", icon: UserCheck },
+  { label: "Advisor Analytics", href: "/advisors/analytics", icon: BarChart3 },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Sales", href: "/sales", icon: Handshake },
   { label: "Payments", href: "/payments", icon: CreditCard },
@@ -29,4 +30,12 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Expenses", href: "/expenses", icon: Receipt },
   { label: "Reminders", href: "/reminders", icon: Bell },
   { label: "Reports", href: "/reports", icon: BarChart3 },
+];
+
+export const ADVISOR_NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/advisor", icon: LayoutDashboard },
+  { label: "Customers", href: "/advisor/customers", icon: Users },
+  { label: "Sales", href: "/advisor/sales", icon: Handshake },
+  { label: "Payments", href: "/advisor/payments", icon: CreditCard },
+  { label: "Reminders", href: "/advisor/reminders", icon: Bell },
 ];

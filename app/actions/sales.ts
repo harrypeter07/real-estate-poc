@@ -110,7 +110,7 @@ export async function createSale(
 	}
 
 	// 3. Create commission record
-	const commPercent =
+	const commRatePerSqft =
 		parsed.data.sale_phase === "token"
 			? Number(assignment.commission_token ?? 0)
 			: parsed.data.sale_phase === "agreement"
@@ -119,12 +119,12 @@ export async function createSale(
 					? Number(assignment.commission_registry ?? 0)
 					: Number(assignment.commission_full_payment ?? 0);
 
-	const commAmount = (parsed.data.total_sale_amount * commPercent) / 100;
+	const commAmount = Number(plotSize ?? 0) * Number(commRatePerSqft ?? 0);
 
 	await supabase.from("advisor_commissions").insert({
 		advisor_id: parsed.data.advisor_id,
 		sale_id: sale.id,
-		commission_percentage: commPercent,
+		commission_percentage: commRatePerSqft,
 		total_commission_amount: commAmount,
 		amount_paid: 0,
 		notes: `Commission for sale of plot ${plotRow.plot_number}`,

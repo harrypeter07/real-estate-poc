@@ -200,9 +200,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 												type="number"
 												placeholder="e.g. 50"
 												{...field}
-												onChange={(e) =>
-													field.onChange(parseInt(e.target.value) || 0)
-												}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													field.onChange(
+														sanitized === ""
+															? 0
+															: parseInt(sanitized) || 0
+													);
+												}}
 											/>
 										</FormControl>
 										<FormMessage />
@@ -221,9 +227,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 												type="number"
 												placeholder="e.g. 50000"
 												{...field}
-												onChange={(e) =>
-													field.onChange(parseInt(e.target.value) || 0)
-												}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													field.onChange(
+														sanitized === ""
+															? 0
+															: parseInt(sanitized) || 0
+													);
+												}}
 											/>
 										</FormControl>
 										<FormMessage />
@@ -242,9 +254,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 												type="number"
 												placeholder="e.g. 300"
 												{...field}
-												onChange={(e) =>
-													field.onChange(parseFloat(e.target.value) || 0)
-												}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													field.onChange(
+														sanitized === ""
+															? 0
+															: parseFloat(sanitized) || 0
+													);
+												}}
 											/>
 										</FormControl>
 										<FormMessage />
@@ -263,9 +281,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 												type="number"
 												placeholder="e.g. 1"
 												{...field}
-												onChange={(e) =>
-													field.onChange(parseInt(e.target.value) || 1)
-												}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													field.onChange(
+														sanitized === ""
+															? 1
+															: parseInt(sanitized) || 1
+													);
+												}}
 											/>
 										</FormControl>
 										<FormMessage />

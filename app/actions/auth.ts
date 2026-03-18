@@ -5,32 +5,46 @@ import { redirect } from "next/navigation";
 
 export type AuthResult = { success: boolean; error?: string };
 
-export async function signInAdvisor(phone: string, password: string): Promise<AuthResult> {
+export async function signInWithEmailOrPhone(
+	identifier: string,
+	password: string
+): Promise<AuthResult> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	const sanitized = phone.replace(/\D/g, "").slice(-10);
-	const { data: advisors } = await supabase
-		.from("advisors")
-		.select("id, email, phone")
-		.eq("is_active", true);
+	const id = (identifier || "").trim();
+	let email = id;
 
-	const match = advisors?.find((a) => {
-		const p = (a.phone || "").replace(/\D/g, "").slice(-10);
-		return p === sanitized;
-	});
+	// If not an email, treat as phone and map advisor->email
+	if (!id.includes("@")) {
+		const sanitized = id.replace(/\D/g, "").slice(-10);
+		const { data: advisors } = await supabase
+			.from("advisors")
+			.select("id, email, phone")
+			.eq("is_active", true);
 
-	if (!match?.email) {
-		return { success: false, error: "Advisor not found or not active. Contact admin." };
+		const match = advisors?.find((a) => {
+			const p = (a.phone || "").replace(/\D/g, "").slice(-10);
+			return p === sanitized;
+		});
+
+		if (!match?.email) {
+			return {
+				success: false,
+				error:
+					"No advisor found for this phone (or advisor login not configured). Use email login or contact admin.",
+			};
+		}
+		email = match.email;
 	}
 
 	const { error } = await supabase.auth.signInWithPassword({
-		email: match.email,
+		email,
 		password,
 	});
 
 	if (error) {
-		return { success: false, error: "Invalid phone or password." };
+		return { success: false, error: "Invalid credentials." };
 	}
 
 	redirect("/dashboard");

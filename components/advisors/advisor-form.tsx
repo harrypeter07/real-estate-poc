@@ -31,9 +31,18 @@ import { createAdvisor, updateAdvisor } from "@/app/actions/advisors";
 interface AdvisorFormProps {
 	mode: "create" | "edit";
 	initialData?: any;
+	onSuccess?: () => void;
+	onCancel?: () => void;
+	redirectToList?: boolean;
 }
 
-export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
+export function AdvisorForm({
+	mode,
+	initialData,
+	onSuccess,
+	onCancel,
+	redirectToList = true,
+}: AdvisorFormProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 
@@ -48,12 +57,6 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 			birth_date: initialData?.birth_date ?? "",
 			password: "",
 			use_phone_as_password: true,
-			commission_face1: initialData?.commission_face1 ?? 2,
-			commission_face2: initialData?.commission_face2 ?? 2,
-			commission_face3: initialData?.commission_face3 ?? 2,
-			commission_face4: initialData?.commission_face4 ?? 2,
-			commission_face5: initialData?.commission_face5 ?? 2,
-			commission_face6: initialData?.commission_face6 ?? 2,
 			notes: initialData?.notes ?? "",
 			is_active: initialData?.is_active ?? true,
 		},
@@ -92,12 +95,6 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 			birth_date: "1985-05-15",
 			password: "",
 			use_phone_as_password: true,
-			commission_face1: 2.5,
-			commission_face2: 2.5,
-			commission_face3: 2.0,
-			commission_face4: 2.0,
-			commission_face5: 1.5,
-			commission_face6: 1.5,
 			notes: `Experienced advisor specialized in ${randomArea} area of Nagpur.`,
 			is_active: true,
 		});
@@ -119,7 +116,8 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 			}
 
 			toast.success(mode === "edit" ? "Advisor updated" : "Advisor created");
-			router.push("/advisors");
+			onSuccess?.();
+			if (redirectToList) router.push("/advisors");
 			router.refresh();
 		} catch (err) {
 			toast.error("Something went wrong");
@@ -187,6 +185,27 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 										<FormControl>
 											<Input placeholder="e.g. 9876543210" {...field} />
 										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="email"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Email (optional)</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="e.g. advisor@gmail.com"
+												type="email"
+												{...field}
+												value={field.value || ""}
+											/>
+										</FormControl>
+										<p className="text-[10px] text-zinc-500">
+											If empty, a system email will be generated for login.
+										</p>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -270,30 +289,13 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 							)}
 						/>
 
-						<div className="space-y-3">
-							<h3 className="text-sm font-semibold border-b pb-2">
-								Commission Percentages (%)
-							</h3>
-							<div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-								{[1, 2, 3, 4, 5, 6].map((num) => (
-									<FormField
-										key={num}
-										control={form.control}
-										name={`commission_face${num}` as any}
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-xs text-zinc-500 uppercase font-bold">
-													Face {num}
-												</FormLabel>
-												<FormControl>
-													<Input type="number" step="0.1" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								))}
-							</div>
+						<div className="rounded-lg border border-zinc-200 p-4 bg-zinc-50/50">
+							<p className="text-sm font-semibold text-zinc-900">
+								Commission (Project-wise)
+							</p>
+							<p className="text-xs text-zinc-500 mt-1">
+								Commission is set per project when assigning an advisor. You can configure Face rates differently for each project.
+							</p>
 						</div>
 
 						<FormField
@@ -318,7 +320,10 @@ export function AdvisorForm({ mode, initialData }: AdvisorFormProps) {
 							<Button
 								type="button"
 								variant="outline"
-								onClick={() => router.back()}
+								onClick={() => {
+									onCancel?.();
+									if (redirectToList) router.back();
+								}}
 							>
 								Cancel
 							</Button>

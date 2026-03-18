@@ -174,9 +174,15 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 												type="number"
 												placeholder="e.g. 1500"
 												{...field}
-												onChange={(e) =>
-													field.onChange(parseInt(e.target.value) || 0)
-												}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													field.onChange(
+														sanitized === ""
+															? 0
+															: parseInt(sanitized) || 0
+													);
+												}}
 											/>
 										</FormControl>
 										<FormMessage />
@@ -197,9 +203,15 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 												type="number"
 												placeholder="e.g. 1200"
 												{...field}
-												onChange={(e) =>
-													field.onChange(parseInt(e.target.value) || 0)
-												}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													field.onChange(
+														sanitized === ""
+															? 0
+															: parseInt(sanitized) || 0
+													);
+												}}
 											/>
 										</FormControl>
 										<FormMessage />

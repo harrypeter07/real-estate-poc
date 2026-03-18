@@ -94,7 +94,9 @@ export default async function CommissionsPage() {
                       </TableCell>
                       <TableCell className="font-bold text-zinc-900">
                         {formatCurrency(comm.total_commission_amount)}
-                        <span className="ml-1.5 text-[10px] text-zinc-400 font-normal">({comm.commission_percentage}%)</span>
+                        <span className="ml-1.5 text-[10px] text-zinc-400 font-normal">
+                          (₹ {Number(comm.commission_percentage ?? 0).toLocaleString("en-IN")}/sqft)
+                        </span>
                       </TableCell>
                       <TableCell className="font-medium text-green-600">
                         {formatCurrency(comm.amount_paid)}

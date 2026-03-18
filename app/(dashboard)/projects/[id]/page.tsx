@@ -22,7 +22,7 @@ import { getPlotsByProject } from "@/app/actions/plots";
 import { PlotLayoutGrid } from "@/components/projects/plot-layout-grid";
 import { getAdvisors } from "@/app/actions/advisors";
 import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
-import { ProjectAdvisorAssignments } from "@/components/projects/project-advisor-assignments";
+import { ProjectAdvisorAssignmentsModal } from "@/components/projects/project-advisor-assignments-modal";
 
 interface Props {
 	params: Promise<{ id: string }>;
@@ -166,11 +166,11 @@ export default async function ProjectDetailPage({
 			<Card className="mb-6">
 				<CardHeader className="pb-2">
 					<CardTitle className="text-sm font-medium text-zinc-500">
-						Advisor Assignment & Commission (Project-wise)
+						Advisor Assignment & Face Rates (Project-wise)
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<ProjectAdvisorAssignments
+					<ProjectAdvisorAssignmentsModal
 						projectId={project.id}
 						advisors={advisors}
 						assignments={advisorAssignments}

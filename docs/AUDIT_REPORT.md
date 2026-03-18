@@ -142,3 +142,11 @@ Add to `.env.local` for advisor login:
 ```
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
+
+## 9. IMPORTANT: Schema cache errors
+
+If the app shows:
+> Could not find the 'email' column of 'advisors' in the schema cache
+
+It means the DB migration was not applied yet (or PostgREST hasn’t refreshed).
+Run the migration SQL in Supabase, then wait briefly (or restart the API).

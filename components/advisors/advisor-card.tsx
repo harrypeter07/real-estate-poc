@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { User, Phone, MapPin, Pencil, BadgePercent } from "lucide-react";
+import { Phone, MapPin, Pencil } from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -58,12 +58,11 @@ export function AdvisorCard({ advisor }: AdvisorCardProps) {
 						</div>
 					)}
 					<div className="pt-2 border-t flex items-center justify-between">
-						<div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-							<BadgePercent className="h-3.5 w-3.5" />
-							<span>COMMISSION (F1)</span>
+						<div className="text-xs font-semibold text-zinc-500">
+							PROJECT-WISE COMMISSION
 						</div>
 						<Badge variant="secondary" className="bg-zinc-100">
-							{advisor.commission_face1}%
+							Manage in Project
 						</Badge>
 					</div>
 				</CardContent>

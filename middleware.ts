@@ -49,10 +49,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  const role = (user?.user_metadata as any)?.role;
+
+  // If advisor is logged in, keep them inside /advisor routes
+  if (user && role === "advisor") {
+    const allowed =
+      pathname === "/advisor" ||
+      pathname.startsWith("/advisor/") ||
+      pathname === "/login" ||
+      pathname.startsWith("/_next");
+
+    if (!allowed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/advisor";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // If user IS logged in and on /login, redirect to dashboard
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = role === "advisor" ? "/advisor" : "/dashboard";
     return NextResponse.redirect(url);
   }
 

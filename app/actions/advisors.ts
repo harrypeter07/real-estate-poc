@@ -47,12 +47,6 @@ export async function createAdvisor(
 			email: advisorEmail,
 			address: parsed.data.address || null,
 			birth_date: parsed.data.birth_date || null,
-			commission_face1: parsed.data.commission_face1,
-			commission_face2: parsed.data.commission_face2,
-			commission_face3: parsed.data.commission_face3,
-			commission_face4: parsed.data.commission_face4,
-			commission_face5: parsed.data.commission_face5,
-			commission_face6: parsed.data.commission_face6,
 			notes: parsed.data.notes || null,
 			is_active: parsed.data.is_active,
 		})
@@ -60,6 +54,19 @@ export async function createAdvisor(
 		.single();
 
 	if (error) {
+		const msg = (error.message || "").toLowerCase();
+		// Supabase/PostgREST schema cache error when DB migration not applied yet
+		if (msg.includes("schema cache") && msg.includes("email")) {
+			return {
+				success: false,
+				error:
+					"Database is missing `advisors.email` (or schema cache not refreshed). " +
+					"Run the migration in Supabase SQL Editor, then retry.\n\n" +
+					"SQL:\n" +
+					"ALTER TABLE advisors ADD COLUMN IF NOT EXISTS email TEXT;\n" +
+					"ALTER TABLE advisors ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;\n",
+			};
+		}
 		if (error.code === "23505") {
 			return { success: false, error: "Advisor code already exists" };
 		}
@@ -109,14 +116,9 @@ export async function updateAdvisor(
 			name: parsed.data.name,
 			code: parsed.data.code,
 			phone: parsed.data.phone,
+			email: parsed.data.email?.trim() || null,
 			address: parsed.data.address || null,
 			birth_date: parsed.data.birth_date || null,
-			commission_face1: parsed.data.commission_face1,
-			commission_face2: parsed.data.commission_face2,
-			commission_face3: parsed.data.commission_face3,
-			commission_face4: parsed.data.commission_face4,
-			commission_face5: parsed.data.commission_face5,
-			commission_face6: parsed.data.commission_face6,
 			notes: parsed.data.notes || null,
 			is_active: parsed.data.is_active,
 			updated_at: new Date().toISOString(),
@@ -124,6 +126,18 @@ export async function updateAdvisor(
 		.eq("id", id);
 
 	if (error) {
+		const msg = (error.message || "").toLowerCase();
+		if (msg.includes("schema cache") && msg.includes("email")) {
+			return {
+				success: false,
+				error:
+					"Database is missing `advisors.email` (or schema cache not refreshed). " +
+					"Run the migration in Supabase SQL Editor, then retry.\n\n" +
+					"SQL:\n" +
+					"ALTER TABLE advisors ADD COLUMN IF NOT EXISTS email TEXT;\n" +
+					"ALTER TABLE advisors ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;\n",
+			};
+		}
 		return { success: false, error: error.message };
 	}
 

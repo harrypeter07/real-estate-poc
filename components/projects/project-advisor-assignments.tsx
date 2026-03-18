@@ -119,15 +119,15 @@ export function ProjectAdvisorAssignments({
 					</p>
 				</div>
 
-				<PercentInput label="Token %" value={token} onChange={setToken} />
-				<PercentInput
-					label="Agreement %"
+				<RateInput label="Face 1 Rate (₹/sqft)" value={token} onChange={setToken} />
+				<RateInput
+					label="Face 2 Rate (₹/sqft)"
 					value={agreement}
 					onChange={setAgreement}
 				/>
-				<PercentInput label="Registry %" value={registry} onChange={setRegistry} />
-				<PercentInput
-					label="Full Payment %"
+				<RateInput label="Face 3 Rate (₹/sqft)" value={registry} onChange={setRegistry} />
+				<RateInput
+					label="Face 4 Rate (₹/sqft)"
 					value={fullPayment}
 					onChange={setFullPayment}
 				/>
@@ -143,10 +143,10 @@ export function ProjectAdvisorAssignments({
 				<TableHeader>
 					<TableRow>
 						<TableHead>Advisor</TableHead>
-						<TableHead className="text-right">Token %</TableHead>
-						<TableHead className="text-right">Agreement %</TableHead>
-						<TableHead className="text-right">Registry %</TableHead>
-						<TableHead className="text-right">Full Payment %</TableHead>
+						<TableHead className="text-right">Face 1 (₹/sqft)</TableHead>
+						<TableHead className="text-right">Face 2 (₹/sqft)</TableHead>
+						<TableHead className="text-right">Face 3 (₹/sqft)</TableHead>
+						<TableHead className="text-right">Face 4 (₹/sqft)</TableHead>
 						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>
 				</TableHeader>
@@ -169,16 +169,16 @@ export function ProjectAdvisorAssignments({
 									) : null}
 								</TableCell>
 								<TableCell className="text-right">
-									{a.commission_token}%
+									₹ {Number(a.commission_token ?? 0).toLocaleString("en-IN")}
 								</TableCell>
 								<TableCell className="text-right">
-									{a.commission_agreement}%
+									₹ {Number(a.commission_agreement ?? 0).toLocaleString("en-IN")}
 								</TableCell>
 								<TableCell className="text-right">
-									{a.commission_registry}%
+									₹ {Number(a.commission_registry ?? 0).toLocaleString("en-IN")}
 								</TableCell>
 								<TableCell className="text-right">
-									{a.commission_full_payment}%
+									₹ {Number(a.commission_full_payment ?? 0).toLocaleString("en-IN")}
 								</TableCell>
 								<TableCell className="text-right">
 									<Button
@@ -199,7 +199,7 @@ export function ProjectAdvisorAssignments({
 	);
 }
 
-function PercentInput({
+function RateInput({
 	label,
 	value,
 	onChange,
@@ -217,8 +217,7 @@ function PercentInput({
 				className="mt-1"
 				type="number"
 				min={0}
-				max={100}
-				step={0.25}
+				step={0.5}
 				value={value}
 				onChange={(e) => onChange(Number(e.target.value || 0))}
 			/>

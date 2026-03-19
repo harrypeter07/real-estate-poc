@@ -14,6 +14,11 @@ import {
   DialogTitle,
   Input,
   Textarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Table,
   TableBody,
   TableCell,
@@ -23,8 +28,12 @@ import {
 } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { recordCommissionPayment } from "@/app/actions/commissions";
+import { ReceiptUpload } from "@/components/shared/receipt-upload";
+import { ReceiptViewButton } from "@/components/shared/receipt-view-button";
+import { useRouter } from "next/navigation";
 
 export function CommissionsTable({ commissions }: { commissions: any[] }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,6 +41,11 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const [paidDate, setPaidDate] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
+  const [paymentMode, setPaymentMode] = useState<"cash" | "online" | "cheque">(
+    "cash"
+  );
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [receiptPath, setReceiptPath] = useState("");
   const [note, setNote] = useState("");
 
   const remaining = useMemo(() => {
@@ -39,12 +53,31 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     return Number(selected.total_commission_amount ?? 0) - Number(selected.amount_paid ?? 0);
   }, [selected]);
 
+  const eligibleNow = useMemo(() => {
+    if (!selected) return 0;
+    const saleTotal = Number(selected.plot_sales?.total_sale_amount ?? 0);
+    const saleReceived = Number(selected.plot_sales?.amount_paid ?? 0);
+    const totalCommission = Number(selected.total_commission_amount ?? 0);
+    if (saleTotal <= 0 || totalCommission <= 0) return 0;
+    const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
+    return totalCommission * ratio;
+  }, [selected]);
+
+  const availableNow = useMemo(() => {
+    if (!selected) return 0;
+    const paidToAdvisor = Number(selected.amount_paid ?? 0);
+    return Math.max(0, eligibleNow - paidToAdvisor);
+  }, [eligibleNow, selected]);
+
   const canPay = !!selected && remaining > 0;
 
   function openRow(comm: any) {
     setSelected(comm);
     setPayAmount("");
     setPaidDate(new Date().toISOString().slice(0, 10));
+    setPaymentMode("cash");
+    setReferenceNumber("");
+    setReceiptPath("");
     setNote("");
     setOpen(true);
   }
@@ -56,14 +89,17 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
       toast.error("Enter a valid amount");
       return;
     }
-    if (amt > remaining) {
-      toast.error("Amount exceeds remaining");
+    if (amt > availableNow) {
+      toast.error("Amount exceeds eligible commission");
       return;
     }
     setSaving(true);
     try {
       const res = await recordCommissionPayment(selected.id, amt, {
         paid_date: paidDate,
+        payment_mode: paymentMode,
+        reference_number: referenceNumber,
+        receipt_path: receiptPath,
         note,
       });
       if (!res.success) {
@@ -73,6 +109,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
       toast.success("Commission payment recorded");
       setOpen(false);
       setSelected(null);
+      router.refresh();
     } finally {
       setSaving(false);
     }
@@ -191,12 +228,59 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                 />
                 <InfoRow label="Total" value={formatCurrency(selected.total_commission_amount)} strong />
                 <InfoRow label="Paid" value={formatCurrency(selected.amount_paid)} />
-                <InfoRow label="Remaining" value={formatCurrency(remaining)} strong />
+                <InfoRow label="Eligible now" value={formatCurrency(eligibleNow)} strong />
+                <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />
+                <InfoRow label="Remaining (overall)" value={formatCurrency(remaining)} />
                 {selected.notes && (
                   <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                     {selected.notes}
                   </div>
                 )}
+
+                {Array.isArray(selected.advisor_commission_payments) &&
+                  selected.advisor_commission_payments.length > 0 && (
+                    <div className="rounded-md border border-zinc-200 p-3">
+                      <div className="text-sm font-semibold text-zinc-900 mb-2">
+                        Payout history
+                      </div>
+                      <div className="space-y-2">
+                        {selected.advisor_commission_payments
+                          .slice()
+                          .sort(
+                            (a: any, b: any) =>
+                              String(b.paid_date).localeCompare(String(a.paid_date)) ||
+                              String(b.created_at).localeCompare(String(a.created_at))
+                          )
+                          .map((p: any) => (
+                            <div
+                              key={p.id}
+                              className="flex items-center justify-between gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-xs text-zinc-500">
+                                  {p.paid_date} • {String(p.payment_mode ?? "cash").toUpperCase()}
+                                  {p.reference_number ? ` • ${p.reference_number}` : ""}
+                                </div>
+                                {p.note ? (
+                                  <div className="text-xs text-zinc-700 truncate">
+                                    {p.note}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <ReceiptViewButton
+                                  receiptPath={p.receipt_path}
+                                  title="Commission receipt"
+                                />
+                                <div className="font-semibold text-zinc-900 text-sm whitespace-nowrap">
+                                  {formatCurrency(p.amount)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
               </div>
 
               <div className="space-y-3">
@@ -225,6 +309,46 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-zinc-500 mb-1">Mode</div>
+                      <Select
+                        value={paymentMode}
+                        onValueChange={(v) =>
+                          setPaymentMode(v as "cash" | "online" | "cheque")
+                        }
+                        disabled={!canPay || saving}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="online">Online / UPI</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 mb-1">
+                        Reference # (optional)
+                      </div>
+                      <Input
+                        value={referenceNumber}
+                        onChange={(e) => setReferenceNumber(e.target.value)}
+                        placeholder="UTR / cheque / ref"
+                        disabled={!canPay || saving}
+                      />
+                    </div>
+                  </div>
+
+                  <ReceiptUpload
+                    folder="commissions"
+                    recordId={selected.id}
+                    value={receiptPath}
+                    onChange={setReceiptPath}
+                  />
+
                   <div>
                     <div className="text-xs text-zinc-500 mb-1">Note (optional)</div>
                     <Textarea
@@ -240,10 +364,10 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setPayAmount(String(Math.max(0, remaining)))}
+                      onClick={() => setPayAmount(String(Math.max(0, availableNow)))}
                       disabled={!canPay || saving}
                     >
-                      Pay full
+                      Pay max
                     </Button>
                     <Button
                       type="button"

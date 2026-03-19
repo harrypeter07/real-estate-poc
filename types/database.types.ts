@@ -110,6 +110,18 @@ export type AdvisorCommission = {
   updated_at?: string;
 };
 
+export type AdvisorCommissionPayment = {
+  id: string;
+  commission_id: string;
+  amount: number;
+  paid_date: string;
+  payment_mode?: 'cash' | 'online' | 'cheque';
+  reference_number?: string;
+  receipt_path?: string;
+  note?: string;
+  created_at?: string;
+};
+
 export type OfficeExpense = {
   id: string;
   description: string;

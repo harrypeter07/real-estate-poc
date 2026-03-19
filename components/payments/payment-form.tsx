@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +26,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Switch,
 } from "@/components/ui";
 import { paymentSchema, type PaymentFormValues } from "@/lib/validations/payment";
 import { createPayment } from "@/app/actions/payments";
@@ -66,6 +65,14 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   });
 
   const currentSaleId = form.watch("sale_id");
+  const amountValue = Number(form.watch("amount") || 0);
+  const activeSale = useMemo(
+    () => sales.find((s) => s.id === currentSaleId),
+    [sales, currentSaleId]
+  );
+  const saleTotal = Number(activeSale?.total_sale_amount ?? 0);
+  const salePaid = Number(activeSale?.amount_paid ?? 0);
+  const saleRemaining = Math.max(0, saleTotal - salePaid);
 
   // Update customer_id when sale_id changes
   useEffect(() => {
@@ -84,19 +91,36 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
     const sale = initialSaleId ? selectedSale : sales[Math.floor(Math.random() * sales.length)];
     if (!sale) return;
 
+    const remaining = Math.max(
+      0,
+      Number(sale.total_sale_amount ?? 0) - Number(sale.amount_paid ?? 0)
+    );
     form.reset({
       sale_id: sale.id,
       customer_id: sale.customer_id,
-      amount: Math.floor(Math.random() * 50000) + 5000,
+      amount:
+        remaining > 0
+          ? Math.max(1, Math.min(remaining, Math.floor(Math.random() * 50000) + 5000))
+          : 0,
       payment_date: new Date().toISOString().split('T')[0],
       payment_mode: "cash",
       slip_number: `SLIP-${Math.floor(Math.random() * 10000)}`,
+      receipt_path: "",
       is_confirmed: true,
       notes: "Mock payment for testing Nagpur project installment.",
     });
   };
 
   async function onSubmit(values: PaymentFormValues) {
+    if (saleRemaining <= 0) {
+      toast.error("This sale is already fully paid");
+      return;
+    }
+    if (Number(values.amount ?? 0) > saleRemaining) {
+      toast.error("Payment exceeds remaining sale amount");
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await createPayment(values);
@@ -161,7 +185,25 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Amount (₹) *</FormLabel>
-                    <FormControl><Input type="number" placeholder="e.g. 25000" {...field} /></FormControl>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 25000"
+                        {...field}
+                        max={saleRemaining > 0 ? saleRemaining : undefined}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const sanitized = raw.replace(/^0+(?=\d)/, "");
+                          const next = sanitized === "" ? 0 : Number(sanitized);
+                          if (saleRemaining > 0 && next > saleRemaining) {
+                            field.onChange(saleRemaining);
+                            return;
+                          }
+                          field.onChange(next);
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -178,6 +220,28 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
                 )}
               />
             </div>
+
+            {currentSaleId && (
+              <div className="rounded-lg bg-zinc-50 p-4 border border-zinc-200 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Sale Total:</span>
+                  <span className="font-medium">{formatCurrency(saleTotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Already Paid:</span>
+                  <span className="font-medium">{formatCurrency(salePaid)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Remaining:</span>
+                  <span className="font-bold">{formatCurrency(saleRemaining)}</span>
+                </div>
+                {amountValue > saleRemaining && saleRemaining > 0 && (
+                  <div className="text-xs text-red-600 font-medium">
+                    Entered amount is above remaining balance.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField

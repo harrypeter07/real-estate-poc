@@ -3,10 +3,10 @@
 import { useMemo, useState, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Button, Input, Textarea, Badge } from "@/components/ui";
 import { updatePlot, deletePlot } from "@/app/actions/plots";
+import { SaleBookingDialog } from "@/components/sales/sale-booking-dialog";
 
 interface PlotForGrid {
 	id: string;
@@ -75,6 +75,7 @@ export function PlotLayoutGrid({ plots, projectName, projectId, initialPlotId }:
 	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(initialPlotId ?? null);
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [sellOpen, setSellOpen] = useState(false);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -224,11 +225,13 @@ export function PlotLayoutGrid({ plots, projectName, projectId, initialPlotId }:
 								>
 									{editing ? "Cancel Edit" : "Edit"}
 								</Button>
-								<Link href={`/sales/new?plotId=${selectedPlot.id}`}>
-									<Button size="sm" disabled={saving || !canEdit}>
-										Sell / Book
-									</Button>
-								</Link>
+								<Button
+									size="sm"
+									disabled={saving || !canEdit}
+									onClick={() => setSellOpen(true)}
+								>
+									Sell / Book
+								</Button>
 								<Button
 									size="sm"
 									variant="destructive"
@@ -400,6 +403,16 @@ export function PlotLayoutGrid({ plots, projectName, projectId, initialPlotId }:
 										</ModalField>
 									</div>
 								</div>
+							)}
+
+							{projectName && (
+								<SaleBookingDialog
+									open={sellOpen}
+									onOpenChange={setSellOpen}
+									projectName={projectName}
+									projectId={projectId}
+									plot={selectedPlot as any}
+								/>
 							)}
 						</>
 					) : (

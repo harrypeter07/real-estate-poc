@@ -172,6 +172,22 @@ CREATE TABLE advisor_commissions (
 );
 
 -- =============================================
+-- TABLE 7B: advisor_commission_payments
+-- Payment history for advisor commissions
+-- =============================================
+CREATE TABLE advisor_commission_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  commission_id UUID NOT NULL REFERENCES advisor_commissions(id) ON DELETE CASCADE,
+  amount DECIMAL(12,2) NOT NULL,
+  paid_date DATE NOT NULL,
+  payment_mode payment_mode NOT NULL DEFAULT 'cash',
+  reference_number TEXT,
+  receipt_path TEXT,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- =============================================
 -- TABLE 8: office_expenses
 -- Monthly office running expenses
 -- =============================================
@@ -251,6 +267,8 @@ CREATE INDEX idx_payments_confirmed ON payments(is_confirmed);
 CREATE INDEX idx_reminders_date ON reminders(reminder_date);
 CREATE INDEX idx_reminders_completed ON reminders(is_completed);
 CREATE INDEX idx_commissions_advisor ON advisor_commissions(advisor_id);
+CREATE INDEX idx_commission_payments_commission ON advisor_commission_payments(commission_id);
+CREATE INDEX idx_commission_payments_date ON advisor_commission_payments(paid_date);
 
 -- =============================================
 -- TRIGGER: Auto-update plot status when sale created
@@ -302,6 +320,42 @@ AFTER INSERT OR UPDATE OR DELETE ON payments
 FOR EACH ROW EXECUTE FUNCTION update_sale_amounts();
 
 -- =============================================
+-- TRIGGER: Prevent confirmed overpayment on sale
+-- =============================================
+CREATE OR REPLACE FUNCTION prevent_sale_overpayment()
+RETURNS TRIGGER AS $$
+DECLARE
+  sale_total DECIMAL(12,2);
+  confirmed_sum DECIMAL(12,2);
+BEGIN
+  -- only enforce on rows that are confirmed
+  IF NEW.is_confirmed IS DISTINCT FROM true THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT total_sale_amount INTO sale_total
+  FROM plot_sales
+  WHERE id = NEW.sale_id;
+
+  SELECT COALESCE(SUM(amount), 0) INTO confirmed_sum
+  FROM payments
+  WHERE sale_id = NEW.sale_id
+    AND is_confirmed = true
+    AND id <> COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid);
+
+  IF confirmed_sum + COALESCE(NEW.amount, 0) > COALESCE(sale_total, 0) THEN
+    RAISE EXCEPTION 'Confirmed payments exceed sale total for sale %', NEW.sale_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_prevent_sale_overpayment
+BEFORE INSERT OR UPDATE OF amount, is_confirmed, sale_id ON payments
+FOR EACH ROW EXECUTE FUNCTION prevent_sale_overpayment();
+
+-- =============================================
 -- TRIGGER: Auto-update commission remaining
 -- =============================================
 CREATE OR REPLACE FUNCTION update_commission_remaining()
@@ -317,6 +371,38 @@ BEFORE INSERT OR UPDATE ON advisor_commissions
 FOR EACH ROW EXECUTE FUNCTION update_commission_remaining();
 
 -- =============================================
+-- TRIGGER: Keep commission totals in sync from payment history
+-- =============================================
+CREATE OR REPLACE FUNCTION update_commission_totals()
+RETURNS TRIGGER AS $$
+DECLARE
+  comm_id UUID;
+  total_paid DECIMAL(12,2);
+BEGIN
+  comm_id := COALESCE(NEW.commission_id, OLD.commission_id);
+  SELECT COALESCE(SUM(amount), 0) INTO total_paid
+  FROM advisor_commission_payments
+  WHERE commission_id = comm_id;
+
+  UPDATE advisor_commissions
+  SET amount_paid = total_paid,
+      paid_date = CASE
+        WHEN total_paid >= total_commission_amount THEN (
+          SELECT MAX(paid_date) FROM advisor_commission_payments WHERE commission_id = comm_id
+        )
+        ELSE NULL
+      END
+  WHERE id = comm_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_commission_totals
+AFTER INSERT OR UPDATE OR DELETE ON advisor_commission_payments
+FOR EACH ROW EXECUTE FUNCTION update_commission_totals();
+
+-- =============================================
 -- RLS POLICIES (enable after auth setup)
 -- =============================================
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
@@ -326,6 +412,7 @@ ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE plot_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE advisor_commissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE advisor_commission_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE office_expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;

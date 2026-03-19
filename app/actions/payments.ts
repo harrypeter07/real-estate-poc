@@ -26,6 +26,41 @@ export async function createPayment(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	// Guard: confirmed customer payments should never exceed sale total.
+	const { data: saleRow, error: saleErr } = await supabase
+		.from("plot_sales")
+		.select("id, total_sale_amount")
+		.eq("id", parsed.data.sale_id)
+		.single();
+	if (saleErr || !saleRow) {
+		return { success: false, error: "Sale not found" };
+	}
+
+	const { data: paidRows, error: paidErr } = await supabase
+		.from("payments")
+		.select("amount")
+		.eq("sale_id", parsed.data.sale_id)
+		.eq("is_confirmed", true);
+	if (paidErr) return { success: false, error: paidErr.message };
+
+	const alreadyConfirmed = (paidRows ?? []).reduce(
+		(sum, p: any) => sum + Number(p.amount ?? 0),
+		0
+	);
+	const nextConfirmed =
+		alreadyConfirmed +
+		(parsed.data.is_confirmed ? Number(parsed.data.amount ?? 0) : 0);
+	const saleTotal = Number(saleRow.total_sale_amount ?? 0);
+	if (nextConfirmed > saleTotal + 0.0001) {
+		const remaining = Math.max(0, saleTotal - alreadyConfirmed);
+		return {
+			success: false,
+			error: `Payment exceeds sale amount. Remaining allowed: ₹ ${remaining.toLocaleString(
+				"en-IN"
+			)}`,
+		};
+	}
+
 	const { error } = await supabase.from("payments").insert({
 		sale_id: parsed.data.sale_id,
 		customer_id: parsed.data.customer_id,
@@ -71,6 +106,44 @@ export async function getPayments() {
 export async function confirmPayment(id: string) {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: payment, error: payErr } = await supabase
+		.from("payments")
+		.select("id, sale_id, amount, is_confirmed")
+		.eq("id", id)
+		.single();
+	if (payErr || !payment) return { success: false, error: "Payment not found" };
+	if (payment.is_confirmed) return { success: true };
+
+	const { data: saleRow, error: saleErr } = await supabase
+		.from("plot_sales")
+		.select("id, total_sale_amount")
+		.eq("id", payment.sale_id)
+		.single();
+	if (saleErr || !saleRow) return { success: false, error: "Sale not found" };
+
+	const { data: paidRows, error: paidErr } = await supabase
+		.from("payments")
+		.select("amount")
+		.eq("sale_id", payment.sale_id)
+		.eq("is_confirmed", true);
+	if (paidErr) return { success: false, error: paidErr.message };
+
+	const alreadyConfirmed = (paidRows ?? []).reduce(
+		(sum, p: any) => sum + Number(p.amount ?? 0),
+		0
+	);
+	const nextConfirmed = alreadyConfirmed + Number(payment.amount ?? 0);
+	const saleTotal = Number(saleRow.total_sale_amount ?? 0);
+	if (nextConfirmed > saleTotal + 0.0001) {
+		const remaining = Math.max(0, saleTotal - alreadyConfirmed);
+		return {
+			success: false,
+			error: `Cannot confirm. Remaining allowed: ₹ ${remaining.toLocaleString(
+				"en-IN"
+			)}`,
+		};
+	}
 
 	const { error } = await supabase
 		.from("payments")

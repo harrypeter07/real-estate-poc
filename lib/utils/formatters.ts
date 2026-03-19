@@ -1,2 +1,2 @@
 // Re-export formatters from utils/formatter.ts
-export { formatCurrency, formatDate } from "@/utils/formatter";
+export { formatCurrency, formatCurrencyShort, formatDate } from "@/utils/formatter";

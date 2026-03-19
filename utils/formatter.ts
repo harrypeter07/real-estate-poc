@@ -14,6 +14,30 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
+ * Short Indian currency formatting:
+ * 950 -> ₹950
+ * 12_500 -> ₹12.5K
+ * 4_50_000 -> ₹4.5L
+ * 2_75_00_000 -> ₹2.75Cr
+ */
+export function formatCurrencyShort(amount: number, opts?: { digits?: number }): string {
+  const n = Number(amount ?? 0);
+  if (!Number.isFinite(n)) return "₹0";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  const digits = Math.min(2, Math.max(0, opts?.digits ?? 2));
+
+  const fmt = (v: number, suffix: string) =>
+    `${sign}₹${v.toFixed(digits).replace(/\.?0+$/, "")}${suffix}`;
+
+  if (abs >= 1e7) return fmt(abs / 1e7, "Cr");
+  if (abs >= 1e5) return fmt(abs / 1e5, "L");
+  if (abs >= 1e3) return fmt(abs / 1e3, "K");
+  // small values: no decimals
+  return `${sign}₹${Math.round(abs).toLocaleString("en-IN")}`;
+}
+
+/**
  * Format date string to "14 Mar 2026"
  */
 export function formatDate(date: string | Date): string {

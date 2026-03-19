@@ -3,6 +3,7 @@ import { SaleForm } from "@/components/sales/sale-form";
 import { createClient } from "@/lib/supabase/server";
 import { getAdvisors } from "@/app/actions/advisors";
 import { getCustomers } from "@/app/actions/customers";
+import { getAdvisorAssignments } from "@/app/actions/advisor-projects";
 
 export default async function NewSalePage({
 	searchParams,
@@ -15,12 +16,13 @@ export default async function NewSalePage({
 	// Fetch available plots
 	const { data: plots } = await supabase
 		.from("plots")
-		.select("*, projects(name)")
+		.select("*, projects(id, name, min_plot_rate)")
 		.eq("status", "available")
 		.order("plot_number", { ascending: true });
 
 	const advisors = await getAdvisors();
 	const customers = await getCustomers();
+	const advisorAssignments = await getAdvisorAssignments();
 
 	return (
 		<div className="space-y-6">
@@ -35,6 +37,7 @@ export default async function NewSalePage({
 					customers={customers}
 					advisors={advisors}
 					initialPlotId={searchParams?.plotId}
+					advisorAssignments={advisorAssignments}
 				/>
 			</div>
 		</div>

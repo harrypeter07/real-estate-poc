@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil, X, Save } from "lucide-react";
 import {
 	Button,
 	Input,
@@ -23,6 +23,7 @@ import {
 	removeAdvisorAssignment,
 	upsertAdvisorAssignment,
 } from "@/app/actions/advisor-projects";
+import { formatCurrencyShort } from "@/lib/utils/formatters";
 
 type Advisor = { id: string; name: string; code: string; phone: string };
 
@@ -30,17 +31,25 @@ export function ProjectAdvisorAssignments({
 	projectId,
 	advisors,
 	assignments,
+	projectMinPlotRate,
 }: {
 	projectId: string;
 	advisors: Advisor[];
 	assignments: AdvisorProjectAssignment[];
+	projectMinPlotRate: number;
 }) {
+	const MAX_RATE = 9_999_999_999.99;
 	const [saving, setSaving] = useState(false);
 	const [advisorId, setAdvisorId] = useState<string>("");
 	const [token, setToken] = useState<number>(0);
 	const [agreement, setAgreement] = useState<number>(0);
 	const [registry, setRegistry] = useState<number>(0);
 	const [fullPayment, setFullPayment] = useState<number>(0);
+	const [editAdvisorId, setEditAdvisorId] = useState<string>("");
+	const [editToken, setEditToken] = useState<number>(0);
+	const [editAgreement, setEditAgreement] = useState<number>(0);
+	const [editRegistry, setEditRegistry] = useState<number>(0);
+	const [editFullPayment, setEditFullPayment] = useState<number>(0);
 
 	const assignedAdvisorIds = useMemo(
 		() => new Set(assignments.map((a) => a.advisor_id)),
@@ -56,6 +65,42 @@ export function ProjectAdvisorAssignments({
 		if (!advisorId) {
 			toast.error("Select an advisor");
 			return;
+		}
+		if (Number(projectMinPlotRate ?? 0) > 0) {
+			for (const [label, v] of [
+				["Face 1", token],
+				["Face 2", agreement],
+				["Face 3", registry],
+				["Face 4", fullPayment],
+			] as const) {
+				if (Number(v ?? 0) > 0 && Number(v ?? 0) < Number(projectMinPlotRate ?? 0)) {
+					toast.error("Rate below project minimum", {
+						description: `${label} must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
+							"en-IN",
+						)}/sqft`,
+					});
+					return;
+				}
+			}
+		}
+		for (const [label, v] of [
+			["Face 1", token],
+			["Face 2", agreement],
+			["Face 3", registry],
+			["Face 4", fullPayment],
+		] as const) {
+			if (!Number.isFinite(v) || v < 0) {
+				toast.error("Invalid rate", {
+					description: `${label} rate must be a valid positive number`,
+				});
+				return;
+			}
+			if (v > MAX_RATE) {
+				toast.error("Rate too large", {
+					description: `${label} max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+				});
+				return;
+			}
 		}
 		setSaving(true);
 		try {
@@ -90,6 +135,80 @@ export function ProjectAdvisorAssignments({
 				return;
 			}
 			toast.success("Advisor removed from project");
+		} finally {
+			setSaving(false);
+		}
+	}
+
+	function onStartEdit(a: AdvisorProjectAssignment) {
+		setEditAdvisorId(a.advisor_id);
+		setEditToken(Number(a.commission_token ?? 0));
+		setEditAgreement(Number(a.commission_agreement ?? 0));
+		setEditRegistry(Number(a.commission_registry ?? 0));
+		setEditFullPayment(Number(a.commission_full_payment ?? 0));
+	}
+
+	function onCancelEdit() {
+		setEditAdvisorId("");
+		setEditToken(0);
+		setEditAgreement(0);
+		setEditRegistry(0);
+		setEditFullPayment(0);
+	}
+
+	async function onSaveEdit() {
+		if (!editAdvisorId) return;
+		if (Number(projectMinPlotRate ?? 0) > 0) {
+			for (const [label, v] of [
+				["Face 1", editToken],
+				["Face 2", editAgreement],
+				["Face 3", editRegistry],
+				["Face 4", editFullPayment],
+			] as const) {
+				if (Number(v ?? 0) > 0 && Number(v ?? 0) < Number(projectMinPlotRate ?? 0)) {
+					toast.error("Rate below project minimum", {
+						description: `${label} must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
+							"en-IN",
+						)}/sqft`,
+					});
+					return;
+				}
+			}
+		}
+		for (const [label, v] of [
+			["Face 1", editToken],
+			["Face 2", editAgreement],
+			["Face 3", editRegistry],
+			["Face 4", editFullPayment],
+		] as const) {
+			if (!Number.isFinite(v) || v < 0) {
+				toast.error("Invalid rate", {
+					description: `${label} rate must be a valid positive number`,
+				});
+				return;
+			}
+			if (v > MAX_RATE) {
+				toast.error("Rate too large", {
+					description: `${label} max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+				});
+				return;
+			}
+		}
+		setSaving(true);
+		try {
+			const res = await upsertAdvisorAssignment(projectId, {
+				advisor_id: editAdvisorId,
+				commission_token: editToken,
+				commission_agreement: editAgreement,
+				commission_registry: editRegistry,
+				commission_full_payment: editFullPayment,
+			});
+			if (!res.success) {
+				toast.error("Failed to update", { description: res.error });
+				return;
+			}
+			toast.success("Rates updated");
+			onCancelEdit();
 		} finally {
 			setSaving(false);
 		}
@@ -159,6 +278,58 @@ export function ProjectAdvisorAssignments({
 						</TableRow>
 					) : (
 						assignments.map((a) => (
+							editAdvisorId === a.advisor_id ? (
+								<TableRow key={a.id}>
+									<TableCell className="font-medium">
+										{a.advisor?.name ?? a.advisor_id}
+										{a.advisor?.code ? (
+											<span className="ml-2 text-xs text-zinc-500">
+												({a.advisor.code})
+											</span>
+										) : null}
+									</TableCell>
+									<TableCell className="text-right">
+										<InlineRateInput value={editToken} onChange={setEditToken} />
+									</TableCell>
+									<TableCell className="text-right">
+										<InlineRateInput
+											value={editAgreement}
+											onChange={setEditAgreement}
+										/>
+									</TableCell>
+									<TableCell className="text-right">
+										<InlineRateInput value={editRegistry} onChange={setEditRegistry} />
+									</TableCell>
+									<TableCell className="text-right">
+										<InlineRateInput
+											value={editFullPayment}
+											onChange={setEditFullPayment}
+										/>
+									</TableCell>
+									<TableCell className="text-right">
+										<div className="flex items-center justify-end gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												disabled={saving}
+												onClick={onSaveEdit}
+												title="Save"
+											>
+												<Save className="h-4 w-4 text-zinc-700" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												disabled={saving}
+												onClick={onCancelEdit}
+												title="Cancel"
+											>
+												<X className="h-4 w-4 text-zinc-500" />
+											</Button>
+										</div>
+									</TableCell>
+								</TableRow>
+							) : (
 							<TableRow key={a.id}>
 								<TableCell className="font-medium">
 									{a.advisor?.name ?? a.advisor_id}
@@ -169,28 +340,41 @@ export function ProjectAdvisorAssignments({
 									) : null}
 								</TableCell>
 								<TableCell className="text-right">
-									₹ {Number(a.commission_token ?? 0).toLocaleString("en-IN")}
+									{formatCurrencyShort(Number(a.commission_token ?? 0))}
 								</TableCell>
 								<TableCell className="text-right">
-									₹ {Number(a.commission_agreement ?? 0).toLocaleString("en-IN")}
+									{formatCurrencyShort(Number(a.commission_agreement ?? 0))}
 								</TableCell>
 								<TableCell className="text-right">
-									₹ {Number(a.commission_registry ?? 0).toLocaleString("en-IN")}
+									{formatCurrencyShort(Number(a.commission_registry ?? 0))}
 								</TableCell>
 								<TableCell className="text-right">
-									₹ {Number(a.commission_full_payment ?? 0).toLocaleString("en-IN")}
+									{formatCurrencyShort(Number(a.commission_full_payment ?? 0))}
 								</TableCell>
 								<TableCell className="text-right">
-									<Button
-										variant="ghost"
-										size="icon"
-										disabled={saving}
-										onClick={() => onRemove(a.advisor_id)}
-									>
-										<Trash2 className="h-4 w-4 text-zinc-500" />
-									</Button>
+									<div className="flex items-center justify-end gap-1">
+										<Button
+											variant="ghost"
+											size="icon"
+											disabled={saving || !!editAdvisorId}
+											onClick={() => onStartEdit(a)}
+											title="Edit"
+										>
+											<Pencil className="h-4 w-4 text-zinc-500" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="icon"
+											disabled={saving || !!editAdvisorId}
+											onClick={() => onRemove(a.advisor_id)}
+											title="Remove"
+										>
+											<Trash2 className="h-4 w-4 text-zinc-500" />
+										</Button>
+									</div>
 								</TableCell>
 							</TableRow>
+							)
 						))
 					)}
 				</TableBody>
@@ -217,6 +401,7 @@ function RateInput({
 				className="mt-1"
 				type="number"
 				min={0}
+				max={9_999_999_999.99}
 				step={0.5}
 				value={value || ""}
 				onChange={(e) => {
@@ -226,6 +411,30 @@ function RateInput({
 				}}
 			/>
 		</div>
+	);
+}
+
+function InlineRateInput({
+	value,
+	onChange,
+}: {
+	value: number;
+	onChange: (v: number) => void;
+}) {
+	return (
+		<Input
+			className="h-8 w-[110px] ml-auto text-right"
+			type="number"
+			min={0}
+			max={9_999_999_999.99}
+			step={0.5}
+			value={value || ""}
+			onChange={(e) => {
+				const raw = e.target.value;
+				const sanitized = raw.replace(/^0+(?=\d)/, "");
+				onChange(sanitized === "" ? 0 : Number(sanitized) || 0);
+			}}
+		/>
 	);
 }
 

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { saleSchema, type SaleFormValues } from "@/lib/validations/sale";
+import { calculateFinance } from "@/lib/utils/finance";
 
 export type ActionResponse = {
 	success: boolean;
@@ -36,15 +37,6 @@ export async function createSale(
 
 	const minRate = Number((plotRow as any).projects?.min_plot_rate ?? 0);
 	const plotSize = Number(plotRow.size_sqft ?? 0);
-	const minTotal = plotSize * minRate;
-	if (minTotal > 0 && Number(parsed.data.total_sale_amount) < minTotal) {
-		return {
-			success: false,
-			error: `Total sale amount is below project minimum. Minimum allowed: ₹ ${minTotal.toLocaleString(
-				"en-IN",
-			)}`,
-		};
-	}
 
 	// Advisor must be assigned to this project (project-wise commission)
 	const { data: assignment } = await supabase
@@ -62,6 +54,36 @@ export async function createSale(
 		};
 	}
 
+	// Advisor rate must be >= base rate (project minimum)
+	const faceRate = (() => {
+		if (parsed.data.sale_phase === "token") return Number((assignment as any).commission_token ?? 0);
+		if (parsed.data.sale_phase === "agreement") return Number((assignment as any).commission_agreement ?? 0);
+		if (parsed.data.sale_phase === "registry") return Number((assignment as any).commission_registry ?? 0);
+		if (parsed.data.sale_phase === "full_payment")
+			return Number((assignment as any).commission_full_payment ?? 0);
+		return 0;
+	})();
+	if (minRate > 0 && faceRate > 0 && faceRate < minRate) {
+		return {
+			success: false,
+			error: `Advisor rate (₹ ${faceRate.toLocaleString(
+				"en-IN",
+			)}/sqft) cannot be less than base rate (₹ ${minRate.toLocaleString(
+				"en-IN",
+			)}/sqft). Update the advisor assignment rates for this project.`,
+		};
+	}
+
+	const finance = calculateFinance({
+		plotSizeSqft: plotSize,
+		baseRatePerSqft: minRate,
+		advisorRatePerSqft: faceRate,
+		receivedAmount: 0,
+	});
+	if (finance.sellingPrice <= 0) {
+		return { success: false, error: "Invalid selling price. Check advisor rate and plot size." };
+	}
+
 	// 1. Create the sale record
 	const { data: sale, error: saleError } = await supabase
 		.from("plot_sales")
@@ -72,7 +94,8 @@ export async function createSale(
 			sale_phase: parsed.data.sale_phase,
 			token_date: parsed.data.token_date || null,
 			agreement_date: parsed.data.agreement_date || null,
-			total_sale_amount: parsed.data.total_sale_amount,
+			// selling_price is auto-calculated (advisor_rate * size)
+			total_sale_amount: finance.sellingPrice,
 			down_payment: parsed.data.down_payment,
 			monthly_emi: parsed.data.monthly_emi || null,
 			emi_day: parsed.data.emi_day || null,
@@ -109,21 +132,16 @@ export async function createSale(
 		};
 	}
 
-	// 3. Create commission record
-	// Profit-share model:
-	// base = size_sqft * projects.min_plot_rate
-	// profit = selling_price - base
-	// advisor earns profit proportionally to confirmed receipts (handled at payout time)
-	const sellingPrice = Number(parsed.data.total_sale_amount ?? 0);
-	const baseTotal = Number(plotSize ?? 0) * Number(minRate ?? 0);
-	const profitMax = Math.max(0, sellingPrice - baseTotal);
+	// 3. Create commission record (profit-share based on payments)
+	// advisor_earning_now = profit_total * min(1, confirmed_received / selling_price)
+	const profitTotal = finance.profitTotal;
 
 	await supabase.from("advisor_commissions").insert({
 		advisor_id: parsed.data.advisor_id,
 		sale_id: sale.id,
-		// legacy field retained for compatibility; now stores max profit available for sharing
 		commission_percentage: 0,
-		total_commission_amount: profitMax,
+		// stores total profit pool for payout eligibility calculations
+		total_commission_amount: profitTotal,
 		amount_paid: 0,
 		notes: `Earning based on profit-share for plot ${plotRow.plot_number}`,
 	});

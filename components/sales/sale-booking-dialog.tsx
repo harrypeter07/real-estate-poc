@@ -2,10 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, Button } from "@/components/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Button,
+  Skeleton,
+} from "@/components/ui";
 import { SaleForm } from "@/components/sales/sale-form";
 import { getCustomers } from "@/app/actions/customers";
 import { getAdvisors } from "@/app/actions/advisors";
+import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 
 export function SaleBookingDialog({
   open,
@@ -13,11 +21,13 @@ export function SaleBookingDialog({
   projectName,
   plot,
   projectId,
+  projectMinPlotRate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectName: string;
   projectId: string;
+  projectMinPlotRate: number;
   plot: {
     id: string;
     plot_number: string;
@@ -30,19 +40,31 @@ export function SaleBookingDialog({
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [advisors, setAdvisorsState] = useState<any[]>([]);
+  const [advisorAssignments, setAdvisorAssignments] = useState<any[]>([]);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+
+    // Cache to keep modal opening instant on repeated clicks.
+    if (hasLoaded) return;
+
     setLoading(true);
-    Promise.all([getCustomers(), getAdvisors()])
-      .then(([c, a]) => {
+    Promise.all([
+      getCustomers(),
+      getAdvisors(),
+      getAdvisorAssignmentsByProject(projectId),
+    ])
+      .then(([c, a, assignments]) => {
         if (cancelled) return;
         setCustomers(c as any[]);
         setAdvisorsState(a as any[]);
+        setAdvisorAssignments(assignments as any[]);
+        setHasLoaded(true);
       })
       .catch((e: any) => {
-        toast.error("Failed to load customers/advisors", {
+        toast.error("Failed to load required data", {
           description: e?.message || String(e),
         });
       })
@@ -52,24 +74,29 @@ export function SaleBookingDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, projectId, hasLoaded]);
 
   const plotsForForm = useMemo(() => {
     return [
       {
         id: plot.id,
+        project_id: projectId,
         plot_number: plot.plot_number,
         size_sqft: Number(plot.size_sqft ?? 0),
         rate_per_sqft: Number(plot.rate_per_sqft ?? 0),
         total_amount: Number(plot.size_sqft ?? 0) * Number(plot.rate_per_sqft ?? 0),
-        projects: { name: projectName },
+        projects: {
+          id: projectId,
+          name: projectName,
+          min_plot_rate: Number(projectMinPlotRate ?? 0),
+        },
       },
     ];
-  }, [plot, projectName]);
+  }, [plot, projectId, projectName, projectMinPlotRate]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -85,7 +112,15 @@ export function SaleBookingDialog({
         </DialogHeader>
 
         {loading ? (
-          <div className="text-sm text-zinc-500">Loading…</div>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-zinc-200 p-4">
+              <Skeleton className="h-6 w-48 mb-3" />
+              <Skeleton className="h-10 w-full mb-2" />
+              <Skeleton className="h-10 w-full mb-2" />
+              <Skeleton className="h-10 w-2/3 mb-2" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
         ) : (
           <div className="flex justify-center">
             <SaleForm
@@ -93,6 +128,7 @@ export function SaleBookingDialog({
               customers={customers}
               advisors={advisors}
               initialPlotId={plot.id}
+              advisorAssignments={advisorAssignments}
             />
           </div>
         )}

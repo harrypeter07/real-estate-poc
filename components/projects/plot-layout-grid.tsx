@@ -34,6 +34,7 @@ interface PlotLayoutGridProps {
 	projectName?: string;
 	projectId: string;
 	initialPlotId?: string | null;
+	projectMinPlotRate?: number;
 }
 
 type StatusKey = "available" | "token" | "agreement" | "sold";
@@ -71,7 +72,13 @@ const STATUS_CONFIG: Record<
 	},
 };
 
-export function PlotLayoutGrid({ plots, projectName, projectId, initialPlotId }: PlotLayoutGridProps) {
+export function PlotLayoutGrid({
+	plots,
+	projectName,
+	projectId,
+	initialPlotId,
+	projectMinPlotRate,
+}: PlotLayoutGridProps) {
 	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(initialPlotId ?? null);
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -411,6 +418,7 @@ export function PlotLayoutGrid({ plots, projectName, projectId, initialPlotId }:
 									onOpenChange={setSellOpen}
 									projectName={projectName}
 									projectId={projectId}
+									projectMinPlotRate={projectMinPlotRate ?? 0}
 									plot={selectedPlot as any}
 								/>
 							)}

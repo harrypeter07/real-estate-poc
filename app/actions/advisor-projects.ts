@@ -68,6 +68,45 @@ export async function getAdvisorAssignmentsByProject(
 	);
 }
 
+export async function getAdvisorAssignments(): Promise<AdvisorProjectAssignment[]> {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data, error } = await supabase
+		.from("advisor_project_commissions")
+		.select(
+			`
+      *,
+      advisors(id, name, code, phone)
+    `,
+		)
+		.order("created_at", { ascending: false });
+
+	if (error) throw new Error(error.message);
+
+	return (
+		data?.map((row: any) => ({
+			id: row.id,
+			project_id: row.project_id,
+			advisor_id: row.advisor_id,
+			commission_token: Number(row.commission_token ?? 0),
+			commission_agreement: Number(row.commission_agreement ?? 0),
+			commission_registry: Number(row.commission_registry ?? 0),
+			commission_full_payment: Number(row.commission_full_payment ?? 0),
+			created_at: row.created_at,
+			updated_at: row.updated_at,
+			advisor: row.advisors
+				? {
+						id: row.advisors.id,
+						name: row.advisors.name,
+						code: row.advisors.code,
+						phone: row.advisors.phone,
+					}
+				: null,
+		})) ?? []
+	);
+}
+
 export async function upsertAdvisorAssignment(
 	projectId: string,
 	input: {
@@ -80,6 +119,45 @@ export async function upsertAdvisorAssignment(
 ): Promise<ActionResponse> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: proj, error: projErr } = await supabase
+		.from("projects")
+		.select("min_plot_rate")
+		.eq("id", projectId)
+		.single();
+	if (projErr) return { success: false, error: projErr.message };
+	const minPlotRate = Number((proj as any)?.min_plot_rate ?? 0);
+
+	// advisor_project_commissions.* should support large values (₹/sqft)
+	// after widening columns (recommended DECIMAL(12,2)), max is 9,999,999,999.99
+	const MAX = 9_999_999_999.99;
+	const fields: Array<[string, number]> = [
+		["Face 1", Number(input.commission_token ?? 0)],
+		["Face 2", Number(input.commission_agreement ?? 0)],
+		["Face 3", Number(input.commission_registry ?? 0)],
+		["Face 4", Number(input.commission_full_payment ?? 0)],
+	];
+	for (const [label, v] of fields) {
+		if (!Number.isFinite(v) || v < 0) {
+			return { success: false, error: `${label} rate must be a valid positive number` };
+		}
+		if (minPlotRate > 0 && v > 0 && v < minPlotRate) {
+			return {
+				success: false,
+				error: `${label} rate must be ≥ project minimum ₹ ${minPlotRate.toLocaleString(
+					"en-IN",
+				)}/sqft`,
+			};
+		}
+		if (v > MAX) {
+			return {
+				success: false,
+				error: `${label} rate is too large. Max allowed is ₹ ${MAX.toLocaleString(
+					"en-IN",
+				)}/sqft`,
+			};
+		}
+	}
 
 	const { error } = await supabase.from("advisor_project_commissions").upsert(
 		{

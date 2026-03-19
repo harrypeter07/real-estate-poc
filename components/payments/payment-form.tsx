@@ -141,18 +141,20 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
 
   return (
     <Card className="max-w-2xl w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
         <div>
-          <CardTitle>Record Payment</CardTitle>
-          <CardDescription>Add a new payment installment against a sale</CardDescription>
+          <CardTitle className="text-lg">Record Payment</CardTitle>
+          <CardDescription className="text-xs">
+            Add a new payment installment against a sale
+          </CardDescription>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
           Fill Mock Data
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="sale_id"
@@ -178,7 +180,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="amount"
@@ -222,7 +224,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
             </div>
 
             {currentSaleId && (
-              <div className="rounded-lg bg-zinc-50 p-4 border border-zinc-200 space-y-1 text-sm">
+              <div className="rounded-lg bg-zinc-50 p-3 border border-zinc-200 space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Sale Total:</span>
                   <span className="font-medium">{formatCurrency(saleTotal)}</span>
@@ -243,7 +245,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="payment_mode"
@@ -310,7 +312,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
               )}
             />
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-3 border-t">
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
               <Button type="submit" disabled={loading} className="min-w-[120px]">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

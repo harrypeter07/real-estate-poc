@@ -164,6 +164,7 @@ export default async function ProjectDetailPage({
 							projectName={project.name}
 							projectId={project.id}
 							initialPlotId={plotId}
+							projectMinPlotRate={project.min_plot_rate ?? 0}
 						/>
 					</CardContent>
 				</Card>
@@ -181,6 +182,7 @@ export default async function ProjectDetailPage({
 						projectId={project.id}
 						advisors={advisors}
 						assignments={advisorAssignments}
+						projectMinPlotRate={project.min_plot_rate ?? 0}
 					/>
 				</CardContent>
 			</Card>

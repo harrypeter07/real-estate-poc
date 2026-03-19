@@ -55,10 +55,11 @@ export async function recordCommissionPayment(
 		.select(
 			`
       amount_paid,
+      total_commission_amount,
       plot_sales(
         total_sale_amount,
         amount_paid,
-        plots(size_sqft, projects(min_plot_rate))
+        sale_phase
       )
     `,
 		)
@@ -70,10 +71,7 @@ export async function recordCommissionPayment(
 	const alreadyPaidToAdvisor = Number(comm.amount_paid ?? 0);
 	const saleTotal = Number((comm as any).plot_sales?.total_sale_amount ?? 0);
 	const saleReceived = Number((comm as any).plot_sales?.amount_paid ?? 0); // confirmed receipts only
-	const plotSize = Number((comm as any).plot_sales?.plots?.size_sqft ?? 0);
-	const minRate = Number((comm as any).plot_sales?.plots?.projects?.min_plot_rate ?? 0);
-	const baseTotal = plotSize * minRate;
-	const profitMax = Math.max(0, saleTotal - baseTotal);
+	const profitTotal = Number((comm as any).total_commission_amount ?? 0);
 	const add = Number(amount ?? 0);
 	if (!Number.isFinite(add) || add <= 0) {
 		return { success: false, error: "Amount must be positive" };
@@ -83,9 +81,9 @@ export async function recordCommissionPayment(
 	}
 
 	// Advisor can only be paid proportional to confirmed money received.
-	// eligible = profitMax * min(1, saleReceived / saleTotal)
+	// eligible = profitTotal * min(1, saleReceived / saleTotal)
 	const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
-	const eligible = profitMax * ratio;
+	const eligible = Math.max(0, profitTotal) * ratio;
 	const availableToPay = Math.max(0, eligible - alreadyPaidToAdvisor);
 	if (add > availableToPay + 0.0001) {
 		return {

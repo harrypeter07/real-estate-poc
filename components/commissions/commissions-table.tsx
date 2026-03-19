@@ -57,12 +57,10 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     if (!selected) return 0;
     const saleTotal = Number(selected.plot_sales?.total_sale_amount ?? 0);
     const saleReceived = Number(selected.plot_sales?.amount_paid ?? 0);
-    const plotSize = Number(selected.plot_sales?.plots?.size_sqft ?? 0);
-    const minRate = Number(selected.plot_sales?.plots?.projects?.min_plot_rate ?? 0);
-    const profitMax = Math.max(0, saleTotal - plotSize * minRate);
-    if (saleTotal <= 0 || profitMax <= 0) return 0;
+    const profitTotal = Number(selected.total_commission_amount ?? 0);
+    if (saleTotal <= 0 || profitTotal <= 0) return 0;
     const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
-    return profitMax * ratio;
+    return profitTotal * ratio;
   }, [selected]);
 
   const availableNow = useMemo(() => {
@@ -178,9 +176,6 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     </TableCell>
                     <TableCell className="font-bold text-zinc-900">
                       {formatCurrency(comm.total_commission_amount)}
-                      <span className="ml-1.5 text-[10px] text-zinc-400 font-normal">
-                        (₹ {Number(comm.commission_percentage ?? 0).toLocaleString("en-IN")}/sqft)
-                      </span>
                     </TableCell>
                     <TableCell className="font-medium text-green-600">
                       {formatCurrency(comm.amount_paid)}
@@ -228,9 +223,9 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     selected.plot_sales?.plots?.plot_number ?? "—"
                   }`}
                 />
-                <InfoRow label="Profit (max earning)" value={formatCurrency(selected.total_commission_amount)} strong />
+                <InfoRow label="Total Profit" value={formatCurrency(selected.total_commission_amount)} strong />
                 <InfoRow label="Paid" value={formatCurrency(selected.amount_paid)} />
-                <InfoRow label="Eligible now" value={formatCurrency(eligibleNow)} strong />
+                <InfoRow label="Advisor earned so far" value={formatCurrency(eligibleNow)} strong />
                 <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />
                 <InfoRow label="Remaining (overall)" value={formatCurrency(remaining)} />
                 {selected.notes && (

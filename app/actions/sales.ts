@@ -55,14 +55,12 @@ export async function createSale(
 	}
 
 	// Advisor rate must be >= base rate (project minimum)
-	const faceRate = (() => {
-		if (parsed.data.sale_phase === "token") return Number((assignment as any).commission_token ?? 0);
-		if (parsed.data.sale_phase === "agreement") return Number((assignment as any).commission_agreement ?? 0);
-		if (parsed.data.sale_phase === "registry") return Number((assignment as any).commission_registry ?? 0);
-		if (parsed.data.sale_phase === "full_payment")
-			return Number((assignment as any).commission_full_payment ?? 0);
-		return 0;
-	})();
+	// After schema change, we use a single commission_rate irrespective of sale phase.
+	const faceRate = Number(
+		(assignment as any).commission_rate ??
+			(assignment as any).commission_token ??
+			0
+	);
 	if (minRate > 0 && faceRate > 0 && faceRate < minRate) {
 		return {
 			success: false,
@@ -217,4 +215,30 @@ export async function getSaleById(id: string) {
 
 	if (error) return null;
 	return data;
+}
+
+export async function getCustomerPlotSales(customerId: string) {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data, error } = await supabase
+		.from("plot_sales")
+		.select(
+			`
+      id,
+      sale_phase,
+      token_date,
+      agreement_date,
+      total_sale_amount,
+      amount_paid,
+      remaining_amount,
+      created_at,
+      plots(plot_number, projects(name))
+    `
+		)
+		.eq("customer_id", customerId)
+		.order("created_at", { ascending: false });
+
+	if (error) throw new Error(error.message);
+	return data || [];
 }

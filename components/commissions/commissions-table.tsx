@@ -36,6 +36,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"manage" | "history">("manage");
   const [saving, setSaving] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [paidDate, setPaidDate] = useState(() =>
@@ -71,7 +72,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 
   const canPay = !!selected && remaining > 0;
 
-  function openRow(comm: any) {
+  function openRow(comm: any, mode: "manage" | "history") {
     setSelected(comm);
     setPayAmount("");
     setPaidDate(new Date().toISOString().slice(0, 10));
@@ -79,6 +80,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     setReferenceNumber("");
     setReceiptPath("");
     setNote("");
+    setDialogMode(mode);
     setOpen(true);
   }
 
@@ -132,7 +134,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   return (
     <>
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -142,6 +144,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                 <TableHead>Paid</TableHead>
                 <TableHead>Remaining</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,8 +154,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                 return (
                   <TableRow
                     key={comm.id}
-                    className="cursor-pointer hover:bg-zinc-50"
-                    onClick={() => openRow(comm)}
+                    className="hover:bg-zinc-50"
                   >
                     <TableCell>
                       <div className="flex flex-col">
@@ -194,6 +196,32 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                         </Badge>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRow(comm, "manage");
+                          }}
+                        >
+                          Manage
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRow(comm, "history");
+                          }}
+                        >
+                          See history
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -206,7 +234,9 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>Commission</span>
+              <span>
+                {dialogMode === "manage" ? "Manage Commission Payment" : "Commission Payout History"}
+              </span>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Close
               </Button>
@@ -214,24 +244,34 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
           </DialogHeader>
 
           {selected && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div
+              className={
+                dialogMode === "history"
+                  ? "grid grid-cols-1 gap-4"
+                  : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+              }
+            >
               <div className="space-y-2 text-sm">
-                <InfoRow label="Advisor" value={selected.advisors?.name ?? "—"} />
-                <InfoRow
-                  label="Plot"
-                  value={`${selected.plot_sales?.plots?.projects?.name ?? "—"} • ${
-                    selected.plot_sales?.plots?.plot_number ?? "—"
-                  }`}
-                />
-                <InfoRow label="Total Profit" value={formatCurrency(selected.total_commission_amount)} strong />
-                <InfoRow label="Paid" value={formatCurrency(selected.amount_paid)} />
-                <InfoRow label="Advisor earned so far" value={formatCurrency(eligibleNow)} strong />
-                <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />
-                <InfoRow label="Remaining (overall)" value={formatCurrency(remaining)} />
-                {selected.notes && (
-                  <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
-                    {selected.notes}
-                  </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 mb-3">
+                  <span><strong>Advisor:</strong> {selected.advisors?.name ?? "—"}</span>
+                  <span><strong>Plot:</strong> {selected.plot_sales?.plots?.projects?.name ?? "—"} • {selected.plot_sales?.plots?.plot_number ?? "—"}</span>
+                  <span><strong>Total:</strong> {formatCurrency(selected.total_commission_amount)}</span>
+                  <span><strong>Paid:</strong> {formatCurrency(selected.amount_paid)}</span>
+                  <span><strong>Available:</strong> {formatCurrency(availableNow)}</span>
+                </div>
+                {dialogMode === "manage" && (
+                  <>
+                    <InfoRow label="Total Profit" value={formatCurrency(selected.total_commission_amount)} strong />
+                    <InfoRow label="Paid" value={formatCurrency(selected.amount_paid)} />
+                    <InfoRow label="Advisor earned so far" value={formatCurrency(eligibleNow)} strong />
+                    <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />
+                    <InfoRow label="Remaining (overall)" value={formatCurrency(remaining)} />
+                    {selected.notes && (
+                      <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
+                        {selected.notes}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {Array.isArray(selected.advisor_commission_payments) &&
@@ -280,102 +320,108 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                   )}
               </div>
 
-              <div className="space-y-3">
-                <div className="rounded-md border border-zinc-200 p-3 space-y-2">
-                  <div className="text-sm font-semibold text-zinc-900">Pay advisor</div>
+              {dialogMode === "manage" ? (
+                <div className="space-y-3">
+                  <div className="rounded-md border border-zinc-200 p-3 space-y-2">
+                    <div className="text-sm font-semibold text-zinc-900">
+                      Pay advisor
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-zinc-500 mb-1">Amount</div>
+                        <Input
+                          type="number"
+                          value={payAmount}
+                          onChange={(e) => setPayAmount(e.target.value)}
+                          placeholder="e.g. 5000"
+                          disabled={!canPay || saving}
+                        />
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 mb-1">Date</div>
+                        <Input
+                          type="date"
+                          value={paidDate}
+                          onChange={(e) => setPaidDate(e.target.value)}
+                          disabled={!canPay || saving}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-zinc-500 mb-1">Mode</div>
+                        <Select
+                          value={paymentMode}
+                          onValueChange={(v) =>
+                            setPaymentMode(v as "cash" | "online" | "cheque")
+                          }
+                          disabled={!canPay || saving}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="online">Online / UPI</SelectItem>
+                            <SelectItem value="cheque">Cheque</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 mb-1">
+                          Reference # (optional)
+                        </div>
+                        <Input
+                          value={referenceNumber}
+                          onChange={(e) => setReferenceNumber(e.target.value)}
+                          placeholder="UTR / cheque / ref"
+                          disabled={!canPay || saving}
+                        />
+                      </div>
+                    </div>
+
+                    <ReceiptUpload
+                      folder="commissions"
+                      recordId={selected.id}
+                      value={receiptPath}
+                      onChange={setReceiptPath}
+                    />
+
                     <div>
-                      <div className="text-xs text-zinc-500 mb-1">Amount</div>
-                      <Input
-                        type="number"
-                        value={payAmount}
-                        onChange={(e) => setPayAmount(e.target.value)}
-                        placeholder="e.g. 5000"
+                      <div className="text-xs text-zinc-500 mb-1">Note (optional)</div>
+                      <Textarea
+                        rows={2}
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="UPI/Bank ref, etc."
                         disabled={!canPay || saving}
                       />
                     </div>
-                    <div>
-                      <div className="text-xs text-zinc-500 mb-1">Date</div>
-                      <Input
-                        type="date"
-                        value={paidDate}
-                        onChange={(e) => setPaidDate(e.target.value)}
-                        disabled={!canPay || saving}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-xs text-zinc-500 mb-1">Mode</div>
-                      <Select
-                        value={paymentMode}
-                        onValueChange={(v) =>
-                          setPaymentMode(v as "cash" | "online" | "cheque")
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          setPayAmount(String(Math.max(0, availableNow)))
                         }
                         disabled={!canPay || saving}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select mode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="online">Online / UPI</SelectItem>
-                          <SelectItem value="cheque">Cheque</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <div className="text-xs text-zinc-500 mb-1">
-                        Reference # (optional)
-                      </div>
-                      <Input
-                        value={referenceNumber}
-                        onChange={(e) => setReferenceNumber(e.target.value)}
-                        placeholder="UTR / cheque / ref"
+                        Pay max
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={submitPay}
                         disabled={!canPay || saving}
-                      />
+                      >
+                        {saving ? "Saving…" : "Record payment"}
+                      </Button>
                     </div>
-                  </div>
-
-                  <ReceiptUpload
-                    folder="commissions"
-                    recordId={selected.id}
-                    value={receiptPath}
-                    onChange={setReceiptPath}
-                  />
-
-                  <div>
-                    <div className="text-xs text-zinc-500 mb-1">Note (optional)</div>
-                    <Textarea
-                      rows={2}
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="UPI/Bank ref, etc."
-                      disabled={!canPay || saving}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setPayAmount(String(Math.max(0, availableNow)))}
-                      disabled={!canPay || saving}
-                    >
-                      Pay max
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={submitPay}
-                      disabled={!canPay || saving}
-                    >
-                      {saving ? "Saving…" : "Record payment"}
-                    </Button>
                   </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           )}
         </DialogContent>

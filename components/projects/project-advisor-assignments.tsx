@@ -41,15 +41,9 @@ export function ProjectAdvisorAssignments({
 	const MAX_RATE = 9_999_999_999.99;
 	const [saving, setSaving] = useState(false);
 	const [advisorId, setAdvisorId] = useState<string>("");
-	const [token, setToken] = useState<number>(0);
-	const [agreement, setAgreement] = useState<number>(0);
-	const [registry, setRegistry] = useState<number>(0);
-	const [fullPayment, setFullPayment] = useState<number>(0);
+	const [commissionRate, setCommissionRate] = useState<number>(0);
 	const [editAdvisorId, setEditAdvisorId] = useState<string>("");
-	const [editToken, setEditToken] = useState<number>(0);
-	const [editAgreement, setEditAgreement] = useState<number>(0);
-	const [editRegistry, setEditRegistry] = useState<number>(0);
-	const [editFullPayment, setEditFullPayment] = useState<number>(0);
+	const [editCommissionRate, setEditCommissionRate] = useState<number>(0);
 
 	const assignedAdvisorIds = useMemo(
 		() => new Set(assignments.map((a) => a.advisor_id)),
@@ -66,50 +60,33 @@ export function ProjectAdvisorAssignments({
 			toast.error("Select an advisor");
 			return;
 		}
+		if (!Number.isFinite(commissionRate) || commissionRate < 0) {
+			toast.error("Invalid rate", {
+				description: `Commission rate must be a valid positive number`,
+			});
+			return;
+		}
 		if (Number(projectMinPlotRate ?? 0) > 0) {
-			for (const [label, v] of [
-				["Face 1", token],
-				["Face 2", agreement],
-				["Face 3", registry],
-				["Face 4", fullPayment],
-			] as const) {
-				if (Number(v ?? 0) > 0 && Number(v ?? 0) < Number(projectMinPlotRate ?? 0)) {
-					toast.error("Rate below project minimum", {
-						description: `${label} must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
-							"en-IN",
-						)}/sqft`,
-					});
-					return;
-				}
+			if (commissionRate > 0 && commissionRate < Number(projectMinPlotRate ?? 0)) {
+				toast.error("Rate below project minimum", {
+					description: `Commission rate must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
+						"en-IN",
+					)}/sqft`,
+				});
+				return;
 			}
 		}
-		for (const [label, v] of [
-			["Face 1", token],
-			["Face 2", agreement],
-			["Face 3", registry],
-			["Face 4", fullPayment],
-		] as const) {
-			if (!Number.isFinite(v) || v < 0) {
-				toast.error("Invalid rate", {
-					description: `${label} rate must be a valid positive number`,
-				});
-				return;
-			}
-			if (v > MAX_RATE) {
-				toast.error("Rate too large", {
-					description: `${label} max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
-				});
-				return;
-			}
+		if (commissionRate > MAX_RATE) {
+			toast.error("Rate too large", {
+				description: `Commission rate max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+			});
+			return;
 		}
 		setSaving(true);
 		try {
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: advisorId,
-				commission_token: token,
-				commission_agreement: agreement,
-				commission_registry: registry,
-				commission_full_payment: fullPayment,
+				commission_rate: commissionRate,
 			});
 			if (!res.success) {
 				toast.error("Failed to assign", { description: res.error });
@@ -117,10 +94,7 @@ export function ProjectAdvisorAssignments({
 			}
 			toast.success("Advisor assigned to project");
 			setAdvisorId("");
-			setToken(0);
-			setAgreement(0);
-			setRegistry(0);
-			setFullPayment(0);
+			setCommissionRate(0);
 		} finally {
 			setSaving(false);
 		}
@@ -142,66 +116,46 @@ export function ProjectAdvisorAssignments({
 
 	function onStartEdit(a: AdvisorProjectAssignment) {
 		setEditAdvisorId(a.advisor_id);
-		setEditToken(Number(a.commission_token ?? 0));
-		setEditAgreement(Number(a.commission_agreement ?? 0));
-		setEditRegistry(Number(a.commission_registry ?? 0));
-		setEditFullPayment(Number(a.commission_full_payment ?? 0));
+		setEditCommissionRate(Number((a as any).commission_rate ?? 0));
 	}
 
 	function onCancelEdit() {
 		setEditAdvisorId("");
-		setEditToken(0);
-		setEditAgreement(0);
-		setEditRegistry(0);
-		setEditFullPayment(0);
+		setEditCommissionRate(0);
 	}
 
 	async function onSaveEdit() {
 		if (!editAdvisorId) return;
+		if (!Number.isFinite(editCommissionRate) || editCommissionRate < 0) {
+			toast.error("Invalid rate", {
+				description: `Commission rate must be a valid positive number`,
+			});
+			return;
+		}
 		if (Number(projectMinPlotRate ?? 0) > 0) {
-			for (const [label, v] of [
-				["Face 1", editToken],
-				["Face 2", editAgreement],
-				["Face 3", editRegistry],
-				["Face 4", editFullPayment],
-			] as const) {
-				if (Number(v ?? 0) > 0 && Number(v ?? 0) < Number(projectMinPlotRate ?? 0)) {
-					toast.error("Rate below project minimum", {
-						description: `${label} must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
-							"en-IN",
-						)}/sqft`,
-					});
-					return;
-				}
+			if (
+				editCommissionRate > 0 &&
+				editCommissionRate < Number(projectMinPlotRate ?? 0)
+			) {
+				toast.error("Rate below project minimum", {
+					description: `Commission rate must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
+						"en-IN",
+					)}/sqft`,
+				});
+				return;
 			}
 		}
-		for (const [label, v] of [
-			["Face 1", editToken],
-			["Face 2", editAgreement],
-			["Face 3", editRegistry],
-			["Face 4", editFullPayment],
-		] as const) {
-			if (!Number.isFinite(v) || v < 0) {
-				toast.error("Invalid rate", {
-					description: `${label} rate must be a valid positive number`,
-				});
-				return;
-			}
-			if (v > MAX_RATE) {
-				toast.error("Rate too large", {
-					description: `${label} max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
-				});
-				return;
-			}
+		if (editCommissionRate > MAX_RATE) {
+			toast.error("Rate too large", {
+				description: `Commission rate max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+			});
+			return;
 		}
 		setSaving(true);
 		try {
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: editAdvisorId,
-				commission_token: editToken,
-				commission_agreement: editAgreement,
-				commission_registry: editRegistry,
-				commission_full_payment: editFullPayment,
+				commission_rate: editCommissionRate,
 			});
 			if (!res.success) {
 				toast.error("Failed to update", { description: res.error });
@@ -234,21 +188,14 @@ export function ProjectAdvisorAssignments({
 						</SelectContent>
 					</Select>
 					<p className="text-[11px] text-zinc-500 mt-1">
-						Commission can be different for each advisor in the same project.
+						Assign a single commission rate for this advisor in this project.
 					</p>
 				</div>
 
-				<RateInput label="Face 1 Rate (₹/sqft)" value={token} onChange={setToken} />
 				<RateInput
-					label="Face 2 Rate (₹/sqft)"
-					value={agreement}
-					onChange={setAgreement}
-				/>
-				<RateInput label="Face 3 Rate (₹/sqft)" value={registry} onChange={setRegistry} />
-				<RateInput
-					label="Face 4 Rate (₹/sqft)"
-					value={fullPayment}
-					onChange={setFullPayment}
+					label="Commission Rate (₹/sqft)"
+					value={commissionRate}
+					onChange={setCommissionRate}
 				/>
 				<div className="lg:col-span-5 flex justify-end">
 					<Button onClick={onAdd} disabled={saving || !advisorId} size="sm">
@@ -258,21 +205,21 @@ export function ProjectAdvisorAssignments({
 				</div>
 			</div>
 
+			<div className="overflow-x-auto">
 			<Table>
 				<TableHeader>
 					<TableRow>
 						<TableHead>Advisor</TableHead>
-						<TableHead className="text-right">Face 1 (₹/sqft)</TableHead>
-						<TableHead className="text-right">Face 2 (₹/sqft)</TableHead>
-						<TableHead className="text-right">Face 3 (₹/sqft)</TableHead>
-						<TableHead className="text-right">Face 4 (₹/sqft)</TableHead>
+						<TableHead className="text-right">
+							Commission (₹/sqft)
+						</TableHead>
 						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
 					{assignments.length === 0 ? (
 						<TableRow>
-							<TableCell colSpan={6} className="text-sm text-zinc-500">
+							<TableCell colSpan={3} className="text-sm text-zinc-500">
 								No advisors assigned yet.
 							</TableCell>
 						</TableRow>
@@ -289,21 +236,9 @@ export function ProjectAdvisorAssignments({
 										) : null}
 									</TableCell>
 									<TableCell className="text-right">
-										<InlineRateInput value={editToken} onChange={setEditToken} />
-									</TableCell>
-									<TableCell className="text-right">
 										<InlineRateInput
-											value={editAgreement}
-											onChange={setEditAgreement}
-										/>
-									</TableCell>
-									<TableCell className="text-right">
-										<InlineRateInput value={editRegistry} onChange={setEditRegistry} />
-									</TableCell>
-									<TableCell className="text-right">
-										<InlineRateInput
-											value={editFullPayment}
-											onChange={setEditFullPayment}
+											value={editCommissionRate}
+											onChange={setEditCommissionRate}
 										/>
 									</TableCell>
 									<TableCell className="text-right">
@@ -340,16 +275,9 @@ export function ProjectAdvisorAssignments({
 									) : null}
 								</TableCell>
 								<TableCell className="text-right">
-									{formatCurrencyShort(Number(a.commission_token ?? 0))}
-								</TableCell>
-								<TableCell className="text-right">
-									{formatCurrencyShort(Number(a.commission_agreement ?? 0))}
-								</TableCell>
-								<TableCell className="text-right">
-									{formatCurrencyShort(Number(a.commission_registry ?? 0))}
-								</TableCell>
-								<TableCell className="text-right">
-									{formatCurrencyShort(Number(a.commission_full_payment ?? 0))}
+									{formatCurrencyShort(
+										Number((a as any).commission_rate ?? 0)
+									)}
 								</TableCell>
 								<TableCell className="text-right">
 									<div className="flex items-center justify-end gap-1">
@@ -379,6 +307,7 @@ export function ProjectAdvisorAssignments({
 					)}
 				</TableBody>
 			</Table>
+			</div>
 		</div>
 	);
 }

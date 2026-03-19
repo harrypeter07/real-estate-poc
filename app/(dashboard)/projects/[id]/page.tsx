@@ -25,6 +25,8 @@ import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 import { ProjectAdvisorAssignmentsModal } from "@/components/projects/project-advisor-assignments-modal";
 import { PlotForm } from "@/components/projects/plot-form";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ProjectDocumentsModal } from "@/components/projects/project-documents-modal";
+import { getProjectDocuments } from "@/app/actions/project-documents";
 
 interface Props {
 	params: Promise<{ id: string }>;
@@ -41,6 +43,7 @@ export default async function ProjectDetailPage({
 	const plots = await getPlotsByProject(id);
 	const advisors = await getAdvisors();
 	const advisorAssignments = await getAdvisorAssignmentsByProject(id);
+	const projectDocs = await getProjectDocuments(id);
 
 	if (!data) {
 		notFound();
@@ -94,7 +97,7 @@ export default async function ProjectDetailPage({
 				subtitle={project.location ?? "No location set"}
 				showBackButton
 				action={
-					<div className="flex gap-2">
+					<div className="flex flex-wrap gap-2">
 						<Link href={`/projects/${project.id}?edit=true`}>
 							<Button variant="outline" size="sm">
 								<Pencil className="h-4 w-4 mr-2" />
@@ -112,6 +115,7 @@ export default async function ProjectDetailPage({
 								<PlotForm mode="create" projectId={project.id} />
 							</DialogContent>
 						</Dialog>
+						<ProjectDocumentsModal projectId={project.id} initialDocs={projectDocs as any[]} />
 					</div>
 				}
 			/>
@@ -174,7 +178,7 @@ export default async function ProjectDetailPage({
 			<Card className="mb-6">
 				<CardHeader className="pb-2">
 					<CardTitle className="text-sm font-medium text-zinc-500">
-						Advisor Assignment & Face Rates (Project-wise)
+						Advisor Assignment & Commission Rate (Project-wise)
 					</CardTitle>
 				</CardHeader>
 				<CardContent>

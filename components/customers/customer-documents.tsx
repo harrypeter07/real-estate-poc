@@ -140,6 +140,31 @@ export function CustomerDocuments({
     toast.success("Deleted");
   }
 
+  async function openDocInNewTab(row: DocRow) {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.storage
+        .from("customer-docs")
+        .createSignedUrl(row.file_path, 60 * 60);
+
+      console.debug("[CustomerDocuments] openDocInNewTab", {
+        bucket: "customer-docs",
+        file_path: row.file_path,
+        hasSignedUrl: !!data?.signedUrl,
+        error: error?.message ?? null,
+      });
+
+      if (error || !data?.signedUrl) {
+        toast.error("Cannot open file", { description: error?.message ?? "Signed URL not available" });
+        return;
+      }
+
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error("Cannot open file", { description: e?.message || String(e) });
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -228,26 +253,18 @@ export function CustomerDocuments({
                     <div className="text-[11px] text-zinc-500 mt-0.5">
                       {d.doc_category.toUpperCase()} • {d.doc_type}
                     </div>
-                    <div className="text-[11px] text-zinc-500 truncate">
-                      Stored at: <span className="font-mono">customer-docs/{d.file_path}</span>
-                    </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <a
-                      className="inline-flex"
-                      href={
-                        createClient()
-                          .storage.from("customer-docs")
-                          .getPublicUrl(d.file_path).data.publicUrl
-                      }
-                      target="_blank"
-                      rel="noreferrer"
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openDocInNewTab(d)}
                       title="Open"
                     >
-                      <Button type="button" variant="outline" size="icon" className="h-8 w-8">
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    </a>
+                      <Upload className="h-4 w-4" />
+                    </Button>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

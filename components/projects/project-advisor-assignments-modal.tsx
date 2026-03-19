@@ -32,10 +32,10 @@ export function ProjectAdvisorAssignmentsModal({
 			<div className="flex items-center justify-between gap-3">
 				<div>
 					<p className="text-sm font-medium text-zinc-700">
-						Assign Advisors & Face Rates
+						Assign Advisors & Commission Rate
 					</p>
 					<p className="text-xs text-zinc-500">
-						Set Face-wise commission rates per project (₹/sqft).
+						Set a single commission rate per project (₹/sqft).
 					</p>
 				</div>
 				<Button size="sm" variant="outline" onClick={() => setOpen(true)}>

@@ -12,10 +12,7 @@ export type AdvisorProjectAssignment = {
 	id: string;
 	project_id: string;
 	advisor_id: string;
-	commission_token: number;
-	commission_agreement: number;
-	commission_registry: number;
-	commission_full_payment: number;
+	commission_rate: number;
 	created_at: string;
 	updated_at: string;
 	advisor?: {
@@ -50,10 +47,7 @@ export async function getAdvisorAssignmentsByProject(
 			id: row.id,
 			project_id: row.project_id,
 			advisor_id: row.advisor_id,
-			commission_token: Number(row.commission_token ?? 0),
-			commission_agreement: Number(row.commission_agreement ?? 0),
-			commission_registry: Number(row.commission_registry ?? 0),
-			commission_full_payment: Number(row.commission_full_payment ?? 0),
+			commission_rate: Number(row.commission_rate ?? row.commission_token ?? 0),
 			created_at: row.created_at,
 			updated_at: row.updated_at,
 			advisor: row.advisors
@@ -89,10 +83,7 @@ export async function getAdvisorAssignments(): Promise<AdvisorProjectAssignment[
 			id: row.id,
 			project_id: row.project_id,
 			advisor_id: row.advisor_id,
-			commission_token: Number(row.commission_token ?? 0),
-			commission_agreement: Number(row.commission_agreement ?? 0),
-			commission_registry: Number(row.commission_registry ?? 0),
-			commission_full_payment: Number(row.commission_full_payment ?? 0),
+			commission_rate: Number(row.commission_rate ?? row.commission_token ?? 0),
 			created_at: row.created_at,
 			updated_at: row.updated_at,
 			advisor: row.advisors
@@ -111,10 +102,7 @@ export async function upsertAdvisorAssignment(
 	projectId: string,
 	input: {
 		advisor_id: string;
-		commission_token: number;
-		commission_agreement: number;
-		commission_registry: number;
-		commission_full_payment: number;
+		commission_rate: number;
 	},
 ): Promise<ActionResponse> {
 	const supabase = await createClient();
@@ -131,42 +119,32 @@ export async function upsertAdvisorAssignment(
 	// advisor_project_commissions.* should support large values (₹/sqft)
 	// after widening columns (recommended DECIMAL(12,2)), max is 9,999,999,999.99
 	const MAX = 9_999_999_999.99;
-	const fields: Array<[string, number]> = [
-		["Face 1", Number(input.commission_token ?? 0)],
-		["Face 2", Number(input.commission_agreement ?? 0)],
-		["Face 3", Number(input.commission_registry ?? 0)],
-		["Face 4", Number(input.commission_full_payment ?? 0)],
-	];
-	for (const [label, v] of fields) {
-		if (!Number.isFinite(v) || v < 0) {
-			return { success: false, error: `${label} rate must be a valid positive number` };
-		}
-		if (minPlotRate > 0 && v > 0 && v < minPlotRate) {
-			return {
-				success: false,
-				error: `${label} rate must be ≥ project minimum ₹ ${minPlotRate.toLocaleString(
-					"en-IN",
-				)}/sqft`,
-			};
-		}
-		if (v > MAX) {
-			return {
-				success: false,
-				error: `${label} rate is too large. Max allowed is ₹ ${MAX.toLocaleString(
-					"en-IN",
-				)}/sqft`,
-			};
-		}
+	const v = Number(input.commission_rate ?? 0);
+	if (!Number.isFinite(v) || v < 0) {
+		return { success: false, error: "Commission rate must be a valid positive number" };
+	}
+	if (minPlotRate > 0 && v > 0 && v < minPlotRate) {
+		return {
+			success: false,
+			error: `Commission rate must be ≥ project minimum ₹ ${minPlotRate.toLocaleString(
+				"en-IN",
+			)}/sqft`,
+		};
+	}
+	if (v > MAX) {
+		return {
+			success: false,
+			error: `Commission rate is too large. Max allowed is ₹ ${MAX.toLocaleString(
+				"en-IN",
+			)}/sqft`,
+		};
 	}
 
 	const { error } = await supabase.from("advisor_project_commissions").upsert(
 		{
 			project_id: projectId,
 			advisor_id: input.advisor_id,
-			commission_token: input.commission_token,
-			commission_agreement: input.commission_agreement,
-			commission_registry: input.commission_registry,
-			commission_full_payment: input.commission_full_payment,
+			commission_rate: input.commission_rate,
 			updated_at: new Date().toISOString(),
 		},
 		{ onConflict: "project_id,advisor_id" },

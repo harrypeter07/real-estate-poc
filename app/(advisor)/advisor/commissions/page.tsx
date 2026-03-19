@@ -73,6 +73,7 @@ export default async function AdvisorCommissionsPage() {
               No commissions yet. Once admin records commissions for your sales, they will appear here.
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -126,6 +127,7 @@ export default async function AdvisorCommissionsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

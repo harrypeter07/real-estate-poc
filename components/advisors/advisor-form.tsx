@@ -127,7 +127,7 @@ export function AdvisorForm({
 	}
 
 	return (
-		<Card className="max-w-4xl w-full">
+		<Card className="max-w-4xl w-full mx-auto">
 			<CardHeader className="flex flex-row items-center justify-between space-y-0">
 				<div>
 					<CardTitle>
@@ -148,8 +148,8 @@ export function AdvisorForm({
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 							<FormField
 								control={form.control}
 								name="name"
@@ -238,7 +238,7 @@ export function AdvisorForm({
 						</div>
 
 						{mode === "create" && (
-							<div className="rounded-lg border border-zinc-200 p-4 space-y-3 bg-zinc-50/50">
+							<div className="rounded-lg border border-zinc-200 p-3 space-y-2 bg-zinc-50/50">
 								<h3 className="text-sm font-semibold">Login Credentials</h3>
 								<p className="text-xs text-zinc-500">
 									Advisor can login with phone + password. Default password is phone number.
@@ -301,12 +301,12 @@ export function AdvisorForm({
 							)}
 						/>
 
-						<div className="rounded-lg border border-zinc-200 p-4 bg-zinc-50/50">
+						<div className="rounded-lg border border-zinc-200 p-3 bg-zinc-50/50">
 							<p className="text-sm font-semibold text-zinc-900">
 								Commission (Project-wise)
 							</p>
 							<p className="text-xs text-zinc-500 mt-1">
-								Commission is set per project when assigning an advisor. You can configure Face rates differently for each project.
+								Commission is set per project when assigning an advisor.
 							</p>
 						</div>
 
@@ -318,7 +318,7 @@ export function AdvisorForm({
 									<FormLabel>Notes</FormLabel>
 									<FormControl>
 										<Textarea
-											rows={3}
+											rows={2}
 											placeholder="Additional info about advisor"
 											{...field}
 										/>

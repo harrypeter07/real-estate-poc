@@ -40,10 +40,7 @@ interface SaleFormProps {
   advisorAssignments?: Array<{
     project_id: string;
     advisor_id: string;
-    commission_token: number;
-    commission_agreement: number;
-    commission_registry: number;
-    commission_full_payment: number;
+    commission_rate: number;
   }>;
 }
 
@@ -77,7 +74,6 @@ export function SaleForm({
 
   const selectedPlotId = form.watch("plot_id");
   const selectedAdvisorId = form.watch("advisor_id");
-  const salePhase = form.watch("sale_phase");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
   const downPayment = form.watch("down_payment") ?? 0;
   const remaining = totalSaleAmount - downPayment;
@@ -159,12 +155,7 @@ export function SaleForm({
 
   const assignedFaceRatePerSqft = (() => {
     if (!advisorAssignment) return 0;
-    if (salePhase === "token") return Number(advisorAssignment.commission_token ?? 0);
-    if (salePhase === "agreement") return Number(advisorAssignment.commission_agreement ?? 0);
-    if (salePhase === "registry") return Number(advisorAssignment.commission_registry ?? 0);
-    if (salePhase === "full_payment")
-      return Number(advisorAssignment.commission_full_payment ?? 0);
-    return 0;
+    return Number((advisorAssignment as any).commission_rate ?? 0);
   })();
 
   const advisorRateInvalid =
@@ -243,7 +234,7 @@ export function SaleForm({
       (advisorAssignments ?? []).find(
         (a) => a.advisor_id === randomAdvisor.id && a.project_id === (randomPlot.project_id ?? randomPlot.projects?.id)
       ) ?? null;
-    const randomAdvisorRate = Number(randomAssignment?.commission_token ?? 0);
+    const randomAdvisorRate = Number((randomAssignment as any)?.commission_rate ?? 0);
     const selling = calculateFinance({
       plotSizeSqft: Number(randomPlot.size_sqft ?? 0),
       baseRatePerSqft: Number(randomPlot.projects?.min_plot_rate ?? 0),
@@ -299,10 +290,10 @@ export function SaleForm({
       <CardContent className="p-4 pt-0">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Selections */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold border-b pb-1.5 uppercase tracking-wider text-zinc-500">
                   Entities
                 </h3>
                 
@@ -385,7 +376,7 @@ export function SaleForm({
                   Sale Details
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <FormField
                     control={form.control}
                     name="sale_phase"

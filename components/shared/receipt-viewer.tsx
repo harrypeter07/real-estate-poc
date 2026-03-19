@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
@@ -15,13 +15,53 @@ export function ReceiptViewer({
   bucket?: string;
 }) {
   const [downloading, setDownloading] = useState(false);
-  const { url, filename } = useMemo(() => {
-    if (!receiptPath) return { url: "", filename: "" };
-    const supabase = createClient();
-    const publicUrl = supabase.storage.from(bucket).getPublicUrl(receiptPath).data
-      .publicUrl;
-    const name = receiptPath.split("/").pop() || "receipt";
-    return { url: publicUrl, filename: name };
+  const [url, setUrl] = useState("");
+  const [filename, setFilename] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSignedUrl() {
+      if (!receiptPath) {
+        setUrl("");
+        setFilename("");
+        return;
+      }
+
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(receiptPath, 60 * 60);
+
+        // Debug to verify we're using the correct bucket/path
+        console.debug("[ReceiptViewer] signedUrl", {
+          bucket,
+          receiptPath,
+          hasSignedUrl: !!data?.signedUrl,
+          error: error?.message ?? null,
+        });
+
+        if (!mounted) return;
+        if (error || !data?.signedUrl) {
+          setUrl("");
+          setFilename(receiptPath.split("/").pop() || "receipt");
+          return;
+        }
+
+        setUrl(data.signedUrl);
+        setFilename(receiptPath.split("/").pop() || "receipt");
+      } catch (e) {
+        if (!mounted) return;
+        console.debug("[ReceiptViewer] signedUrl exception", e);
+        setUrl("");
+        setFilename(receiptPath.split("/").pop() || "receipt");
+      }
+    }
+
+    loadSignedUrl();
+    return () => {
+      mounted = false;
+    };
   }, [bucket, receiptPath]);
 
   async function handleDownload() {
@@ -57,9 +97,6 @@ export function ReceiptViewer({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-zinc-900">{title}</div>
-          <div className="text-[11px] text-zinc-500 truncate">
-            Stored at: <span className="font-mono">{bucket}/{receiptPath}</span>
-          </div>
         </div>
         <Badge variant="secondary" className="text-[10px] shrink-0">
           Image

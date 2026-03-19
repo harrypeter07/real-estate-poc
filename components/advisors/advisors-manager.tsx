@@ -72,6 +72,7 @@ export function AdvisorsManager({ advisors }: { advisors: AdvisorRow[] }) {
 					</Button>
 				</div>
 
+				<div className="overflow-x-auto">
 				<Table>
 					<TableHeader>
 						<TableRow>
@@ -162,6 +163,7 @@ export function AdvisorsManager({ advisors }: { advisors: AdvisorRow[] }) {
 						)}
 					</TableBody>
 				</Table>
+				</div>
 			</CardContent>
 
 			{/* View Modal */}

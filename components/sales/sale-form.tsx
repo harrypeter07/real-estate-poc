@@ -175,13 +175,35 @@ export function SaleForm({
 
   const receivedNow = Number(downPayment ?? 0);
   const finance = useMemo(() => {
-    return calculateFinance({
-      plotSizeSqft: plotSize,
-      baseRatePerSqft: projectMinRatePerSqft,
-      advisorRatePerSqft: assignedFaceRatePerSqft,
-      downPayment: receivedNow,
-      otherPayments: 0,
-    });
+    const safeZero = {
+      baseTotal: 0,
+      sellingPrice: 0,
+      profit: 0,
+      received: 0,
+      ratio: 0,
+      advisorEarned: 0,
+      remaining: 0,
+      remainingPotential: 0,
+      downPaymentPaymentRecord: null,
+    } as const;
+
+    if (plotSize <= 0) return safeZero;
+    if (projectMinRatePerSqft <= 0) return safeZero;
+    if (assignedFaceRatePerSqft <= 0) return safeZero;
+    if (assignedFaceRatePerSqft < projectMinRatePerSqft) return safeZero;
+    if (receivedNow < 0) return safeZero;
+
+    try {
+      return calculateFinance({
+        plotSizeSqft: plotSize,
+        baseRatePerSqft: projectMinRatePerSqft,
+        advisorRatePerSqft: assignedFaceRatePerSqft,
+        downPayment: receivedNow,
+        otherPayments: 0,
+      });
+    } catch {
+      return safeZero;
+    }
   }, [assignedFaceRatePerSqft, plotSize, projectMinRatePerSqft, receivedNow]);
 
   // Auto-fill selling price when plot/advisor/phase changes (selling_price = advisor_rate * size)
@@ -279,7 +301,7 @@ export function SaleForm({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Selections */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
                   Entities
                 </h3>
@@ -354,6 +376,80 @@ export function SaleForm({
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
+                  Sale Details
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="sale_phase"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-1">
+                        <FormLabel>Sale Phase *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select phase" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="token">Token / Booking</SelectItem>
+                            <SelectItem value="agreement">Agreement</SelectItem>
+                            <SelectItem value="registry">Registry</SelectItem>
+                            <SelectItem value="full_payment">Full Payment</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="token_date"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-1">
+                        <FormLabel>Token Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="agreement_date"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-1">
+                        <FormLabel>Agreement Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          rows={2}
+                          placeholder="Payment schedule, special requests, etc."
+                          {...field}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -481,7 +577,7 @@ export function SaleForm({
                           Total Profit
                         </div>
                         <div className="font-semibold text-zinc-900">
-                          {formatCurrency(finance.profitTotal)}
+                          {formatCurrency(finance.profit)}
                         </div>
                       </div>
                       <div>
@@ -502,12 +598,12 @@ export function SaleForm({
                         <span>
                           Received: ₹{receivedNow.toLocaleString("en-IN")}
                         </span>
-                        <span>{Math.round(finance.paymentRatio * 100)}%</span>
+                        <span>{Math.round(finance.ratio * 100)}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-zinc-200 overflow-hidden">
                         <div
                           className="h-full bg-zinc-900"
-                          style={{ width: `${Math.round(finance.paymentRatio * 100)}%` }}
+                          style={{ width: `${Math.round(finance.ratio * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -564,72 +660,6 @@ export function SaleForm({
                 </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <FormField
-                control={form.control}
-                name="sale_phase"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sale Phase *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select phase" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="token">Token / Booking</SelectItem>
-                        <SelectItem value="agreement">Agreement</SelectItem>
-                        <SelectItem value="registry">Registry</SelectItem>
-                        <SelectItem value="full_payment">Full Payment</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="token_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Token Date</FormLabel>
-                    <FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="agreement_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Agreement Date</FormLabel>
-                    <FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={2}
-                      placeholder="Payment schedule, special requests, etc."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="flex gap-3 pt-3 border-t">
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>

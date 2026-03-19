@@ -8,8 +8,10 @@ import { getAdvisorAssignments } from "@/app/actions/advisor-projects";
 export default async function NewSalePage({
 	searchParams,
 }: {
-	searchParams?: { plotId?: string };
+	searchParams?: Promise<{ plotId?: string }>;
 }) {
+	const sp = (await searchParams) ?? {};
+
 	const supabase = await createClient();
 	if (!supabase) return <div>Database connection failed</div>;
 
@@ -36,7 +38,7 @@ export default async function NewSalePage({
 					plots={plots || []}
 					customers={customers}
 					advisors={advisors}
-					initialPlotId={searchParams?.plotId}
+					initialPlotId={sp.plotId}
 					advisorAssignments={advisorAssignments}
 				/>
 			</div>

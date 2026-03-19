@@ -183,7 +183,19 @@ export function AdvisorForm({
 									<FormItem>
 										<FormLabel>Phone Number *</FormLabel>
 										<FormControl>
-											<Input placeholder="e.g. 9876543210" {...field} />
+											<Input
+												placeholder="e.g. 9876543210"
+												inputMode="numeric"
+												pattern="[0-9]*"
+												maxLength={10}
+												{...field}
+												value={field.value ?? ""}
+												onChange={(e) =>
+													field.onChange(
+														e.target.value.replace(/\D/g, "").slice(0, 10)
+													)
+												}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

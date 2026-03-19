@@ -136,7 +136,17 @@ export function CustomerForm({ mode, initialData, advisors }: CustomerFormProps)
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phone Number *</FormLabel>
-                    <FormControl><Input placeholder="e.g. 9876543210" {...field} /></FormControl>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. 9876543210"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -147,7 +157,17 @@ export function CustomerForm({ mode, initialData, advisors }: CustomerFormProps)
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Alternate Phone</FormLabel>
-                    <FormControl><Input placeholder="e.g. 8877665544" {...field} /></FormControl>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. 8877665544"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

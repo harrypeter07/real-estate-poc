@@ -2,8 +2,16 @@ import { z } from "zod";
 
 export const customerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().min(10, "Valid phone number is required"),
-  alternate_phone: z.string().optional().default(""),
+  phone: z
+    .string()
+    .regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+  alternate_phone: z
+    .string()
+    .optional()
+    .default("")
+    .refine((v) => v === "" || /^\d{10}$/.test(v), {
+      message: "Alternate phone must be exactly 10 digits",
+    }),
   address: z.string().optional().default(""),
   birth_date: z.string().optional().nullable(),
   advisor_id: z.string().uuid("Invalid advisor selected").optional().nullable(),

@@ -385,12 +385,12 @@ export function SaleForm({
                   Sale Details
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="sale_phase"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-1">
+                      <FormItem className="sm:col-span-1 min-w-0">
                         <FormLabel>Sale Phase *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -413,7 +413,7 @@ export function SaleForm({
                     control={form.control}
                     name="token_date"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-1">
+                      <FormItem className="sm:col-span-1 min-w-0">
                         <FormLabel>Token Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />
@@ -426,7 +426,7 @@ export function SaleForm({
                     control={form.control}
                     name="agreement_date"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-1">
+                      <FormItem className="sm:col-span-1 min-w-0">
                         <FormLabel>Agreement Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />

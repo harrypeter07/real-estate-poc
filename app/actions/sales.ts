@@ -133,6 +133,31 @@ export async function createSale(
 		};
 	}
 
+	// 3. If down payment is provided, record it as a confirmed payment
+	const downPayment = Number(parsed.data.down_payment ?? 0);
+	if (downPayment > 0) {
+		const paymentDate =
+			parsed.data.token_date ||
+			parsed.data.agreement_date ||
+			new Date().toISOString().slice(0, 10);
+
+		const { error: dpError } = await supabase.from("payments").insert({
+			sale_id: sale.id,
+			customer_id: parsed.data.customer_id,
+			slip_number: null,
+			receipt_path: null,
+			amount: downPayment,
+			payment_date: paymentDate,
+			payment_mode: "cash",
+			is_confirmed: true,
+			notes: "Down payment",
+		});
+
+		if (dpError) {
+			return { success: false, error: dpError.message };
+		}
+	}
+
 	// 3. Create commission record (profit-share based on payments)
 	// advisor_earning_now = profit_total * min(1, confirmed_received / selling_price)
 	const profitTotal = finance.profit;

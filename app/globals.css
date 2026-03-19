@@ -4,7 +4,10 @@
 
 @layer base {
 	:root {
-		--background: 0 0% 100%;
+		/* lighter teal derived from #18747c */
+		--background: 184 45% 92%;
+		--background-2: 184 45% 86%;
+		--background-3: 184 55% 78%;
 		--foreground: 240 10% 3.9%;
 		--card: 0 0% 100%;
 		--card-foreground: 240 10% 3.9%;
@@ -54,6 +57,11 @@
 		@apply border-border;
 	}
 	body {
-		@apply bg-background text-foreground font-sans antialiased;
+		@apply text-foreground font-sans antialiased;
+		background-color: hsl(var(--background));
+		background-image:
+			radial-gradient(1200px 600px at 20% 10%, hsl(var(--background-3) / 0.55), transparent 60%),
+			radial-gradient(900px 500px at 90% 20%, hsl(var(--background-2) / 0.65), transparent 55%),
+			linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background-2)) 55%, hsl(var(--background)) 100%);
 	}
 }

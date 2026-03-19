@@ -176,14 +176,16 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 												placeholder="e.g. 1500"
 												{...field}
 												value={field.value ?? ""}
+												min={0}
 												onChange={(e) => {
 													const raw = e.target.value;
 													const sanitized = raw.replace(/^0+(?=\d)/, "");
-													field.onChange(
-														sanitized === ""
-															? undefined
-															: parseInt(sanitized) || 0
-													);
+													if (sanitized === "") {
+														field.onChange(undefined);
+														return;
+													}
+													const n = parseInt(sanitized, 10);
+													field.onChange(Number.isFinite(n) ? n : undefined);
 												}}
 											/>
 										</FormControl>
@@ -206,14 +208,16 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 												placeholder="e.g. 1200"
 												{...field}
 												value={field.value ?? ""}
+												min={0}
 												onChange={(e) => {
 													const raw = e.target.value;
 													const sanitized = raw.replace(/^0+(?=\d)/, "");
-													field.onChange(
-														sanitized === ""
-															? undefined
-															: parseInt(sanitized) || 0
-													);
+													if (sanitized === "") {
+														field.onChange(undefined);
+														return;
+													}
+													const n = parseInt(sanitized, 10);
+													field.onChange(Number.isFinite(n) ? n : undefined);
 												}}
 											/>
 										</FormControl>

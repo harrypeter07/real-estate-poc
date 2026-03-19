@@ -274,7 +274,8 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                   </>
                 )}
 
-                {Array.isArray(selected.advisor_commission_payments) &&
+                {dialogMode === "history" &&
+                  Array.isArray(selected.advisor_commission_payments) &&
                   selected.advisor_commission_payments.length > 0 && (
                     <div className="rounded-md border border-zinc-200 p-3">
                       <div className="text-sm font-semibold text-zinc-900 mb-2">
@@ -295,8 +296,11 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                             >
                               <div className="min-w-0">
                                 <div className="text-xs text-zinc-500">
-                                  {p.paid_date} • {String(p.payment_mode ?? "cash").toUpperCase()}
-                                  {p.reference_number ? ` • ${p.reference_number}` : ""}
+                                  {p.paid_date} •{" "}
+                                  {String(p.payment_mode ?? "cash").toUpperCase()}
+                                  {p.reference_number
+                                    ? ` • ${p.reference_number}`
+                                    : ""}
                                 </div>
                                 {p.note ? (
                                   <div className="text-xs text-zinc-700 truncate">

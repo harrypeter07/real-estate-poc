@@ -235,7 +235,11 @@ export async function getAdvisorAnalytics(
       total_commission_amount,
       amount_paid,
       remaining_commission,
-      plot_sales(plots(plot_number))
+      plot_sales(
+        total_sale_amount,
+        amount_paid,
+        plots(plot_number, size_sqft, projects(min_plot_rate))
+      )
     `
 		)
 		.eq("advisor_id", advisorId)
@@ -253,25 +257,32 @@ export async function getAdvisorAnalytics(
 		token_date: s.token_date,
 	}));
 
-	const commList = (commissions ?? []).map((c: any) => ({
+	const commList = (commissions ?? []).map((c: any) => {
+		const saleTotal = Number(c.plot_sales?.total_sale_amount ?? 0);
+		const saleReceived = Number(c.plot_sales?.amount_paid ?? 0);
+		const plotSize = Number(c.plot_sales?.plots?.size_sqft ?? 0);
+		const minRate = Number(c.plot_sales?.plots?.projects?.min_plot_rate ?? 0);
+		const profitMax = Math.max(0, saleTotal - plotSize * minRate);
+		const ratio = saleTotal > 0 ? Math.min(1, Math.max(0, saleReceived / saleTotal)) : 0;
+		const eligibleNow = profitMax * ratio;
+		const paid = Number(c.amount_paid ?? 0);
+		const pendingNow = Math.max(0, eligibleNow - paid);
+
+		return {
 		id: c.id,
 		plot_number: c.plot_sales?.plots?.plot_number ?? "—",
-		total_commission_amount: Number(c.total_commission_amount ?? 0),
-		amount_paid: Number(c.amount_paid ?? 0),
-		remaining_commission: Number(c.remaining_commission ?? 0),
-	}));
+		// Expose profit-based numbers in the same fields for compatibility
+		total_commission_amount: Number(profitMax ?? 0),
+		amount_paid: paid,
+		remaining_commission: pendingNow,
+		};
+	});
 
 	const salesCount = salesList.length;
 	const totalRevenue = salesList.reduce((s, x) => s + x.total_sale_amount, 0);
-	const totalCommission = commList.reduce(
-		(s, x) => s + x.total_commission_amount,
-		0
-	);
+	const totalCommission = commList.reduce((s, x) => s + x.total_commission_amount, 0);
 	const commissionPaid = commList.reduce((s, x) => s + x.amount_paid, 0);
-	const commissionPending = commList.reduce(
-		(s, x) => s + x.remaining_commission,
-		0
-	);
+	const commissionPending = commList.reduce((s, x) => s + x.remaining_commission, 0);
 
 	return {
 		advisor,

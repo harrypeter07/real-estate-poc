@@ -23,8 +23,9 @@ CREATE TYPE reminder_type AS ENUM (
 CREATE TYPE expense_category AS ENUM
   ('salary', 'utilities', 'maintenance', 'marketing', 'misc');
 
+-- NOTE: App uses these phases (token/agreement/registry/full_payment)
 CREATE TYPE sale_phase AS ENUM
-  ('face1','face2','face3','face4','face5','face6');
+  ('token','agreement','registry','full_payment');
 
 -- =============================================
 -- TABLE 1: projects
@@ -66,7 +67,7 @@ CREATE TABLE plots (
 -- =============================================
 -- TABLE 3: advisors (Channel Partners)
 -- They sell plots to customers & earn commission
--- Commission is per phase (face1 to face6)
+-- Commission is per phase (token/agreement/registry/full_payment)
 -- =============================================
 CREATE TABLE advisors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -75,16 +76,32 @@ CREATE TABLE advisors (
   phone TEXT NOT NULL,
   address TEXT,
   birth_date DATE,
-  commission_face1 DECIMAL(5,2) DEFAULT 0,
-  commission_face2 DECIMAL(5,2) DEFAULT 0,
-  commission_face3 DECIMAL(5,2) DEFAULT 0,
-  commission_face4 DECIMAL(5,2) DEFAULT 0,
-  commission_face5 DECIMAL(5,2) DEFAULT 0,
-  commission_face6 DECIMAL(5,2) DEFAULT 0,
+  commission_token DECIMAL(10,2) DEFAULT 0,
+  commission_agreement DECIMAL(10,2) DEFAULT 0,
+  commission_registry DECIMAL(10,2) DEFAULT 0,
+  commission_full_payment DECIMAL(10,2) DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- =============================================
+-- TABLE 3B: advisor_project_commissions
+-- Project-wise per-phase commission rates (₹/sqft)
+-- Used by the app for commission assignment/eligibility.
+-- =============================================
+CREATE TABLE advisor_project_commissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  advisor_id UUID NOT NULL REFERENCES advisors(id) ON DELETE CASCADE,
+  commission_token DECIMAL(10,2) DEFAULT 0,
+  commission_agreement DECIMAL(10,2) DEFAULT 0,
+  commission_registry DECIMAL(10,2) DEFAULT 0,
+  commission_full_payment DECIMAL(10,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(project_id, advisor_id)
 );
 
 -- =============================================
@@ -204,6 +221,22 @@ CREATE TABLE office_expenses (
 );
 
 -- =============================================
+-- TABLE 8B: customer_documents
+-- Customer document management (uploads stored in Supabase Storage)
+-- =============================================
+CREATE TABLE customer_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  doc_category TEXT NOT NULL, -- salaried|business
+  doc_type TEXT NOT NULL,     -- e.g. aadhar|pan|bank_statement|salary_slip|itr|gst
+  file_path TEXT NOT NULL,    -- storage path
+  file_name TEXT,
+  mime_type TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- =============================================
 -- TABLE 9: staff
 -- Office workers for attendance tracking
 -- =============================================
@@ -267,6 +300,9 @@ CREATE INDEX idx_payments_confirmed ON payments(is_confirmed);
 CREATE INDEX idx_reminders_date ON reminders(reminder_date);
 CREATE INDEX idx_reminders_completed ON reminders(is_completed);
 CREATE INDEX idx_commissions_advisor ON advisor_commissions(advisor_id);
+CREATE INDEX idx_advisor_project_commissions_project ON advisor_project_commissions(project_id);
+CREATE INDEX idx_advisor_project_commissions_advisor ON advisor_project_commissions(advisor_id);
+CREATE INDEX idx_customer_documents_customer ON customer_documents(customer_id);
 CREATE INDEX idx_commission_payments_commission ON advisor_commission_payments(commission_id);
 CREATE INDEX idx_commission_payments_date ON advisor_commission_payments(paid_date);
 
@@ -414,6 +450,7 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE advisor_commissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE advisor_commission_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE office_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reminders ENABLE ROW LEVEL SECURITY;

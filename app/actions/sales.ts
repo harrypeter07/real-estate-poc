@@ -110,24 +110,22 @@ export async function createSale(
 	}
 
 	// 3. Create commission record
-	const commRatePerSqft =
-		parsed.data.sale_phase === "token"
-			? Number(assignment.commission_token ?? 0)
-			: parsed.data.sale_phase === "agreement"
-				? Number(assignment.commission_agreement ?? 0)
-				: parsed.data.sale_phase === "registry"
-					? Number(assignment.commission_registry ?? 0)
-					: Number(assignment.commission_full_payment ?? 0);
-
-	const commAmount = Number(plotSize ?? 0) * Number(commRatePerSqft ?? 0);
+	// Profit-share model:
+	// base = size_sqft * projects.min_plot_rate
+	// profit = selling_price - base
+	// advisor earns profit proportionally to confirmed receipts (handled at payout time)
+	const sellingPrice = Number(parsed.data.total_sale_amount ?? 0);
+	const baseTotal = Number(plotSize ?? 0) * Number(minRate ?? 0);
+	const profitMax = Math.max(0, sellingPrice - baseTotal);
 
 	await supabase.from("advisor_commissions").insert({
 		advisor_id: parsed.data.advisor_id,
 		sale_id: sale.id,
-		commission_percentage: commRatePerSqft,
-		total_commission_amount: commAmount,
+		// legacy field retained for compatibility; now stores max profit available for sharing
+		commission_percentage: 0,
+		total_commission_amount: profitMax,
 		amount_paid: 0,
-		notes: `Commission for sale of plot ${plotRow.plot_number}`,
+		notes: `Earning based on profit-share for plot ${plotRow.plot_number}`,
 	});
 
 	revalidatePath("/sales");

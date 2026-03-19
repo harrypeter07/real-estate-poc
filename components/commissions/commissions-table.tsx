@@ -57,10 +57,12 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     if (!selected) return 0;
     const saleTotal = Number(selected.plot_sales?.total_sale_amount ?? 0);
     const saleReceived = Number(selected.plot_sales?.amount_paid ?? 0);
-    const totalCommission = Number(selected.total_commission_amount ?? 0);
-    if (saleTotal <= 0 || totalCommission <= 0) return 0;
+    const plotSize = Number(selected.plot_sales?.plots?.size_sqft ?? 0);
+    const minRate = Number(selected.plot_sales?.plots?.projects?.min_plot_rate ?? 0);
+    const profitMax = Math.max(0, saleTotal - plotSize * minRate);
+    if (saleTotal <= 0 || profitMax <= 0) return 0;
     const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
-    return totalCommission * ratio;
+    return profitMax * ratio;
   }, [selected]);
 
   const availableNow = useMemo(() => {
@@ -226,7 +228,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     selected.plot_sales?.plots?.plot_number ?? "—"
                   }`}
                 />
-                <InfoRow label="Total" value={formatCurrency(selected.total_commission_amount)} strong />
+                <InfoRow label="Profit (max earning)" value={formatCurrency(selected.total_commission_amount)} strong />
                 <InfoRow label="Paid" value={formatCurrency(selected.amount_paid)} />
                 <InfoRow label="Eligible now" value={formatCurrency(eligibleNow)} strong />
                 <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />

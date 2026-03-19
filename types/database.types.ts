@@ -34,12 +34,10 @@ export type Advisor = {
   phone: string;
   address?: string;
   birth_date?: string;
-  commission_face1?: number;
-  commission_face2?: number;
-  commission_face3?: number;
-  commission_face4?: number;
-  commission_face5?: number;
-  commission_face6?: number;
+  commission_token?: number;
+  commission_agreement?: number;
+  commission_registry?: number;
+  commission_full_payment?: number;
   is_active?: boolean;
   notes?: string;
   created_at?: string;
@@ -66,7 +64,7 @@ export type PlotSale = {
   plot_id: string;
   customer_id: string;
   advisor_id: string;
-  sale_phase: 'face1' | 'face2' | 'face3' | 'face4' | 'face5' | 'face6';
+  sale_phase: 'token' | 'agreement' | 'registry' | 'full_payment';
   token_date?: string;
   agreement_date?: string;
   total_sale_amount: number;
@@ -158,14 +156,24 @@ export type StaffAttendance = {
 
 export type Reminder = {
   id: string;
-  type: 'token_expiry' | 'agreement_expiry' | 'installment_due' | 'birthday_customer' | 'birthday_advisor' | 'bank_statement' | 'balance_plot' | 'crm_followup' | 'calling';
   title: string;
-  message?: string;
+  type:
+    | 'token_expiry'
+    | 'agreement_expiry'
+    | 'installment_due'
+    | 'birthday_customer'
+    | 'birthday_advisor'
+    | 'bank_statement'
+    | 'balance_plot'
+    | 'crm_followup'
+    | 'calling'
+    | 'other';
+  phone?: string | null;
+  description?: string | null;
   reminder_date: string;
-  reference_id?: string;
-  reference_type: 'sale' | 'customer' | 'advisor' | 'plot';
-  is_done?: boolean;
-  is_auto_generated?: boolean;
+  reminder_time?: string | null;
+  customer_id?: string | null;
+  is_completed?: boolean;
   created_at?: string;
   updated_at?: string;
 };

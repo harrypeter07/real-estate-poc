@@ -16,7 +16,7 @@ export async function getCommissions() {
       plot_sales(
         total_sale_amount,
         amount_paid,
-        plots(plot_number, projects(name))
+        plots(plot_number, size_sqft, projects(name, min_plot_rate))
       ),
       advisor_commission_payments(
         id,
@@ -55,8 +55,11 @@ export async function recordCommissionPayment(
 		.select(
 			`
       amount_paid,
-      total_commission_amount,
-      plot_sales(total_sale_amount, amount_paid)
+      plot_sales(
+        total_sale_amount,
+        amount_paid,
+        plots(size_sqft, projects(min_plot_rate))
+      )
     `,
 		)
 		.eq("id", id)
@@ -64,25 +67,25 @@ export async function recordCommissionPayment(
 
 	if (getError) return { success: false, error: getError.message };
 
-	const totalCommission = Number(comm.total_commission_amount ?? 0);
 	const alreadyPaidToAdvisor = Number(comm.amount_paid ?? 0);
 	const saleTotal = Number((comm as any).plot_sales?.total_sale_amount ?? 0);
 	const saleReceived = Number((comm as any).plot_sales?.amount_paid ?? 0); // confirmed receipts only
+	const plotSize = Number((comm as any).plot_sales?.plots?.size_sqft ?? 0);
+	const minRate = Number((comm as any).plot_sales?.plots?.projects?.min_plot_rate ?? 0);
+	const baseTotal = plotSize * minRate;
+	const profitMax = Math.max(0, saleTotal - baseTotal);
 	const add = Number(amount ?? 0);
 	if (!Number.isFinite(add) || add <= 0) {
 		return { success: false, error: "Amount must be positive" };
-	}
-	if (totalCommission <= 0) {
-		return { success: false, error: "Invalid commission total" };
 	}
 	if (saleTotal <= 0) {
 		return { success: false, error: "Invalid sale total amount" };
 	}
 
 	// Advisor can only be paid proportional to confirmed money received.
-	// eligible = totalCommission * min(1, saleReceived / saleTotal)
+	// eligible = profitMax * min(1, saleReceived / saleTotal)
 	const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
-	const eligible = totalCommission * ratio;
+	const eligible = profitMax * ratio;
 	const availableToPay = Math.max(0, eligible - alreadyPaidToAdvisor);
 	if (add > availableToPay + 0.0001) {
 		return {

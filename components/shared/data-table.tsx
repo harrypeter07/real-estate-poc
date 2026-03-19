@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -33,18 +33,32 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey?: string;
+  searchKeys?: string[];
   searchPlaceholder?: string;
+  toolbar?: ReactNode;
+  emptyState?: ReactNode;
+  pageSizeOptions?: number[];
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
+  searchKeys,
   searchPlaceholder = "Search...",
+  toolbar,
+  emptyState,
+  pageSizeOptions = [10, 20, 50],
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [globalQuery, setGlobalQuery] = useState("");
+
+  const effectiveSearchKeys = useMemo(() => {
+    if (searchKeys && searchKeys.length > 0) return searchKeys;
+    return searchKey ? [searchKey] : [];
+  }, [searchKey, searchKeys]);
 
   const table = useReactTable({
     data,
@@ -67,21 +81,25 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2">
-        {searchKey && (
+        {effectiveSearchKeys.length > 0 && (
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <Input
               placeholder={searchPlaceholder}
-              value={
-                (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
-              }
-              onChange={(e) =>
-                table.getColumn(searchKey)?.setFilterValue(e.target.value)
-              }
+              value={globalQuery}
+              onChange={(e) => {
+                const q = e.target.value;
+                setGlobalQuery(q);
+                // Apply the same filter to all configured columns (client-side)
+                effectiveSearchKeys.forEach((k) =>
+                  table.getColumn(k)?.setFilterValue(q)
+                );
+              }}
               className="pl-9"
             />
           </div>
         )}
+        {toolbar ? <div className="flex items-center gap-2">{toolbar}</div> : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="ml-auto">
@@ -146,7 +164,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center text-zinc-500"
                 >
-                  No results found.
+                  {emptyState ?? "No results found."}
                 </TableCell>
               </TableRow>
             )}
@@ -160,6 +178,17 @@ export function DataTable<TData, TValue>({
           {table.getFilteredRowModel().rows.length} row(s) total
         </p>
         <div className="flex items-center gap-2">
+          <select
+            className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-700"
+            value={table.getState().pagination.pageSize}
+            onChange={(e) => table.setPageSize(Number(e.target.value))}
+          >
+            {pageSizeOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}/page
+              </option>
+            ))}
+          </select>
           <Button
             variant="outline"
             size="sm"

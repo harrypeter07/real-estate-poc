@@ -116,7 +116,10 @@ export async function updateAdvisor(
 			name: parsed.data.name,
 			code: parsed.data.code,
 			phone: parsed.data.phone,
-			email: parsed.data.email?.trim() || null,
+			// Always keep email populated for advisor login (auto-generate if blank).
+			email: parsed.data.email?.trim()
+				? parsed.data.email.trim()
+				: toAdvisorEmail(parsed.data.phone),
 			address: parsed.data.address || null,
 			birth_date: parsed.data.birth_date || null,
 			notes: parsed.data.notes || null,

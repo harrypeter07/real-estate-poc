@@ -78,7 +78,8 @@ export async function createSale(
 		plotSizeSqft: plotSize,
 		baseRatePerSqft: minRate,
 		advisorRatePerSqft: faceRate,
-		receivedAmount: 0,
+		downPayment: Number(parsed.data.down_payment ?? 0),
+		otherPayments: 0,
 	});
 	if (finance.sellingPrice <= 0) {
 		return { success: false, error: "Invalid selling price. Check advisor rate and plot size." };
@@ -134,7 +135,7 @@ export async function createSale(
 
 	// 3. Create commission record (profit-share based on payments)
 	// advisor_earning_now = profit_total * min(1, confirmed_received / selling_price)
-	const profitTotal = finance.profitTotal;
+	const profitTotal = finance.profit;
 
 	await supabase.from("advisor_commissions").insert({
 		advisor_id: parsed.data.advisor_id,

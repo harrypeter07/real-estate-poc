@@ -173,13 +173,14 @@ export function SaleForm({
     projectMinRatePerSqft > 0 &&
     assignedFaceRatePerSqft < projectMinRatePerSqft;
 
-  const receivedNow = Math.max(0, Number(downPayment ?? 0));
+  const receivedNow = Number(downPayment ?? 0);
   const finance = useMemo(() => {
     return calculateFinance({
       plotSizeSqft: plotSize,
       baseRatePerSqft: projectMinRatePerSqft,
       advisorRatePerSqft: assignedFaceRatePerSqft,
-      receivedAmount: receivedNow,
+      downPayment: receivedNow,
+      otherPayments: 0,
     });
   }, [assignedFaceRatePerSqft, plotSize, projectMinRatePerSqft, receivedNow]);
 
@@ -193,7 +194,8 @@ export function SaleForm({
       plotSizeSqft: plotSize,
       baseRatePerSqft: projectMinRatePerSqft,
       advisorRatePerSqft: assignedFaceRatePerSqft,
-      receivedAmount: 0,
+      downPayment: 0,
+      otherPayments: 0,
     }).sellingPrice;
     if (selling > 0) form.setValue("total_sale_amount", selling);
   }, [
@@ -224,7 +226,8 @@ export function SaleForm({
       plotSizeSqft: Number(randomPlot.size_sqft ?? 0),
       baseRatePerSqft: Number(randomPlot.projects?.min_plot_rate ?? 0),
       advisorRatePerSqft: randomAdvisorRate,
-      receivedAmount: 0,
+      downPayment: 0,
+      otherPayments: 0,
     }).sellingPrice;
 
     form.reset({

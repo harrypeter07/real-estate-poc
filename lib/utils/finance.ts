@@ -15,6 +15,7 @@ export type FinanceResult = {
   advisorEarned: number;
   remaining: number;
   remainingPotential: number;
+  downPaymentPaymentRecord: DownPaymentPaymentRecord | null;
 };
 
 function assertFiniteNumber(name: string, value: unknown): number {
@@ -37,13 +38,6 @@ export function validateFinance(inputs: FinanceInputs) {
   }
   if (downPayment < 0) throw new Error("downPayment must be >= 0");
   if (otherPayments < 0) throw new Error("otherPayments must be >= 0");
-
-  const sellingPrice = plotSizeSqft * advisorRatePerSqft;
-  if (sellingPrice <= 0) throw new Error("sellingPrice must be > 0");
-
-  const received = downPayment + otherPayments;
-  if (downPayment > sellingPrice) throw new Error("downPayment cannot exceed sellingPrice");
-  if (received > sellingPrice) throw new Error("received cannot exceed sellingPrice");
 }
 
 export function calculateBaseTotal(plotSizeSqft: number, baseRatePerSqft: number): number {
@@ -83,11 +77,16 @@ export function calculateFinance(inputs: FinanceInputs): FinanceResult {
 
   const baseTotal = calculateBaseTotal(plotSizeSqft, baseRatePerSqft);
   const sellingPrice = calculateSellingPrice(plotSizeSqft, advisorRatePerSqft);
+  if (sellingPrice <= 0) throw new Error("sellingPrice must be > 0");
+  if (downPayment > sellingPrice) throw new Error("downPayment cannot exceed sellingPrice");
+  if (received > sellingPrice) throw new Error("received cannot exceed sellingPrice");
+
   const profit = calculateProfit(baseTotal, sellingPrice);
   const ratio = calculatePaymentRatio(received, sellingPrice);
   const advisorEarned = calculateAdvisorEarning(profit, ratio);
   const remaining = calculateRemaining(received, sellingPrice);
   const remainingPotential = profit - advisorEarned;
+  const downPaymentPaymentRecord = buildDownPaymentPaymentRecord(downPayment);
 
   return {
     baseTotal,
@@ -98,6 +97,7 @@ export function calculateFinance(inputs: FinanceInputs): FinanceResult {
     advisorEarned,
     remaining,
     remainingPotential,
+    downPaymentPaymentRecord,
   };
 }
 

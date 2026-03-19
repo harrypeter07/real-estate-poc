@@ -36,6 +36,38 @@ export async function getCommissions() {
 	return data || [];
 }
 
+export async function getAdvisorCommissions(advisorId: string) {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data, error } = await supabase
+		.from("advisor_commissions")
+		.select(
+			`
+      *,
+      plot_sales(
+        total_sale_amount,
+        amount_paid,
+        plots(plot_number, size_sqft, projects(name))
+      ),
+      advisor_commission_payments(
+        id,
+        amount,
+        paid_date,
+        payment_mode,
+        reference_number,
+        note,
+        created_at
+      )
+    `
+		)
+		.eq("advisor_id", advisorId)
+		.order("created_at", { ascending: false });
+
+	if (error) throw new Error(error.message);
+	return data || [];
+}
+
 export async function recordCommissionPayment(
 	id: string,
 	amount: number,

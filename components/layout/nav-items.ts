@@ -37,5 +37,6 @@ export const ADVISOR_NAV_ITEMS: NavItem[] = [
   { label: "Customers", href: "/advisor/customers", icon: Users },
   { label: "Sales", href: "/advisor/sales", icon: Handshake },
   { label: "Payments", href: "/advisor/payments", icon: CreditCard },
+  { label: "My Commissions", href: "/advisor/commissions", icon: Banknote },
   { label: "Reminders", href: "/advisor/reminders", icon: Bell },
 ];

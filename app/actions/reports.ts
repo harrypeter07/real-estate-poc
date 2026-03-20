@@ -31,7 +31,7 @@ export async function getReportStats(filters?: ReportFilters) {
 	// 1. Sales
 	const { data: sales } = await supabase
 		.from("plot_sales")
-		.select("id, total_sale_amount, amount_paid, remaining_amount, created_at, plots(project_id, projects(id, name)), sale_phase")
+		.select("id, customer_id, total_sale_amount, amount_paid, remaining_amount, created_at, plots(project_id, projects(id, name)), sale_phase")
 		.eq("is_cancelled", false);
 
 	const filteredSales = (sales ?? []).filter((s: any) => inRange(s.created_at ?? "", start, end));
@@ -150,7 +150,24 @@ export async function getReportStats(filters?: ReportFilters) {
 
 	const newCustomersInPeriod = (customers ?? []).filter((c: any) => inRange(c.created_at ?? "", start, end)).length;
 
-	// 12. Sale count by month (for trend)
+	// 12. Enquiry conversions (temporary -> regular)
+	const { data: enquiryUpgradedCustomers } = await supabase
+		.from("customers")
+		.select("id, upgraded_from_enquiry_id, upgraded_from_enquiry_at");
+
+	const upgradedInPeriod = (enquiryUpgradedCustomers ?? []).filter(
+		(c: any) =>
+			!!c.upgraded_from_enquiry_id && inRange(c.upgraded_from_enquiry_at ?? "", start, end)
+	);
+
+	const upgradedCustomerIds = new Set(upgradedInPeriod.map((c: any) => c.id));
+	const boughtUpgradedCustomerIds = new Set(
+		filteredSales
+			.filter((s: any) => !!s.customer_id && upgradedCustomerIds.has(s.customer_id))
+			.map((s: any) => s.customer_id)
+	);
+
+	// 13. Sale count by month (for trend)
 	const salesByMonth: Record<string, { count: number; value: number }> = {};
 	for (const s of filteredSales) {
 		const dt = (s as any).created_at ?? "";
@@ -170,6 +187,8 @@ export async function getReportStats(filters?: ReportFilters) {
 			netProfit: totalRevenueCollected - totalExpenses,
 			salesCount: filteredSales.length,
 			paymentsCount: filteredPayments.length,
+			enquiryConvertedCustomers: upgradedInPeriod.length,
+			enquiryConvertedCustomersBoughtPlots: boughtUpgradedCustomerIds.size,
 		},
 		advisorPerformance,
 		projectStats,
@@ -195,6 +214,8 @@ function getEmptyReport() {
 			netProfit: 0,
 			salesCount: 0,
 			paymentsCount: 0,
+			enquiryConvertedCustomers: 0,
+			enquiryConvertedCustomersBoughtPlots: 0,
 		},
 		advisorPerformance: [] as { name: string; totalCommission: number; paidCommission: number; pending: number }[],
 		projectStats: [] as { name: string; total: number; sold: number; soldInPeriod: number; available: number }[],

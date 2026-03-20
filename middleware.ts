@@ -51,13 +51,14 @@ export async function middleware(request: NextRequest) {
 
   const role = (user?.user_metadata as any)?.role;
 
-  // If advisor is logged in, keep them inside /advisor routes
+  // If advisor is logged in, keep them inside /advisor routes or allow dashboard/enquiries
   if (user && role === "advisor") {
     const allowed =
       pathname === "/advisor" ||
       pathname.startsWith("/advisor/") ||
       pathname === "/login" ||
-      pathname.startsWith("/_next");
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/dashboard/enquiries");
 
     if (!allowed) {
       const url = request.nextUrl.clone();

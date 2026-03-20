@@ -9,31 +9,28 @@ import { getSales } from "@/app/actions/sales";
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    from?: string;
-    to?: string;
-    phase?: string;
-    advisor?: string;
-  }>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const params = await searchParams;
   const sales = await getSales();
 
   // Extract filter parameters
-  const from = params.from ?? "";
-  const to = params.to ?? "";
-  const phase =
-    typeof params.phase === "string" && params.phase !== "all" ? params.phase : "";
+  const from = typeof searchParams.from === "string" ? searchParams.from : "";
+  const to = typeof searchParams.to === "string" ? searchParams.to : "";
+  const phase = typeof searchParams.phase === "string" && searchParams.phase !== "all" ? searchParams.phase : "";
 
   // Filter sales based on criteria
   const filteredSales = sales.filter((sale) => {
     // Date range filter
-		const saleDateStr = String(sale.created_at ?? "").slice(0, 10); // YYYY-MM-DD
     if (from) {
-			if (!saleDateStr || saleDateStr < from) return false;
+      const saleDate = new Date(sale.sale_date);
+      const fromDate = new Date(from);
+      if (saleDate < fromDate) return false;
     }
     if (to) {
-			if (!saleDateStr || saleDateStr > to) return false;
+      const saleDate = new Date(sale.sale_date);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      if (saleDate > toDate) return false;
     }
 
     // Phase filter (case-insensitive)

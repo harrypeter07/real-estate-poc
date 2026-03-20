@@ -14,35 +14,29 @@ import { PaymentsFilters } from "@/components/payments/payments-filters";
 export default async function PaymentsPage({
 	searchParams,
 }: {
-	searchParams: Promise<{
-		from?: string;
-		to?: string;
-		status?: string;
-		mode?: string;
-	}>;
+	searchParams: { [key: string]: string | string[] | undefined };
 }) {
-	const params = await searchParams;
 	const payments = await getPayments();
 
 	// Extract filter parameters
-	const from = params.from ?? "";
-	const to = params.to ?? "";
-	const status =
-		typeof params.status === "string" && params.status !== "all"
-			? params.status
-			: "";
-	const mode =
-		typeof params.mode === "string" && params.mode !== "all" ? params.mode : "";
+	const from = typeof searchParams.from === "string" ? searchParams.from : "";
+	const to = typeof searchParams.to === "string" ? searchParams.to : "";
+	const status = typeof searchParams.status === "string" && searchParams.status !== "all" ? searchParams.status : "";
+	const mode = typeof searchParams.mode === "string" && searchParams.mode !== "all" ? searchParams.mode : "";
 
 	// Filter payments based on criteria
 	const filteredPayments = payments.filter((payment) => {
 		// Date range filter
-		const paymentDateStr = String(payment.payment_date ?? "").slice(0, 10); // YYYY-MM-DD
 		if (from) {
-			if (!paymentDateStr || paymentDateStr < from) return false;
+			const paymentDate = new Date(payment.payment_date);
+			const fromDate = new Date(from);
+			if (paymentDate < fromDate) return false;
 		}
 		if (to) {
-			if (!paymentDateStr || paymentDateStr > to) return false;
+			const paymentDate = new Date(payment.payment_date);
+			const toDate = new Date(to);
+			toDate.setHours(23, 59, 59, 999);
+			if (paymentDate > toDate) return false;
 		}
 
 		// Status filter

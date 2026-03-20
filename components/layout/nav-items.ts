@@ -24,6 +24,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Advisors", href: "/advisors", icon: UserCheck },
   { label: "Advisor Analytics", href: "/advisors/analytics", icon: BarChart3 },
   { label: "Customers", href: "/customers", icon: Users },
+  { label: "Enquiries", href: "/enquiries", icon: Handshake },
   { label: "Sales", href: "/sales", icon: Handshake },
   { label: "Payments", href: "/payments", icon: CreditCard },
   { label: "Commissions", href: "/commissions", icon: Banknote },

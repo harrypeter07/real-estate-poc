@@ -87,6 +87,35 @@ export default async function ReportsPage({
 				</Card>
 			</div>
 
+			{/* 1b. Enquiry conversions */}
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-sm font-bold flex items-center gap-2">
+						<Users className="h-4 w-4" /> Enquiry Conversions
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div className="rounded-lg border border-zinc-200 p-4">
+							<div className="text-[10px] font-semibold uppercase text-zinc-500">
+								Converted enquiries
+							</div>
+							<div className="text-xl font-bold text-zinc-900">
+								{stats.summary.enquiryConvertedCustomers}
+							</div>
+						</div>
+						<div className="rounded-lg border border-zinc-200 p-4">
+							<div className="text-[10px] font-semibold uppercase text-zinc-500">
+								Converted customers who bought plots
+							</div>
+							<div className="text-xl font-bold text-green-700">
+								{stats.summary.enquiryConvertedCustomersBoughtPlots}
+							</div>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
 			{/* 2. Collections vs Outstanding */}
 			<Card>
 				<CardHeader>

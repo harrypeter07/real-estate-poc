@@ -8,33 +8,29 @@ import { CommissionsFilters } from "@/components/commissions/commissions-filters
 export default async function CommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    from?: string;
-    to?: string;
-    status?: string;
-  }>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const params = await searchParams;
   const commissions = await getCommissions();
 
   // Extract filter parameters
-  const from = params.from ?? "";
-  const to = params.to ?? "";
-  const status =
-    typeof params.status === "string" && params.status !== "all"
-      ? params.status
-      : "";
+  const from = typeof searchParams.from === "string" ? searchParams.from : "";
+  const to = typeof searchParams.to === "string" ? searchParams.to : "";
+  const status = typeof searchParams.status === "string" && searchParams.status !== "all" ? searchParams.status : "";
 
   // Filter commissions based on criteria
   const filteredCommissions = commissions.filter((commission) => {
     // Date range filter
-		const createdDateStr = String(commission.created_at ?? "").slice(0, 10); // YYYY-MM-DD
-		if (from) {
-			if (!createdDateStr || createdDateStr < from) return false;
-		}
-		if (to) {
-			if (!createdDateStr || createdDateStr > to) return false;
-		}
+    if (from) {
+      const createdDate = new Date(commission.created_at);
+      const fromDate = new Date(from);
+      if (createdDate < fromDate) return false;
+    }
+    if (to) {
+      const createdDate = new Date(commission.created_at);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      if (createdDate > toDate) return false;
+    }
 
     // Status filter
     if (status) {

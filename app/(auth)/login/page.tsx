@@ -69,21 +69,11 @@ export default function LoginPage() {
 				className="absolute inset-0 bg-cover bg-center"
 				style={{ backgroundImage: "url('/bg.png')" }}
 			/>
-			{/* Dark overlay + subtle gradient for readability */}
-			<div
-				aria-hidden
-				className="absolute inset-0 bg-zinc-950/55"
-			/>
-			<div
-				aria-hidden
-				className="absolute inset-0 bg-gradient-to-b from-zinc-950/40 via-zinc-950/25 to-zinc-950/55"
-			/>
-
-			<div className="relative z-10 min-h-screen flex justify-center sm:justify-start px-4 sm:px-12">
+			<div className="relative z-10 min-h-screen flex justify-center sm:justify-center lg:justify-end px-4 sm:px-12 lg:px-20">
 				<div className="w-full sm:max-w-md sm:pt-0 sm:-translate-y-6 pt-20 sm:flex sm:items-center">
 					<Card
 						suppressHydrationWarning
-						className="w-full max-w-md bg-zinc-100/75 dark:bg-zinc-900/60 backdrop-blur border border-zinc-200/40 shadow-xl"
+						className="w-full max-w-md bg-zinc-100/90 border border-zinc-200/70 shadow-xl"
 					>
 				<CardHeader className="text-center space-y-4">
 					<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100">

@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { LogOut, Menu, User, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui";
+import {
+	Button,
+	DropdownMenu,
+	DropdownMenuTrigger,
+	DropdownMenuContent,
+	DropdownMenuItem,
+} from "@/components/ui";
+import { SelfProfileModal } from "./self-profile-modal";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -19,44 +26,51 @@ export function Header({ onMenuClick }: HeaderProps) {
     role?: string | null;
   } | null>(null);
 	const [loggingOut, setLoggingOut] = useState(false);
+	const [profileOpen, setProfileOpen] = useState(false);
 
-  useEffect(() => {
-    const supabase = createClient();
+	async function loadUserInfo() {
+		const supabase = createClient();
 
-    const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
-        setUserInfo(null);
-        return;
-      }
+		const { data } = await supabase.auth.getUser();
+		const user = data.user;
+		if (!user) {
+			setUserInfo(null);
+			return;
+		}
 
-      const meta = (user.user_metadata || {}) as any;
-      let displayName =
-        meta.name || meta.full_name || user.user_metadata?.name || null;
+		const meta = (user.user_metadata || {}) as any;
+		let displayName =
+			meta.name || meta.full_name || user.user_metadata?.name || null;
 
-      // For advisors, prefer the name from the advisors table instead of the login email
-      if (meta.role === "advisor" && meta.advisor_id) {
-        const { data: advisor } = await supabase
-          .from("advisors")
-          .select("name")
-          .eq("id", meta.advisor_id)
-          .single();
+		// For advisors, prefer the name from the advisors table instead of the login email
+		if (meta.role === "advisor" && meta.advisor_id) {
+			const { data: advisor } = await supabase
+				.from("advisors")
+				.select("name")
+				.eq("id", meta.advisor_id)
+				.single();
 
-        if (advisor?.name) {
-          displayName = advisor.name;
-        }
-      }
+			if (advisor?.name) {
+				displayName = advisor.name;
+			}
+		}
 
-      setUserInfo({
-        name: displayName,
-        email: user.email,
-        role: meta.role || null,
-      });
-    };
+		setUserInfo({
+			name: displayName,
+			email: user.email,
+			role: meta.role || null,
+		});
+	}
 
-    loadUser();
-  }, []);
+	useEffect(() => {
+		void loadUserInfo();
+	}, []);
+
+	// Refresh header after "self profile" saves
+	useEffect(() => {
+		if (!profileOpen) void loadUserInfo();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [profileOpen]);
 
   async function handleLogout() {
 		if (loggingOut) return;
@@ -87,22 +101,26 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         {userInfo && (
-          <div className="flex items-center gap-2 pr-2 border-r border-zinc-200 dark:border-zinc-800 text-xs sm:text-sm">
-            <User className="h-4 w-4 text-zinc-500" />
-            <div className="flex flex-col items-end">
-              <span className="font-medium text-zinc-800 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-full px-3 py-0.5">
-                {userInfo.name || userInfo.email || "User"}
-              </span>
-              <div className="flex gap-2 text-[10px] text-zinc-500">
-                {userInfo.role && <span className="uppercase">{userInfo.role}</span>}
-                {userInfo.email && (
-                  <span className="hidden sm:inline text-zinc-400">
-                    {userInfo.email}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                className="h-9 border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40"
+              >
+                <User className="h-4 w-4 text-zinc-500 mr-2" />
+                <span className="max-w-[140px] truncate text-zinc-800 dark:text-zinc-100">
+                  {userInfo.name || userInfo.email || "User"}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                My profile
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <Button
           variant="ghost"
@@ -115,6 +133,11 @@ export function Header({ onMenuClick }: HeaderProps) {
           {loggingOut ? "Logging out..." : "Logout"}
         </Button>
       </div>
+
+      <SelfProfileModal
+				open={profileOpen}
+				onOpenChange={setProfileOpen}
+			/>
     </header>
   );
 }

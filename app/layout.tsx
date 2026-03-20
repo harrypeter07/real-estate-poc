@@ -11,22 +11,22 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
 	title: {
-		default: "MG Infra CRM | Real Estate & Plot Management",
-		template: "%s | MG Infra CRM",
+		default: "S-INFRA CRM | Real Estate & Plot Management",
+		template: "%s | S-INFRA CRM",
 	},
 	description:
-		"Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by MG Infra Nagpur.",
+		"Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by S-INFRA.",
 	keywords: [
 		"real estate",
 		"crm",
 		"plot management",
-		"mg infra",
+		"s-infra",
 		"nagpur",
 		"advisor commissions",
 	],
-	authors: [{ name: "MG Infra" }],
-	creator: "MG Infra",
-	publisher: "MG Infra",
+	authors: [{ name: "S-INFRA" }],
+	creator: "S-INFRA",
+	publisher: "S-INFRA",
 	icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -35,17 +35,17 @@ export const metadata: Metadata = {
     apple: "/favicon.svg",
   },
   openGraph: {
-    title: "MG Infra CRM | Real Estate & Plot Management",
-    description: "Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by MG Infra Nagpur.",
-    url: "https://mginfra-crm.vercel.app",
-    siteName: "MG Infra CRM",
+    title: "S-INFRA CRM | Real Estate & Plot Management",
+    description: "Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by S-INFRA.",
+    url: "https://s-infra-crm.vercel.app",
+    siteName: "S-INFRA CRM",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MG Infra CRM | Real Estate & Plot Management",
-    description: "Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by MG Infra Nagpur.",
+    title: "S-INFRA CRM | Real Estate & Plot Management",
+    description: "Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by S-INFRA.",
   },
 };
 

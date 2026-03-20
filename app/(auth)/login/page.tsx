@@ -69,7 +69,7 @@ export default function LoginPage() {
 				className="absolute inset-0 bg-cover bg-center"
 				style={{ backgroundImage: "url('/bg.png')" }}
 			/>
-			<div className="relative z-10 min-h-screen flex justify-center sm:justify-center lg:justify-end px-4 sm:px-12 lg:px-20">
+			<div className="relative z-10 min-h-screen flex justify-center sm:justify-center lg:justify-start px-4 sm:px-12 lg:px-20">
 				<div className="w-full sm:max-w-md sm:pt-0 sm:-translate-y-6 pt-20 sm:flex sm:items-center">
 					<Card
 						suppressHydrationWarning
@@ -80,7 +80,7 @@ export default function LoginPage() {
 						<Building2 className="h-8 w-8 text-white dark:text-zinc-900" />
 					</div>
 					<div>
-						<CardTitle className="text-2xl font-bold">MG INFRA</CardTitle>
+						<CardTitle className="text-2xl font-bold">S-INFRA</CardTitle>
 						<CardDescription className="text-sm mt-1">
 							Estate Management + CRM
 						</CardDescription>

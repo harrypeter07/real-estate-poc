@@ -41,7 +41,7 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
               <Building2 className="w-5 h-5 text-zinc-900" />
             </div>
             <div>
-              <p className="text-base font-bold leading-none">MG INFRA</p>
+              <p className="text-base font-bold leading-none">S-INFRA</p>
               <p className="text-[11px] text-zinc-400 mt-0.5">Plot CRM</p>
             </div>
           </Link>
@@ -84,7 +84,7 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-zinc-800">
           <p className="text-[11px] text-zinc-500">
-            © {new Date().getFullYear()} MG Infra
+            © {new Date().getFullYear()} S-INFRA
           </p>
         </div>
       </aside>

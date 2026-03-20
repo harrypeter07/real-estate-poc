@@ -3,19 +3,61 @@ import { PageHeader } from "@/components/shared/page-header";
 import { getCommissions } from "@/app/actions/commissions";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { CommissionsTable } from "@/components/commissions/commissions-table";
+import { CommissionsFilters } from "@/components/commissions/commissions-filters";
 
-export default async function CommissionsPage() {
+export default async function CommissionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    status?: string;
+  }>;
+}) {
+  const params = await searchParams;
   const commissions = await getCommissions();
 
-  const totalCommissions = commissions.reduce((sum, c) => sum + Number(c.total_commission_amount), 0);
-  const totalPaid = commissions.reduce((sum, c) => sum + Number(c.amount_paid), 0);
+  // Extract filter parameters
+  const from = params.from ?? "";
+  const to = params.to ?? "";
+  const status =
+    typeof params.status === "string" && params.status !== "all"
+      ? params.status
+      : "";
+
+  // Filter commissions based on criteria
+  const filteredCommissions = commissions.filter((commission) => {
+    // Date range filter
+		const createdDateStr = String(commission.created_at ?? "").slice(0, 10); // YYYY-MM-DD
+		if (from) {
+			if (!createdDateStr || createdDateStr < from) return false;
+		}
+		if (to) {
+			if (!createdDateStr || createdDateStr > to) return false;
+		}
+
+    // Status filter
+    if (status) {
+      const total = Number(commission.total_commission_amount ?? 0);
+      const paid = Number(commission.amount_paid ?? 0);
+      if (status === "pending" && paid > 0) return false;
+      if (status === "partial" && (paid === 0 || paid === total)) return false;
+      if (status === "paid" && paid === 0) return false;
+      if (status === "paid" && paid < total) return false;
+    }
+
+    return true;
+  });
+
+  const totalCommissions = filteredCommissions.reduce((sum, c) => sum + Number(c.total_commission_amount), 0);
+  const totalPaid = filteredCommissions.reduce((sum, c) => sum + Number(c.amount_paid), 0);
   const totalPending = totalCommissions - totalPaid;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Advisors Commissions"
-        subtitle={`Tracking ${commissions.length} commission payouts`}
+        subtitle={`Tracking ${filteredCommissions.length} commission payouts`}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -45,10 +87,12 @@ export default async function CommissionsPage() {
         </Card>
       </div>
 
-      {commissions.length === 0 ? (
-        <CommissionsTable commissions={commissions as any[]} />
+      <CommissionsFilters />
+
+      {filteredCommissions.length === 0 ? (
+        <CommissionsTable commissions={filteredCommissions as any[]} />
       ) : (
-        <CommissionsTable commissions={commissions as any[]} />
+        <CommissionsTable commissions={filteredCommissions as any[]} />
       )}
     </div>
   );

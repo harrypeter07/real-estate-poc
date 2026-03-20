@@ -162,9 +162,14 @@ export function AdvisorAnalyticsTable({
 			<Dialog open={!!selectedId} onOpenChange={(o) => !o && setSelectedId(null)}>
 				<DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<User className="h-5 w-5" />
-							{selected?.name ?? "Advisor Details"}
+						<DialogTitle className="flex items-center justify-between gap-3">
+							<div className="flex items-center gap-2 min-w-0">
+								<User className="h-5 w-5 shrink-0" />
+								<span className="truncate">{selected?.name ?? "Advisor Details"}</span>
+							</div>
+							<Button type="button" size="sm" variant="outline" onClick={() => setSelectedId(null)}>
+								Close
+							</Button>
 						</DialogTitle>
 					</DialogHeader>
 

@@ -47,7 +47,12 @@ export function ProjectAdvisorAssignmentsModal({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="max-w-4xl p-0 overflow-hidden">
 					<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-						<DialogTitle>Advisor Assignment & Face Rates</DialogTitle>
+						<DialogTitle className="flex items-center justify-between gap-3">
+							<span>Advisor Assignment & Face Rates</span>
+							<Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+								Close
+							</Button>
+						</DialogTitle>
 					</DialogHeader>
 					<div className="p-5">
 						<ProjectAdvisorAssignments

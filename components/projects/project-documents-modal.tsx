@@ -150,7 +150,12 @@ export function ProjectDocumentsModal({ projectId, initialDocs }: Props) {
 			</DialogTrigger>
 			<DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
 				<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-					<DialogTitle>Project Documents</DialogTitle>
+					<DialogTitle className="flex items-center justify-between gap-3">
+						<span>Project Documents</span>
+						<Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+							Close
+						</Button>
+					</DialogTitle>
 				</DialogHeader>
 
 				<div className="p-5 space-y-4">

@@ -59,14 +59,14 @@ export default async function AdvisorCustomersPage() {
 								</TableRow>
 							) : (
 								(customers ?? []).map((c: any) => (
-									<TableRow key={c.id} className="hover:bg-zinc-50">
+									<TableRow key={c.id} className="hover:bg-zinc-50 cursor-pointer">
 										<TableCell className="font-medium">
-											<Link href={`/advisor/customers/${c.id}`} className="inline-block">
+											<Link href={`/advisor/customers/${c.id}`} className="block w-full">
 												{c.name}
 											</Link>
 										</TableCell>
 										<TableCell>
-											<Link href={`/advisor/customers/${c.id}`} className="inline-block">
+											<Link href={`/advisor/customers/${c.id}`} className="block w-full">
 												{c.phone}
 											</Link>
 										</TableCell>

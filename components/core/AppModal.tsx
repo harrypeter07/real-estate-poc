@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui";
+import { Button } from "@/components/ui";
 
 const sizeClass: Record<"sm" | "md" | "lg" | "xl", string> = {
   sm: "max-w-md",
@@ -46,7 +47,17 @@ export function AppModal({
                 </DialogDescription>
               ) : null}
             </div>
-            {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
+            <div className="shrink-0 flex items-center gap-2">
+              {headerRight ? <div>{headerRight}</div> : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                Close
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
         {children}

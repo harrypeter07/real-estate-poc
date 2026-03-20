@@ -67,9 +67,14 @@ export function TemplatesModal() {
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 border-zinc-200 shadow-xl sm:rounded-xl">
 					<DialogHeader className="p-5 pb-4 border-b border-zinc-100 bg-gradient-to-b from-zinc-50/80 to-white">
-						<DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-							<Sparkles className="h-5 w-5 text-amber-500" />
-							Message Templates
+						<DialogTitle className="flex items-center justify-between gap-3 text-lg font-semibold">
+							<div className="flex items-center gap-2 min-w-0">
+								<Sparkles className="h-5 w-5 text-amber-500 shrink-0" />
+								<span className="truncate">Message Templates</span>
+							</div>
+							<Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+								Close
+							</Button>
 						</DialogTitle>
 						<DialogDescription>
 							Choose a template for each reminder type. Dynamic fields like [name], [date] will be filled when sending.

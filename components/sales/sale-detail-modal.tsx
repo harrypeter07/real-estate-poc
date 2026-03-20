@@ -81,6 +81,14 @@ export function SaleDetailModal({
 								{phase.label}
 							</span>
 						</DialogTitle>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => onOpenChange(false)}
+						>
+							Close
+						</Button>
 					</div>
 					{sale.plots?.projects?.name && (
 						<p className="text-sm text-zinc-500 flex items-center gap-1 mt-1">

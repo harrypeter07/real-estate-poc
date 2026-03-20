@@ -261,6 +261,16 @@ export function ReminderItem({ reminder, customers = [] }: ReminderItemProps) {
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
 				<DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl">
 					<div className="p-6">
+						<div className="flex justify-end mb-4">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => setIsEditDialogOpen(false)}
+							>
+								Close
+							</Button>
+						</div>
 						<ReminderForm
 							customers={customers}
 							initialData={reminder}

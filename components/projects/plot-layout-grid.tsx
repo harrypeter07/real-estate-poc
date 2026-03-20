@@ -118,13 +118,13 @@ export function PlotLayoutGrid({
 	const canEdit = selectedPlot && !isPlaceholder && selectedPlot.status === "available";
 
 	const [formState, setFormState] = useState<{
-		size_sqft: number;
-		rate_per_sqft: number;
+		size_sqft: number | undefined;
+		rate_per_sqft: number | undefined;
 		facing: string;
 		notes: string;
 	}>({
-		size_sqft: selectedPlot?.size_sqft ?? 0,
-		rate_per_sqft: selectedPlot?.rate_per_sqft ?? 0,
+		size_sqft: selectedPlot?.size_sqft,
+		rate_per_sqft: selectedPlot?.rate_per_sqft,
 		facing: selectedPlot?.facing ?? "",
 		notes: "",
 	});
@@ -134,8 +134,8 @@ export function PlotLayoutGrid({
 		if (!selectedPlot) return;
 		setEditing(false);
 		setFormState({
-			size_sqft: selectedPlot.size_sqft ?? 0,
-			rate_per_sqft: selectedPlot.rate_per_sqft ?? 0,
+			size_sqft: selectedPlot.size_sqft,
+			rate_per_sqft: selectedPlot.rate_per_sqft,
 			facing: selectedPlot.facing ?? "",
 			notes: selectedPlot.notes ?? "",
 		});
@@ -271,13 +271,14 @@ export function PlotLayoutGrid({
 											</p>
 											<Input
 												type="number"
-												value={formState.size_sqft}
-												onChange={(e) =>
-													setFormState((s) => ({
-														...s,
-														size_sqft: Number(e.target.value || 0),
-													}))
-												}
+										value={formState.size_sqft ?? ""}
+										onChange={(e) => {
+											const raw = e.target.value;
+											setFormState((s) => ({
+												...s,
+												size_sqft: raw === "" ? undefined : Number(raw),
+											}));
+										}}
 											/>
 										</div>
 										<div>
@@ -286,13 +287,14 @@ export function PlotLayoutGrid({
 											</p>
 											<Input
 												type="number"
-												value={formState.rate_per_sqft}
-												onChange={(e) =>
+												value={formState.rate_per_sqft ?? ""}
+												onChange={(e) => {
+													const raw = e.target.value;
 													setFormState((s) => ({
 														...s,
-														rate_per_sqft: Number(e.target.value || 0),
-													}))
-												}
+														rate_per_sqft: raw === "" ? undefined : Number(raw),
+													}));
+												}}
 											/>
 										</div>
 									</div>

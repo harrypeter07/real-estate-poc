@@ -170,7 +170,12 @@ export function AdvisorsManager({ advisors }: { advisors: AdvisorRow[] }) {
 			<Dialog open={openView} onOpenChange={setOpenView}>
 				<DialogContent className="max-w-lg p-0 overflow-hidden">
 					<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-						<DialogTitle>Advisor</DialogTitle>
+						<DialogTitle className="flex items-center justify-between gap-3">
+							<span>Advisor</span>
+							<Button type="button" size="sm" variant="outline" onClick={() => setOpenView(false)}>
+								Close
+							</Button>
+						</DialogTitle>
 					</DialogHeader>
 					<div className="p-5 space-y-3">
 						{selected && (
@@ -233,7 +238,12 @@ export function AdvisorsManager({ advisors }: { advisors: AdvisorRow[] }) {
 			<Dialog open={openCreate} onOpenChange={setOpenCreate}>
 				<DialogContent className="max-w-3xl p-0 overflow-hidden">
 					<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-						<DialogTitle>New Advisor</DialogTitle>
+						<DialogTitle className="flex items-center justify-between gap-3">
+							<span>New Advisor</span>
+							<Button type="button" size="sm" variant="outline" onClick={() => setOpenCreate(false)}>
+								Close
+							</Button>
+						</DialogTitle>
 					</DialogHeader>
 					<div className="p-5">
 						<AdvisorForm
@@ -250,7 +260,12 @@ export function AdvisorsManager({ advisors }: { advisors: AdvisorRow[] }) {
 			<Dialog open={openEdit} onOpenChange={setOpenEdit}>
 				<DialogContent className="max-w-3xl p-0 overflow-hidden">
 					<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-						<DialogTitle>Edit Advisor</DialogTitle>
+						<DialogTitle className="flex items-center justify-between gap-3">
+							<span>Edit Advisor</span>
+							<Button type="button" size="sm" variant="outline" onClick={() => setOpenEdit(false)}>
+								Close
+							</Button>
+						</DialogTitle>
 					</DialogHeader>
 					<div className="p-5">
 						{selected && (

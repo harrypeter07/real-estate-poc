@@ -41,7 +41,12 @@ export function ReceiptViewButton({
       </Button>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between gap-3">
+            <span className="min-w-0 truncate">{title}</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+          </DialogTitle>
         </DialogHeader>
         <ReceiptViewer receiptPath={receiptPath} title={title} bucket={bucket} />
       </DialogContent>

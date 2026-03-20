@@ -66,27 +66,19 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 						</div>
 					)}
 
-					{customer.created_by_email && (
-						<div className="pt-2 border-t flex items-center justify-between">
-							<span className="text-xs font-medium text-zinc-500">
-								Added by
-							</span>
-							<span className="text-xs text-zinc-700 font-mono truncate ml-2">
-								{customer.created_by_email}
-							</span>
-						</div>
-					)}
+					<div className="pt-2 border-t flex items-center justify-between">
+						<span className="text-xs font-medium text-zinc-500">Added by</span>
+						<span className="text-xs text-zinc-700 font-mono truncate ml-2">
+							{customer.created_by_email ?? "—"}
+						</span>
+					</div>
 
-					{customer.last_edited_by_email && (
-						<div className="flex items-center justify-between">
-							<span className="text-xs font-medium text-zinc-500">
-								Last edited
-							</span>
-							<span className="text-xs text-zinc-700 font-mono truncate ml-2">
-								{customer.last_edited_by_email}
-							</span>
-						</div>
-					)}
+					<div className="flex items-center justify-between">
+						<span className="text-xs font-medium text-zinc-500">Updated by</span>
+						<span className="text-xs text-zinc-700 font-mono truncate ml-2">
+							{customer.last_edited_by_email ?? "—"}
+						</span>
+					</div>
 				</CardContent>
 			</Card>
 		</div>

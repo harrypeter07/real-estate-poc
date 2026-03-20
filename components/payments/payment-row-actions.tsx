@@ -35,11 +35,21 @@ export function PaymentRowActions({ payment }: PaymentRowActionsProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Payment</span>
-            <ReceiptViewButton
-              receiptPath={payment.receipt_path}
-              title="Payment Receipt"
-              variant="outline"
-            />
+            <div className="flex items-center gap-2">
+              <ReceiptViewButton
+                receiptPath={payment.receipt_path}
+                title="Payment Receipt"
+                variant="outline"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">

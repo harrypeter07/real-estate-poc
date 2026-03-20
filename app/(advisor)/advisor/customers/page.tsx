@@ -59,9 +59,17 @@ export default async function AdvisorCustomersPage() {
 								</TableRow>
 							) : (
 								(customers ?? []).map((c: any) => (
-									<TableRow key={c.id}>
-										<TableCell className="font-medium">{c.name}</TableCell>
-										<TableCell>{c.phone}</TableCell>
+									<TableRow key={c.id} className="hover:bg-zinc-50">
+										<TableCell className="font-medium">
+											<Link href={`/advisor/customers/${c.id}`} className="inline-block">
+												{c.name}
+											</Link>
+										</TableCell>
+										<TableCell>
+											<Link href={`/advisor/customers/${c.id}`} className="inline-block">
+												{c.phone}
+											</Link>
+										</TableCell>
 										<TableCell>{c.route || "—"}</TableCell>
 										<TableCell>{c.birth_date ? formatDate(c.birth_date) : "—"}</TableCell>
 										<TableCell className="text-right">

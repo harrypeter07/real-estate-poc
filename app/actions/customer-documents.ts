@@ -19,6 +19,29 @@ export async function getCustomerDocuments(customerId: string) {
 	const supabase = await createClient();
 	if (!supabase) return [];
 
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+	if (userErr || !user) return [];
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	if (role === "advisor" && advisorId) {
+		// Ensure the customer belongs to the logged-in advisor before showing docs.
+		const { data: customer, error: customerErr } = await supabase
+			.from("customers")
+			.select("id")
+			.eq("id", customerId)
+			.eq("advisor_id", advisorId)
+			.maybeSingle();
+
+		if (customerErr || !customer) return [];
+	}
+
 	const { data, error } = await supabase
 		.from("customer_documents")
 		.select("*")
@@ -41,6 +64,30 @@ export async function createCustomerDocument(values: {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+	if (userErr || !user) return { success: false, error: "Unauthorized" };
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	if (role === "advisor" && advisorId) {
+		const { data: customer, error: customerErr } = await supabase
+			.from("customers")
+			.select("id")
+			.eq("id", values.customer_id)
+			.eq("advisor_id", advisorId)
+			.maybeSingle();
+
+		if (customerErr || !customer) {
+			return { success: false, error: "Not allowed" };
+		}
+	}
+
 	const { error } = await supabase.from("customer_documents").insert({
 		customer_id: values.customer_id,
 		doc_category: values.doc_category,
@@ -53,7 +100,11 @@ export async function createCustomerDocument(values: {
 
 	if (error) return { success: false, error: error.message };
 
-	revalidatePath(`/customers/${values.customer_id}`);
+	revalidatePath(
+		role === "advisor"
+			? `/advisor/customers/${values.customer_id}`
+			: `/customers/${values.customer_id}`
+	);
 	return { success: true };
 }
 
@@ -61,10 +112,40 @@ export async function deleteCustomerDocument(id: string, customerId: string) {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	const { error } = await supabase.from("customer_documents").delete().eq("id", id);
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+	if (userErr || !user) return { success: false, error: "Unauthorized" };
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	if (role === "advisor" && advisorId) {
+		const { data: customer, error: customerErr } = await supabase
+			.from("customers")
+			.select("id")
+			.eq("id", customerId)
+			.eq("advisor_id", advisorId)
+			.maybeSingle();
+
+		if (customerErr || !customer) {
+			return { success: false, error: "Not allowed" };
+		}
+	}
+
+	const { error } = await supabase
+		.from("customer_documents")
+		.delete()
+		.eq("id", id)
+		.eq("customer_id", customerId);
 	if (error) return { success: false, error: error.message };
 
-	revalidatePath(`/customers/${customerId}`);
+	revalidatePath(
+		role === "advisor" ? `/advisor/customers/${customerId}` : `/customers/${customerId}`
+	);
 	return { success: true };
 }
 

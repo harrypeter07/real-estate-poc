@@ -166,12 +166,28 @@ export async function getCustomerById(id: string) {
 	const supabase = await createClient();
 	if (!supabase) return null;
 
-	const { data, error } = await supabase
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+
+	if (userErr || !user) return null;
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	let query = supabase
 		.from("customers")
 		.select("*")
-		.eq("id", id)
-		.single();
+		.eq("id", id);
 
+	if (role === "advisor" && advisorId) {
+		query = query.eq("advisor_id", advisorId).eq("is_active", true);
+	}
+
+	const { data, error } = await query.single();
 	if (error) return null;
 	return data;
 }

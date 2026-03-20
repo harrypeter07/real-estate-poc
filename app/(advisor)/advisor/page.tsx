@@ -37,7 +37,7 @@ export default async function AdvisorDashboardPage() {
 				}
 			/>
 
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 				<Card>
 					<CardContent className="p-6">
 						<div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs font-bold uppercase tracking-wider">
@@ -49,9 +49,19 @@ export default async function AdvisorDashboardPage() {
 				<Card>
 					<CardContent className="p-6">
 						<div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs font-bold uppercase tracking-wider">
-							<IndianRupee className="h-4 w-4" /> Revenue
+							<IndianRupee className="h-4 w-4" /> Project revenue (total)
 						</div>
 						<p className="text-2xl font-bold">{formatCurrency(data.totalRevenue)}</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardContent className="p-6">
+						<div className="flex items-center gap-2 text-green-600 mb-2 text-xs font-bold uppercase tracking-wider">
+							<IndianRupee className="h-4 w-4" /> My revenue (commissions)
+						</div>
+						<p className="text-2xl font-bold text-green-700">
+							{formatCurrency(data.totalCommission)}
+						</p>
 					</CardContent>
 				</Card>
 				<Card>

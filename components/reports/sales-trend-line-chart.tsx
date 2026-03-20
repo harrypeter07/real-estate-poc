@@ -35,7 +35,7 @@ export function SalesTrendLineChart({ data }: { data: SalesTrendPoint[] }) {
 					<YAxis
 						domain={domain}
 						tickFormatter={(v) =>
-							`₹${Math.round(Number(v)).toLocaleString("en-IN")}`
+							formatCurrency(Number(v))
 						}
 					/>
 					<Tooltip

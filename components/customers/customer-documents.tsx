@@ -81,6 +81,16 @@ export function CustomerDocuments({
     if (!file) return;
     setUploading(true);
     try {
+			// Prevent storage policy casts from throwing if route/customerId isn't a UUID.
+			const isUuid = (v: string) =>
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+			if (!isUuid(customerId)) {
+				toast.error("Invalid customer id", {
+					description: "Customer id must be a UUID to upload documents.",
+				});
+				return;
+			}
+
       const supabase = createClient();
       const safeName = file.name.replace(/[^\w.\- ]+/g, "_");
       const path = `customers/${customerId}/${category}/${docType}/${Date.now()}-${safeName}`;

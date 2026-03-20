@@ -4,13 +4,21 @@ import { format, parseISO } from "date-fns";
  * Format amount as Indian Rupee: ₹1,00,000
  */
 export function formatCurrency(amount: number): string {
-  if (isNaN(amount)) return "₹0";
+  const n = Number(amount ?? 0);
+  if (!Number.isFinite(n) || Number.isNaN(n)) return "₹0";
+
+  // Avoid UI overflow: switch to compact Cr/Lakh/K format for big numbers.
+  const abs = Math.abs(n);
+  if (abs >= 100000) {
+    return formatCurrencyShort(n);
+  }
+
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(n);
 }
 
 /**

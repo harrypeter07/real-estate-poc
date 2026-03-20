@@ -221,7 +221,19 @@ export async function getCustomerPlotSales(customerId: string) {
 	const supabase = await createClient();
 	if (!supabase) return [];
 
-	const { data, error } = await supabase
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+	if (userErr || !user) return [];
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	// Advisors should only see sales for their own customers.
+	let query = supabase
 		.from("plot_sales")
 		.select(
 			`
@@ -238,6 +250,12 @@ export async function getCustomerPlotSales(customerId: string) {
 		)
 		.eq("customer_id", customerId)
 		.order("created_at", { ascending: false });
+
+	if (role === "advisor" && advisorId) {
+		query = query.eq("advisor_id", advisorId);
+	}
+
+	const { data, error } = await query;
 
 	if (error) throw new Error(error.message);
 	return data || [];

@@ -92,7 +92,7 @@ export async function getSelfProfile(): Promise<SelfProfile | null> {
 		admin: {
 			id: user.id,
 			name,
-			email: user.email,
+			email: user.email ?? null,
 		},
 	};
 }

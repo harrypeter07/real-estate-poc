@@ -34,9 +34,15 @@ interface CustomerFormProps {
   mode: "create" | "edit";
   initialData?: any;
   advisors: any[];
+  redirectTo?: string;
 }
 
-export function CustomerForm({ mode, initialData, advisors }: CustomerFormProps) {
+export function CustomerForm({
+  mode,
+  initialData,
+  advisors,
+  redirectTo = "/customers",
+}: CustomerFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -95,7 +101,7 @@ export function CustomerForm({ mode, initialData, advisors }: CustomerFormProps)
       }
 
       toast.success(mode === "edit" ? "Customer updated" : "Customer created");
-      router.push("/customers");
+      router.push(redirectTo);
       router.refresh();
     } catch (err) {
       toast.error("Something went wrong");

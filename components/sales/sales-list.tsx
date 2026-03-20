@@ -20,7 +20,13 @@ const phaseConfig: Record<string, { label: string; className: string }> = {
 	face6: { label: "Face 6", className: "bg-zinc-100 text-zinc-800" },
 };
 
-export function SalesList({ sales }: { sales: any[] }) {
+export function SalesList({
+	sales,
+	canCollectPayments = true,
+}: {
+	sales: any[];
+	canCollectPayments?: boolean;
+}) {
 	const [selectedSale, setSelectedSale] = useState<any | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
 
@@ -128,11 +134,13 @@ export function SalesList({ sales }: { sales: any[] }) {
 										>
 											View Details
 										</Button>
-										<Link href={`/payments/new?saleId=${sale.id}`} className="w-full">
-											<Button size="sm" className="w-full">
-												Collect Payment
-											</Button>
-										</Link>
+										{canCollectPayments ? (
+											<Link href={`/payments/new?saleId=${sale.id}`} className="w-full">
+												<Button size="sm" className="w-full">
+													Collect Payment
+												</Button>
+											</Link>
+										) : null}
 									</div>
 								</div>
 							</CardContent>
@@ -146,6 +154,7 @@ export function SalesList({ sales }: { sales: any[] }) {
 					sale={selectedSale}
 					open={modalOpen}
 					onOpenChange={setModalOpen}
+					canCollectPayments={canCollectPayments}
 				/>
 			)}
 		</>

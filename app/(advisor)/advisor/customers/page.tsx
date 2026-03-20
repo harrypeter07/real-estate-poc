@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button } from "@/components/ui";
@@ -29,9 +30,9 @@ export default async function AdvisorCustomersPage() {
 				title="My Customers"
 				subtitle={`${customers?.length ?? 0} customers assigned to you`}
 				action={
-					<Link href="/customers/new">
+					<Link href="/advisor/customers/new">
 						<Button size="sm" variant="outline">
-							Add Customer (Admin)
+							Add Customer
 						</Button>
 					</Link>
 				}
@@ -46,12 +47,13 @@ export default async function AdvisorCustomersPage() {
 								<TableHead>Phone</TableHead>
 								<TableHead>Route</TableHead>
 								<TableHead>Birth Date</TableHead>
+								<TableHead className="text-right">Actions</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
 							{(customers ?? []).length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={4} className="text-sm text-zinc-500 py-10 text-center">
+									<TableCell colSpan={5} className="text-sm text-zinc-500 py-10 text-center">
 										No customers assigned yet.
 									</TableCell>
 								</TableRow>
@@ -62,6 +64,14 @@ export default async function AdvisorCustomersPage() {
 										<TableCell>{c.phone}</TableCell>
 										<TableCell>{c.route || "—"}</TableCell>
 										<TableCell>{c.birth_date ? formatDate(c.birth_date) : "—"}</TableCell>
+										<TableCell className="text-right">
+											<Link href={`/advisor/customers/${c.id}/edit`}>
+												<Button size="sm" variant="outline" className="h-8 px-2">
+													<Pencil className="h-4 w-4 mr-2" />
+													Edit
+												</Button>
+											</Link>
+										</TableCell>
 									</TableRow>
 								))
 							)}

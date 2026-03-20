@@ -39,7 +39,7 @@ export default async function AdvisorSalesPage() {
 					No sales recorded yet.
 				</div>
 			) : (
-				<SalesList sales={sales as any[]} />
+				<SalesList sales={sales as any[]} canCollectPayments={false} />
 			)}
 		</div>
 	);

@@ -42,6 +42,7 @@ interface ReminderFormProps {
 	mode?: "create" | "edit";
 	onSuccess?: () => void;
 	onCancel?: () => void;
+	redirectTo?: string;
 }
 
 export function ReminderForm({
@@ -50,6 +51,7 @@ export function ReminderForm({
 	mode = "create",
 	onSuccess,
 	onCancel,
+	redirectTo = "/reminders",
 }: ReminderFormProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
@@ -133,7 +135,7 @@ export function ReminderForm({
 			if (onSuccess) {
 				onSuccess();
 			} else {
-				router.push("/reminders");
+				router.push(redirectTo);
 				router.refresh();
 			}
 		} catch (err) {

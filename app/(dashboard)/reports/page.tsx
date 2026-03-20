@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { getReportStats } from "@/app/actions/reports";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { ReportsFilters } from "@/components/reports/reports-filters";
+import { SalesTrendLineChart } from "@/components/reports/sales-trend-line-chart";
 
 export default async function ReportsPage({
 	searchParams,
@@ -284,25 +285,9 @@ export default async function ReportsPage({
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="border-b">
-										<th className="text-left py-2">Month</th>
-										<th className="text-right py-2">Sales Count</th>
-										<th className="text-right py-2">Value</th>
-									</tr>
-								</thead>
-								<tbody>
-									{stats.salesByMonth.map((m) => (
-										<tr key={m.month} className="border-b last:border-0">
-											<td className="py-2 font-medium">{m.month}</td>
-											<td className="py-2 text-right">{m.count}</td>
-											<td className="py-2 text-right font-bold">{formatCurrency(m.value)}</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
+						<SalesTrendLineChart data={stats.salesByMonth as any} />
+						<div className="mt-3 text-xs text-zinc-500">
+							Y-axis range adapts automatically to the selected date range.
 						</div>
 					</CardContent>
 				</Card>

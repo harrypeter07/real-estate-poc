@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui";
 
 interface HeaderProps {
@@ -18,6 +18,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     email?: string | null;
     role?: string | null;
   } | null>(null);
+	const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -58,8 +59,14 @@ export function Header({ onMenuClick }: HeaderProps) {
   }, []);
 
   async function handleLogout() {
+		if (loggingOut) return;
+		setLoggingOut(true);
     const supabase = createClient();
-    await supabase.auth.signOut();
+		try {
+			await supabase.auth.signOut();
+		} finally {
+			setLoggingOut(false);
+		}
     toast.success("Logged out");
     router.push("/login");
     router.refresh();
@@ -101,10 +108,11 @@ export function Header({ onMenuClick }: HeaderProps) {
           variant="ghost"
           size="sm"
           onClick={handleLogout}
+          disabled={loggingOut}
           className="text-zinc-500 hover:text-red-600"
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
+          {loggingOut ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />}
+          {loggingOut ? "Logging out..." : "Logout"}
         </Button>
       </div>
     </header>

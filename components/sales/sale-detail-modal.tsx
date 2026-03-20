@@ -34,6 +34,7 @@ interface SaleDetailModalProps {
 	};
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	canCollectPayments?: boolean;
 }
 
 const phaseConfig: Record<string, { label: string; className: string }> = {
@@ -52,7 +53,12 @@ const phaseConfig: Record<string, { label: string; className: string }> = {
 	face6: { label: "Face 6", className: "bg-zinc-100 text-zinc-800" },
 };
 
-export function SaleDetailModal({ sale, open, onOpenChange }: SaleDetailModalProps) {
+export function SaleDetailModal({
+	sale,
+	open,
+	onOpenChange,
+	canCollectPayments = true,
+}: SaleDetailModalProps) {
 	const router = useRouter();
 	const phase =
 		phaseConfig[sale.sale_phase] ?? {
@@ -162,16 +168,18 @@ export function SaleDetailModal({ sale, open, onOpenChange }: SaleDetailModalPro
 					</div>
 
 					<div className="flex gap-2 pt-2">
-						<Link href={`/payments/new?saleId=${sale.id}`} className="flex-1">
-							<Button
-								size="sm"
-								className="w-full"
-								onClick={() => onOpenChange(false)}
-							>
-								<CreditCard className="h-4 w-4 mr-2" />
-								Collect Payment
-							</Button>
-						</Link>
+						{canCollectPayments ? (
+							<Link href={`/payments/new?saleId=${sale.id}`} className="flex-1">
+								<Button
+									size="sm"
+									className="w-full"
+									onClick={() => onOpenChange(false)}
+								>
+									<CreditCard className="h-4 w-4 mr-2" />
+									Collect Payment
+								</Button>
+							</Link>
+						) : null}
 						<Button
 							variant="outline"
 							size="sm"

@@ -31,8 +31,8 @@ export default async function AdvisorRemindersPage() {
 				title="My Reminders"
 				subtitle={`${pending.length} pending`}
 				action={
-					<Link href="/reminders/new">
-						<Button size="sm" variant="outline">Create Reminder (Admin)</Button>
+					<Link href="/advisor/reminders/new">
+						<Button size="sm" variant="outline">Create Reminder</Button>
 					</Link>
 				}
 			/>

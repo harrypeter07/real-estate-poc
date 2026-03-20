@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Building2, Loader2 } from "lucide-react";
+import { Building2, Eye, EyeOff, Loader2 } from "lucide-react";
 import {
 	Button,
 	Input,
@@ -34,6 +34,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
 
 	const form = useForm<LoginFormValues>({
 		resolver: zodResolver(loginSchema),
@@ -99,12 +100,29 @@ export default function LoginPage() {
 									<FormItem>
 										<FormLabel>Password</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="••••••••"
-												type="password"
-												autoComplete="current-password"
-												{...field}
-											/>
+											<div className="relative">
+												<Input
+													placeholder="••••••••"
+													type={showPassword ? "text" : "password"}
+													autoComplete="current-password"
+													className="pr-10"
+													{...field}
+												/>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+													onClick={() => setShowPassword((v) => !v)}
+													aria-label={showPassword ? "Hide password" : "Show password"}
+												>
+													{showPassword ? (
+														<EyeOff className="h-4 w-4" />
+													) : (
+														<Eye className="h-4 w-4" />
+													)}
+												</Button>
+											</div>
 										</FormControl>
 										<p className="text-[10px] text-zinc-500">
 											For advisors: if password is blank, default is your phone (last 10 digits).

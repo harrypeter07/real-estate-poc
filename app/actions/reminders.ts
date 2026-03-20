@@ -28,6 +28,39 @@ export async function createReminder(
 		return { success: false, error: "Database connection failed" };
 	}
 
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	const role = (user?.user_metadata as any)?.role;
+	const advisorId = (user?.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	// Advisors can only create reminders for their own customers.
+	if (role === "advisor" && !advisorId) {
+		return { success: false, error: "Advisor context missing" };
+	}
+
+	if (role === "advisor" && advisorId) {
+		if (parsed.data.customer_id) {
+			const { data: okCust } = await supabase
+				.from("customers")
+				.select("id")
+				.eq("id", parsed.data.customer_id)
+				.eq("advisor_id", advisorId)
+				.eq("is_active", true)
+				.maybeSingle();
+
+			if (!okCust?.id) {
+				return {
+					success: false,
+					error: "Not allowed to create reminders for this customer.",
+				};
+			}
+		}
+	}
+
 	const { error } = await supabase.from("reminders").insert({
 		title: parsed.data.title,
 		type: parsed.data.type,
@@ -65,6 +98,44 @@ export async function updateReminder(
 		return { success: false, error: "Database connection failed" };
 	}
 
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	const role = (user?.user_metadata as any)?.role;
+	const advisorId = (user?.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	// Enforce advisor ownership before updating.
+	if (role === "advisor" && !advisorId) {
+		return { success: false, error: "Advisor context missing" };
+	}
+
+	if (role === "advisor" && advisorId) {
+		const { data: reminderRow } = await supabase
+			.from("reminders")
+			.select("id, customer_id")
+			.eq("id", id)
+			.single();
+
+		if (!reminderRow) return { success: false, error: "Reminder not found" };
+
+		if (reminderRow.customer_id) {
+			const { data: okCust } = await supabase
+				.from("customers")
+				.select("id")
+				.eq("id", reminderRow.customer_id)
+				.eq("advisor_id", advisorId)
+				.eq("is_active", true)
+				.maybeSingle();
+
+			if (!okCust?.id) {
+				return { success: false, error: "Not allowed to update this reminder." };
+			}
+		}
+	}
+
 	const { error } = await supabase
 		.from("reminders")
 		.update({
@@ -94,6 +165,42 @@ export async function deleteReminder(id: string): Promise<ActionResponse> {
 		return { success: false, error: "Database connection failed" };
 	}
 
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	const role = (user?.user_metadata as any)?.role;
+	const advisorId = (user?.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	// Advisors can only delete their own customer reminders.
+	if (role === "advisor" && !advisorId) {
+		return { success: false, error: "Advisor context missing" };
+	}
+
+	if (role === "advisor" && advisorId) {
+		const { data: reminderRow } = await supabase
+			.from("reminders")
+			.select("id, customer_id")
+			.eq("id", id)
+			.single();
+
+		if (reminderRow?.customer_id) {
+			const { data: okCust } = await supabase
+				.from("customers")
+				.select("id")
+				.eq("id", reminderRow.customer_id)
+				.eq("advisor_id", advisorId)
+				.eq("is_active", true)
+				.maybeSingle();
+
+			if (!okCust?.id) {
+				return { success: false, error: "Not allowed to delete this reminder." };
+			}
+		}
+	}
+
 	const { error } = await supabase.from("reminders").delete().eq("id", id);
 
 	if (error) {
@@ -108,6 +215,64 @@ export async function deleteReminder(id: string): Promise<ActionResponse> {
 export async function getReminders() {
 	const supabase = await createClient();
 	if (!supabase) return [];
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	const role = (user?.user_metadata as any)?.role;
+	const advisorId = (user?.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	// Advisor: only show reminders linked to their customers (plus self reminders with null customer_id)
+	if (role === "advisor" && !advisorId) {
+		return [];
+	}
+
+	if (role === "advisor" && advisorId) {
+		const { data: customerRows } = await supabase
+			.from("customers")
+			.select("id")
+			.eq("advisor_id", advisorId)
+			.eq("is_active", true);
+
+		const customerIds = (customerRows ?? []).map((c: any) => c.id);
+
+		const [withCustomer, selfReminders] = await Promise.all([
+			customerIds.length
+				? supabase
+						.from("reminders")
+						.select(
+							`
+            *,
+            customers(name, phone)
+          `
+						)
+						.in("customer_id", customerIds)
+				: Promise.resolve({ data: [] as any[], error: null }),
+			supabase
+				.from("reminders")
+				.select(
+					`
+          *,
+          customers(name, phone)
+        `
+				)
+				.is("customer_id", null),
+		]);
+
+		const combined = [
+			...(withCustomer as any).data ?? [],
+			...(selfReminders as any).data ?? [],
+		];
+
+		combined.sort(
+			(a: any, b: any) =>
+				new Date(a.reminder_date).getTime() - new Date(b.reminder_date).getTime()
+		);
+		return combined;
+	}
 
 	const { data, error } = await supabase
 		.from("reminders")
@@ -164,6 +329,41 @@ export async function toggleReminder(id: string, isCompleted: boolean) {
 	const supabase = await createClient();
 	if (!supabase) {
 		return { success: false, error: "Database connection failed" };
+	}
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	const role = (user?.user_metadata as any)?.role;
+	const advisorId = (user?.user_metadata as any)?.advisor_id as
+		| string
+		| undefined;
+
+	if (role === "advisor" && !advisorId) {
+		return { success: false, error: "Advisor context missing" };
+	}
+
+	if (role === "advisor" && advisorId) {
+		const { data: reminderRow } = await supabase
+			.from("reminders")
+			.select("id, customer_id")
+			.eq("id", id)
+			.single();
+
+		if (reminderRow?.customer_id) {
+			const { data: okCust } = await supabase
+				.from("customers")
+				.select("id")
+				.eq("id", reminderRow.customer_id)
+				.eq("advisor_id", advisorId)
+				.eq("is_active", true)
+				.maybeSingle();
+
+			if (!okCust?.id) {
+				return { success: false, error: "Not allowed to update this reminder." };
+			}
+		}
 	}
 
 	const { error } = await supabase

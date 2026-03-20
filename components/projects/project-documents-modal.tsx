@@ -113,7 +113,12 @@ export function ProjectDocumentsModal({ projectId, initialDocs }: Props) {
 				return;
 			}
 
-			setDocs((d) => [res.row, ...d]);
+			if (!res.row) {
+				toast.error("Failed to save document (missing row)");
+				return;
+			}
+
+			setDocs((d) => [res.row!, ...d]);
 			setFile(null);
 			setNotes("");
 			setActive("uploaded");

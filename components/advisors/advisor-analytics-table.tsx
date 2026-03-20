@@ -185,11 +185,12 @@ export function AdvisorAnalyticsTable({
 									<div className="text-sm space-y-1">
 										<p><span className="text-zinc-500">Code:</span> <span className="font-mono">{analytics.advisor.code}</span></p>
 										<p><span className="text-zinc-500">Phone:</span> {analytics.advisor.phone}</p>
-										<p><span className="text-zinc-500">Status:</span>{" "}
+										<div className="flex items-center gap-2">
+											<span className="text-zinc-500">Status:</span>
 											<Badge variant={analytics.advisor.is_active ? "default" : "secondary"}>
 												{analytics.advisor.is_active ? "Active" : "Inactive"}
 											</Badge>
-										</p>
+										</div>
 									</div>
 								</div>
 								<div className="rounded-lg border border-zinc-200 p-4 space-y-3">

@@ -10,6 +10,7 @@ import {
 	Button,
 	Badge,
 } from "@/components/ui";
+import { formatDate } from "@/lib/utils/formatters";
 
 interface CustomerCardProps {
 	customer: any;
@@ -68,16 +69,26 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 
 					<div className="pt-2 border-t flex items-center justify-between">
 						<span className="text-xs font-medium text-zinc-500">Added by</span>
-						<span className="text-xs text-zinc-700 font-mono truncate ml-2">
-							{customer.created_by_email ?? "—"}
-						</span>
+						<div className="text-right min-w-0">
+							<span className="text-xs text-zinc-700 font-mono truncate ml-2 block">
+								{customer.created_by_name || customer.created_by_email || "—"}
+							</span>
+							<span className="text-[11px] text-zinc-500 block">
+								{formatDate(customer.created_by_at)}
+							</span>
+						</div>
 					</div>
 
 					<div className="flex items-center justify-between">
 						<span className="text-xs font-medium text-zinc-500">Updated by</span>
-						<span className="text-xs text-zinc-700 font-mono truncate ml-2">
-							{customer.last_edited_by_email ?? "—"}
-						</span>
+						<div className="text-right min-w-0">
+							<span className="text-xs text-zinc-700 font-mono truncate ml-2 block">
+								{customer.last_edited_by_name || customer.last_edited_by_email || "—"}
+							</span>
+							<span className="text-[11px] text-zinc-500 block">
+								{formatDate(customer.last_edited_by_at)}
+							</span>
+						</div>
 					</div>
 				</CardContent>
 			</Card>

@@ -59,8 +59,32 @@ export default function LoginPage() {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-background px-4">
-			<Card className="w-full max-w-md">
+		<div
+			suppressHydrationWarning
+			className="relative min-h-screen overflow-hidden"
+		>
+			{/* Background image (login screen only) */}
+			<div
+				aria-hidden
+				className="absolute inset-0 bg-cover bg-center"
+				style={{ backgroundImage: "url('/bg.png')" }}
+			/>
+			{/* Dark overlay + subtle gradient for readability */}
+			<div
+				aria-hidden
+				className="absolute inset-0 bg-zinc-950/55"
+			/>
+			<div
+				aria-hidden
+				className="absolute inset-0 bg-gradient-to-b from-zinc-950/40 via-zinc-950/25 to-zinc-950/55"
+			/>
+
+			<div className="relative z-10 min-h-screen flex justify-center sm:justify-start px-4 sm:px-12">
+				<div className="w-full sm:max-w-md sm:pt-0 sm:-translate-y-6 pt-20 sm:flex sm:items-center">
+					<Card
+						suppressHydrationWarning
+						className="w-full max-w-md bg-zinc-100/75 dark:bg-zinc-900/60 backdrop-blur border border-zinc-200/40 shadow-xl"
+					>
 				<CardHeader className="text-center space-y-4">
 					<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100">
 						<Building2 className="h-8 w-8 text-white dark:text-zinc-900" />
@@ -138,7 +162,9 @@ export default function LoginPage() {
 						</form>
 					</Form>
 				</CardContent>
-			</Card>
+					</Card>
+				</div>
+			</div>
 		</div>
 	);
 }

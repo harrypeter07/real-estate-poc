@@ -59,7 +59,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const advisor = s.advisors;
 	const soldBy = s.sold_by_admin ? "Admin (Direct)" : advisor?.name ?? "—";
 
-	// Build a styled PDF bill (instead of HTML file)
+	// Build a styled PDF bill with proper table layout
 	const pdfDoc = await PDFDocument.create();
 	const page = pdfDoc.addPage([595, 842]); // A4 portrait
 	const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -67,7 +67,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const { width, height } = page.getSize();
 
 	// Watermark
-	page.drawText("MG INFRA", {
+	page.drawText("S-INFRA", {
 		x: 170,
 		y: 420,
 		size: 72,
@@ -84,14 +84,14 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		height: 120,
 		color: rgb(0.08, 0.36, 0.62),
 	});
-	page.drawText("MG INFRA NAGPUR", {
+	page.drawText("S-INFRA", {
 		x: 38,
 		y: height - 50,
 		size: 24,
 		font: fontBold,
 		color: rgb(1, 1, 1),
 	});
-	page.drawText("Land & Plot Development", {
+	page.drawText("Real Estate | Land & Plot Development", {
 		x: 40,
 		y: height - 74,
 		size: 11,
@@ -113,79 +113,121 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		color: rgb(0.95, 0.98, 1),
 	});
 
-	let y = height - 150;
-	const leftX = 40;
-	const lineGap = 16;
+	const left = 36;
+	let y = height - 146;
+	const tableWidth = width - 72;
+	const col1 = 170;
+	const rowHeight = 23;
 
-	const drawSectionTitle = (title: string) => {
+	const drawTable = (
+		title: string,
+		rows: Array<{ key: string; value: string; strong?: boolean }>
+	) => {
+		// Section title bar
 		page.drawRectangle({
-			x: leftX - 4,
-			y: y - 4,
-			width: 515,
+			x: left,
+			y: y - 2,
+			width: tableWidth,
 			height: 20,
-			color: rgb(0.94, 0.96, 0.99),
+			color: rgb(0.93, 0.95, 0.98),
 		});
 		page.drawText(title, {
-			x: leftX,
-			y,
+			x: left + 8,
+			y: y + 3,
 			size: 11,
 			font: fontBold,
-			color: rgb(0.1, 0.2, 0.34),
+			color: rgb(0.12, 0.2, 0.34),
 		});
-		y -= lineGap + 4;
+		y -= 24;
+
+		// Outer border
+		const bodyHeight = rows.length * rowHeight;
+		page.drawRectangle({
+			x: left,
+			y: y - bodyHeight,
+			width: tableWidth,
+			height: bodyHeight,
+			borderColor: rgb(0.84, 0.87, 0.91),
+			borderWidth: 1,
+		});
+
+		// Vertical column divider
+		page.drawLine({
+			start: { x: left + col1, y },
+			end: { x: left + col1, y: y - bodyHeight },
+			thickness: 1,
+			color: rgb(0.88, 0.9, 0.93),
+		});
+
+		for (let i = 0; i < rows.length; i++) {
+			const rowYTop = y - i * rowHeight;
+			const textY = rowYTop - 15;
+			const r = rows[i];
+
+			// Horizontal divider
+			if (i > 0) {
+				page.drawLine({
+					start: { x: left, y: rowYTop },
+					end: { x: left + tableWidth, y: rowYTop },
+					thickness: 1,
+					color: rgb(0.9, 0.92, 0.95),
+				});
+			}
+
+			page.drawText(r.key, {
+				x: left + 8,
+				y: textY,
+				size: 10.2,
+				font,
+				color: rgb(0.35, 0.39, 0.45),
+			});
+			page.drawText(r.value, {
+				x: left + col1 + 8,
+				y: textY,
+				size: 10.2,
+				font: r.strong ? fontBold : font,
+				color: rgb(0.12, 0.12, 0.12),
+			});
+		}
+
+		y -= bodyHeight + 14;
 	};
 
-	const drawRow = (label: string, value: string, strong = false) => {
-		page.drawText(label, {
-			x: leftX,
-			y,
-			size: 10.5,
-			font,
-			color: rgb(0.3, 0.35, 0.4),
-		});
-		page.drawText(value, {
-			x: 220,
-			y,
-			size: 10.5,
-			font: strong ? fontBold : font,
-			color: rgb(0.12, 0.12, 0.12),
-		});
-		y -= lineGap;
-	};
+	drawTable("Customer Details", [
+		{ key: "Name", value: customer?.name ?? "—" },
+		{ key: "Phone", value: customer?.phone ?? "—" },
+		{ key: "Address", value: customer?.address ?? "—" },
+	]);
 
-	drawSectionTitle("Customer Details");
-	drawRow("Name", customer?.name ?? "—");
-	drawRow("Phone", customer?.phone ?? "—");
-	drawRow("Address", customer?.address ?? "—");
-	y -= 4;
+	drawTable("Transaction Details", [
+		{ key: "Project", value: `${project?.name ?? "—"}${project?.location ? `, ${project.location}` : ""}` },
+		{ key: "Plot", value: `${plot?.plot_number ?? "—"} (${plot?.size_sqft ?? "—"} sqft)` },
+		{ key: "Phase", value: String(s.sale_phase ?? "").replace("_", " ") },
+		{ key: "Token Date", value: formatDate(s.token_date) },
+		{ key: "Agreement Date", value: formatDate(s.agreement_date) },
+		{ key: "Sold By", value: soldBy },
+	]);
 
-	drawSectionTitle("Transaction Details");
-	drawRow("Project", `${project?.name ?? "—"}${project?.location ? `, ${project.location}` : ""}`);
-	drawRow("Plot", `${plot?.plot_number ?? "—"} (${plot?.size_sqft ?? "—"} sqft)`);
-	drawRow("Phase", String(s.sale_phase ?? "").replace("_", " "));
-	drawRow("Token Date", formatDate(s.token_date));
-	drawRow("Agreement Date", formatDate(s.agreement_date));
-	drawRow("Sold By", soldBy);
-	y -= 4;
-
-	drawSectionTitle("Payment Summary");
-	drawRow("Total Sale Amount", formatCurrency(Number(s.total_sale_amount ?? 0)));
-	drawRow("Down Payment", formatCurrency(Number(s.down_payment ?? 0)));
-	drawRow("Amount Paid", formatCurrency(Number(s.amount_paid ?? 0)));
-	drawRow("Remaining Amount", formatCurrency(Number(s.remaining_amount ?? 0)), true);
+	const paymentRows: Array<{ key: string; value: string; strong?: boolean }> = [
+		{ key: "Total Sale Amount", value: formatCurrency(Number(s.total_sale_amount ?? 0)) },
+		{ key: "Down Payment", value: formatCurrency(Number(s.down_payment ?? 0)) },
+		{ key: "Amount Paid", value: formatCurrency(Number(s.amount_paid ?? 0)) },
+		{ key: "Remaining Amount", value: formatCurrency(Number(s.remaining_amount ?? 0)), strong: true },
+	];
 	if (s.monthly_emi) {
-		drawRow(
-			"Monthly EMI",
-			`${formatCurrency(Number(s.monthly_emi))} (Day ${s.emi_day ?? "—"})`
-		);
+		paymentRows.push({
+			key: "Monthly EMI",
+			value: `${formatCurrency(Number(s.monthly_emi))} (Day ${s.emi_day ?? "—"})`,
+		});
 	}
-	y -= 6;
+	drawTable("Payment Summary", paymentRows);
 
-	drawSectionTitle("Terms & Conditions");
-	drawRow("•", "This is a computer-generated receipt and does not require signature.");
-	drawRow("•", "Please preserve this receipt for your records.");
-	drawRow("•", "For any queries, contact MG Infra Nagpur.");
-	drawRow("Sale ID", saleId);
+	drawTable("Terms & Conditions", [
+		{ key: "•", value: "This is a computer-generated receipt and does not require signature." },
+		{ key: "•", value: "Please preserve this receipt for your records." },
+		{ key: "•", value: "For any queries, contact S-Infra." },
+		{ key: "Sale ID", value: saleId, strong: true },
+	]);
 
 	// Footer strip
 	page.drawRectangle({
@@ -202,8 +244,8 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		font,
 		color: rgb(0.55, 0.58, 0.62),
 	});
-	page.drawText("Generated by MG Infra CRM", {
-		x: width - 190,
+	page.drawText("Generated by S-Infra CRM", {
+		x: width - 184,
 		y: 15,
 		size: 9,
 		font,

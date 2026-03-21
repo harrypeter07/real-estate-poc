@@ -70,7 +70,7 @@ export const REMINDER_TEMPLATES: ReminderTemplateGroup[] = [
 			{
 				id: "te-1",
 				name: "Urgent",
-				body: `Hello [name], your token period for the plot at MG Infra is expiring soon. Kindly complete the process to avoid cancellation. Please contact us at your earliest.${COMPANY_SIGNATURE}`,
+				body: `Hello [name], your token period for the plot at S-Infra is expiring soon. Kindly complete the process to avoid cancellation. Please contact us at your earliest.${COMPANY_SIGNATURE}`,
 			},
 			{
 				id: "te-2",
@@ -97,7 +97,7 @@ export const REMINDER_TEMPLATES: ReminderTemplateGroup[] = [
 			{
 				id: "id-1",
 				name: "Standard",
-				body: `Hello [name], this is a reminder for your plot installment due at MG Infra. Kindly ignore if already paid.${COMPANY_SIGNATURE}`,
+				body: `Hello [name], this is a reminder for your plot installment due at S-Infra. Kindly ignore if already paid.${COMPANY_SIGNATURE}`,
 			},
 			{
 				id: "id-2",
@@ -113,7 +113,7 @@ export const REMINDER_TEMPLATES: ReminderTemplateGroup[] = [
 			{
 				id: "crm-1",
 				name: "General",
-				body: `Hello [name], following up on our previous discussion regarding the MG Infra projects in Nagpur. Would love to connect soon!${COMPANY_SIGNATURE}`,
+				body: `Hello [name], following up on our previous discussion regarding the S-Infra projects in Nagpur. Would love to connect soon!${COMPANY_SIGNATURE}`,
 			},
 			{
 				id: "crm-2",
@@ -168,7 +168,7 @@ export const REMINDER_TEMPLATES: ReminderTemplateGroup[] = [
 	},
 ];
 
-const TEMPLATE_STORAGE_KEY = "mg_reminder_templates";
+const TEMPLATE_STORAGE_KEY = "sinfra_reminder_templates";
 
 export function getStoredTemplateId(type: ReminderType): string | null {
 	if (typeof window === "undefined") return null;
@@ -207,7 +207,7 @@ export function getDynamicFields(): string[] {
 }
 
 const DEFAULT_VALUES: Record<string, string> = {
-	company: "MG Infra Nagpur",
+	company: "S-Infra",
 	company_phone: "+91 9876543210",
 };
 

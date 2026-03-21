@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Button,
   Input,
@@ -45,6 +45,8 @@ export function CustomerForm({
 }: CustomerFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [statusText, setStatusText] = useState("");
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as any,
@@ -85,8 +87,32 @@ export function CustomerForm({
     });
   };
 
+  const playSubmitTone = (kind: "success" | "error") => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = kind === "success" ? 740 : 220;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "success" ? 0.2 : 0.15));
+      osc.start(now);
+      osc.stop(now + (kind === "success" ? 0.22 : 0.17));
+      setTimeout(() => void ctx.close(), 300);
+    } catch {}
+  };
+
   async function onSubmit(values: CustomerFormValues) {
     setLoading(true);
+    setSubmitStatus("idle");
+    setStatusText("");
     try {
       const payload = {
         ...values,
@@ -101,14 +127,23 @@ export function CustomerForm({
 
       if (!result.success) {
         toast.error("Error", { description: result.error });
+        setSubmitStatus("error");
+        setStatusText(result.error ?? "Failed to save customer");
+        playSubmitTone("error");
         return;
       }
 
       toast.success(mode === "edit" ? "Customer updated" : "Customer created");
+      setSubmitStatus("success");
+      setStatusText(mode === "edit" ? "Customer updated successfully." : "Customer created successfully.");
+      playSubmitTone("success");
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
       toast.error("Something went wrong");
+      setSubmitStatus("error");
+      setStatusText("Something went wrong while saving customer.");
+      playSubmitTone("error");
     } finally {
       setLoading(false);
     }
@@ -266,11 +301,22 @@ export function CustomerForm({
               <Button
                 type="submit"
                 disabled={loading || (mode === "edit" && !form.formState.isDirty)}
+                className={`transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "edit" ? "Update Customer" : "Create Customer"}
+                {loading ? "Submitting..." : mode === "edit" ? "Update Customer" : "Create Customer"}
               </Button>
             </div>
+            {submitStatus !== "idle" && (
+              <div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+                submitStatus === "success"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}>
+                {submitStatus === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                <span>{statusText}</span>
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

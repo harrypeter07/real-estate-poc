@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Button,
   Input,
@@ -38,6 +38,8 @@ export function ExpenseForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [statusText, setStatusText] = useState("");
   const [draftId] = useState(() =>
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
@@ -48,7 +50,7 @@ export function ExpenseForm({
     resolver: zodResolver(expenseSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: undefined as any,
       expense_date: new Date().toISOString().split('T')[0],
       category: "misc",
       project_id: null,
@@ -82,20 +84,53 @@ export function ExpenseForm({
     });
   };
 
+  const playSubmitTone = (kind: "success" | "error") => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = kind === "success" ? 740 : 220;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "success" ? 0.2 : 0.15));
+      osc.start(now);
+      osc.stop(now + (kind === "success" ? 0.22 : 0.17));
+      setTimeout(() => void ctx.close(), 300);
+    } catch {}
+  };
+
   async function onSubmit(values: ExpenseFormValues) {
     setLoading(true);
+    setSubmitStatus("idle");
+    setStatusText("");
     try {
       const result = await createExpense(values);
       if (!result.success) {
         toast.error("Error", { description: result.error });
+        setSubmitStatus("error");
+        setStatusText(result.error ?? "Failed to record expense");
+        playSubmitTone("error");
         return;
       }
 
       toast.success("Expense recorded successfully");
+      setSubmitStatus("success");
+      setStatusText("Expense recorded successfully.");
+      playSubmitTone("success");
       router.push("/expenses");
       router.refresh();
     } catch (err) {
       toast.error("Something went wrong");
+      setSubmitStatus("error");
+      setStatusText("Something went wrong while saving expense.");
+      playSubmitTone("error");
     } finally {
       setLoading(false);
     }
@@ -142,7 +177,7 @@ export function ExpenseForm({
                         const raw = e.target.value;
                         const sanitized = raw.replace(/^0+(?=\d)/, "");
                         field.onChange(
-                          sanitized === "" ? 0 : Number(sanitized)
+                          sanitized === "" ? undefined : Number(sanitized)
                         );
                       }}
                     />
@@ -254,11 +289,21 @@ export function ExpenseForm({
 
             <div className="flex gap-3 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-              <Button type="submit" disabled={loading} className="min-w-[120px]">
+              <Button type="submit" disabled={loading} className={`min-w-[120px] transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Record Expense
+                {loading ? "Submitting..." : "Record Expense"}
               </Button>
             </div>
+            {submitStatus !== "idle" && (
+              <div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+                submitStatus === "success"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}>
+                {submitStatus === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                <span>{statusText}</span>
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
 	Button,
@@ -42,6 +42,8 @@ export function EnquiryCreateModal({
 }) {
 	const router = useRouter();
 	const [saving, setSaving] = useState(false);
+	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+	const [statusText, setStatusText] = useState("");
 
 	const emptyForm: Omit<EnquiryCustomerFormValues, "is_active"> & { is_active: boolean } = {
 		name: "",
@@ -144,6 +146,29 @@ export function EnquiryCreateModal({
 
 	async function onSubmit() {
 		setSaving(true);
+		setSubmitStatus("idle");
+		setStatusText("");
+		const playSubmitTone = (kind: "success" | "error") => {
+			if (typeof window === "undefined") return;
+			try {
+				const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+				if (!AudioCtx) return;
+				const ctx = new AudioCtx();
+				const osc = ctx.createOscillator();
+				const gain = ctx.createGain();
+				osc.type = "sine";
+				osc.frequency.value = kind === "success" ? 740 : 220;
+				gain.gain.value = 0.0001;
+				osc.connect(gain);
+				gain.connect(ctx.destination);
+				const now = ctx.currentTime;
+				gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+				gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "success" ? 0.2 : 0.15));
+				osc.start(now);
+				osc.stop(now + (kind === "success" ? 0.22 : 0.17));
+				setTimeout(() => void ctx.close(), 300);
+			} catch {}
+		};
 		try {
 			const res = await createEnquiryCustomer({
 				...form,
@@ -156,10 +181,16 @@ export function EnquiryCreateModal({
 
 			if (!res.success) {
 				toast.error("Enquiry creation failed", { description: res.error });
+				setSubmitStatus("error");
+				setStatusText(res.error ?? "Failed to create enquiry");
+				playSubmitTone("error");
 				return;
 			}
 
 			toast.success("Enquiry created");
+			setSubmitStatus("success");
+			setStatusText("Enquiry created successfully.");
+			playSubmitTone("success");
 			// Clear local form so next open starts empty.
 			setForm({ ...emptyForm });
 			onOpenChange(false);
@@ -398,17 +429,28 @@ export function EnquiryCreateModal({
 							type="button"
 							onClick={onSubmit}
 							disabled={saving}
+							className={`transition-all duration-300 ${saving ? "scale-[1.02] shadow-md" : ""}`}
 						>
 							{saving ? (
 								<>
 									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-									Saving...
+									Submitting...
 								</>
 							) : (
 								"SAVE ENQUIRY"
 							)}
 						</Button>
 					</div>
+					{submitStatus !== "idle" && (
+						<div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+							submitStatus === "success"
+								? "border-green-200 bg-green-50 text-green-700"
+								: "border-red-200 bg-red-50 text-red-700"
+						}`}>
+							{submitStatus === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+							<span>{statusText}</span>
+						</div>
+					)}
 				</div>
 			</DialogContent>
 		</Dialog>

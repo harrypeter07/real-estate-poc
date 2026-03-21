@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Calculator } from "lucide-react";
+import { Loader2, Calculator, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Button,
   Input,
@@ -52,6 +52,8 @@ export function SaleForm({
   advisorAssignments,
 }: SaleFormProps) {
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [statusText, setStatusText] = useState("");
   const [shareModal, setShareModal] = useState<{ saleId: string; customerPhone?: string | null; customerName?: string | null } | null>(null);
 
   const form = useForm<SaleFormValues>({
@@ -283,16 +285,52 @@ export function SaleForm({
     });
   };
 
+  const playSubmitTone = (kind: "success" | "error") => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = kind === "success" ? 760 : 220;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + (kind === "success" ? 0.22 : 0.16)
+      );
+      osc.start(now);
+      osc.stop(now + (kind === "success" ? 0.24 : 0.18));
+      setTimeout(() => void ctx.close(), 320);
+    } catch {
+      // ignore
+    }
+  };
+
   async function onSubmit(values: SaleFormValues) {
     setLoading(true);
+    setSubmitStatus("idle");
+    setStatusText("");
     try {
       const result = await createSale(values);
       if (!result.success) {
         toast.error("Error", { description: result.error });
+        setSubmitStatus("error");
+        setStatusText(result.error ?? "Failed to record sale");
+        playSubmitTone("error");
         return;
       }
 
       toast.success("Sale recorded successfully");
+      setSubmitStatus("success");
+      setStatusText("Sale submitted successfully. Opening receipt sharing...");
+      playSubmitTone("success");
       const customer = customers.find((c) => c.id === values.customer_id);
       if (result.saleId) {
         setShareModal({
@@ -751,11 +789,37 @@ export function SaleForm({
 
             <div className="flex gap-3 pt-3 border-t">
               <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
-              <Button type="submit" disabled={loading || advisorRateInvalid} className="min-w-[120px]">
+              <Button
+                type="submit"
+                disabled={loading || advisorRateInvalid}
+                className={`min-w-[130px] transition-all duration-300 ${
+                  loading
+                    ? "scale-[1.02] shadow-md"
+                    : submitStatus === "success"
+                    ? "bg-green-600 hover:bg-green-600"
+                    : ""
+                }`}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Confirm Sale
+                {loading ? "Submitting..." : submitStatus === "success" ? "Submitted" : "Confirm Sale"}
               </Button>
             </div>
+            {submitStatus !== "idle" && (
+              <div
+                className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+                  submitStatus === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {submitStatus === "success" ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <span>{statusText}</span>
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

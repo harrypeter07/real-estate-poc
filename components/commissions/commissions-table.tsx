@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BadgePercent, CheckCircle2, Clock, Home, User } from "lucide-react";
+import { BadgePercent, CheckCircle2, Clock, Home, User, AlertCircle } from "lucide-react";
 import {
   Badge,
   Button,
@@ -48,6 +48,8 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [receiptPath, setReceiptPath] = useState("");
   const [note, setNote] = useState("");
+  const [payStatus, setPayStatus] = useState<"idle" | "success" | "error">("idle");
+  const [payStatusText, setPayStatusText] = useState("");
 
   const remaining = useMemo(() => {
     if (!selected) return 0;
@@ -80,22 +82,60 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     setReferenceNumber("");
     setReceiptPath("");
     setNote("");
+    setPayStatus("idle");
+    setPayStatusText("");
     setDialogMode(mode);
     setOpen(true);
   }
+
+  const playSubmitTone = (kind: "success" | "error") => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = kind === "success" ? 720 : 210;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + (kind === "success" ? 0.2 : 0.14)
+      );
+      osc.start(now);
+      osc.stop(now + (kind === "success" ? 0.22 : 0.16));
+      setTimeout(() => void ctx.close(), 300);
+    } catch {
+      // ignore
+    }
+  };
 
   async function submitPay() {
     if (!selected) return;
     const amt = Number(payAmount);
     if (!Number.isFinite(amt) || amt <= 0) {
       toast.error("Enter a valid amount");
+      setPayStatus("error");
+      setPayStatusText("Enter a valid payment amount.");
+      playSubmitTone("error");
       return;
     }
     if (amt > availableNow) {
       toast.error("Amount exceeds eligible commission");
+      setPayStatus("error");
+      setPayStatusText("Amount exceeds eligible commission.");
+      playSubmitTone("error");
       return;
     }
     setSaving(true);
+    setPayStatus("idle");
+    setPayStatusText("");
     try {
       const res = await recordCommissionPayment(selected.id, amt, {
         paid_date: paidDate,
@@ -106,9 +146,15 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
       });
       if (!res.success) {
         toast.error("Payment failed", { description: res.error });
+        setPayStatus("error");
+        setPayStatusText(res.error ?? "Payment failed.");
+        playSubmitTone("error");
         return;
       }
       toast.success("Commission payment recorded");
+      setPayStatus("success");
+      setPayStatusText("Commission payment recorded successfully.");
+      playSubmitTone("success");
       setOpen(false);
       setSelected(null);
       router.refresh();
@@ -337,7 +383,9 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                         <Input
                           type="number"
                           value={payAmount}
-                          onChange={(e) => setPayAmount(e.target.value)}
+                          onChange={(e) =>
+                            setPayAmount(e.target.value.replace(/^0+(?=\d)/, ""))
+                          }
                           placeholder="e.g. 5000"
                           disabled={!canPay || saving}
                         />
@@ -419,10 +467,29 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                         type="button"
                         onClick={submitPay}
                         disabled={!canPay || saving}
+                        className={`transition-all duration-300 ${
+                          saving ? "scale-[1.02] shadow-md" : ""
+                        }`}
                       >
-                        {saving ? "Saving…" : "Record payment"}
+                        {saving ? "Saving..." : "Record payment"}
                       </Button>
                     </div>
+                    {payStatus !== "idle" && (
+                      <div
+                        className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+                          payStatus === "success"
+                            ? "border-green-200 bg-green-50 text-green-700"
+                            : "border-red-200 bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {payStatus === "success" ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4" />
+                        )}
+                        <span>{payStatusText}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : null}

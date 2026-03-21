@@ -13,6 +13,58 @@ export type ActionResponse = {
 	error?: string;
 };
 
+function getNextBirthdayDate(birthDate: string): string | null {
+	if (!birthDate) return null;
+	const parsed = new Date(birthDate);
+	if (Number.isNaN(parsed.getTime())) return null;
+	const today = new Date();
+	const month = parsed.getMonth();
+	const day = parsed.getDate();
+	let target = new Date(today.getFullYear(), month, day);
+	target.setHours(0, 0, 0, 0);
+	const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+	if (target < now) target = new Date(today.getFullYear() + 1, month, day);
+	return target.toISOString().slice(0, 10);
+}
+
+async function syncAdvisorBirthdayReminder(
+	supabase: any,
+	advisor: { id: string; name: string; phone: string; birth_date?: string | null },
+) {
+	const marker = `AUTO_BIRTHDAY:advisor:${advisor.id}`;
+	const { data: existing } = await supabase
+		.from("reminders")
+		.select("id")
+		.eq("description", marker)
+		.maybeSingle();
+
+	const nextDate = advisor.birth_date ? getNextBirthdayDate(advisor.birth_date) : null;
+	if (!nextDate) {
+		if (existing?.id) {
+			await supabase.from("reminders").delete().eq("id", existing.id);
+		}
+		return;
+	}
+
+	const payload = {
+		title: `Birthday Wish - ${advisor.name}`,
+		type: "birthday_advisor",
+		phone: advisor.phone || null,
+		description: marker,
+		reminder_date: nextDate,
+		reminder_time: "09:00",
+		customer_id: null,
+		project_id: null,
+		is_completed: false,
+	};
+
+	if (existing?.id) {
+		await supabase.from("reminders").update(payload).eq("id", existing.id);
+	} else {
+		await supabase.from("reminders").insert(payload);
+	}
+}
+
 function toAdvisorEmail(phone: string): string {
 	const sanitized = phone.replace(/\D/g, "").slice(-10) || "0";
 	return `adv_${sanitized}@mginfra.local`;
@@ -73,6 +125,15 @@ export async function createAdvisor(
 		return { success: false, error: error.message };
 	}
 
+	if (advisor?.id) {
+		await syncAdvisorBirthdayReminder(supabase, {
+			id: advisor.id,
+			name: parsed.data.name,
+			phone: parsed.data.phone,
+			birth_date: parsed.data.birth_date ?? null,
+		});
+	}
+
 	// Create Supabase Auth user for advisor login (requires SUPABASE_SERVICE_ROLE_KEY)
 	const admin = createAdminClient();
 	if (admin && advisor?.id) {
@@ -110,7 +171,7 @@ export async function updateAdvisor(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	const { error } = await supabase
+	const { data: updatedAdvisor, error } = await supabase
 		.from("advisors")
 		.update({
 			name: parsed.data.name,
@@ -126,7 +187,9 @@ export async function updateAdvisor(
 			is_active: parsed.data.is_active,
 			updated_at: new Date().toISOString(),
 		})
-		.eq("id", id);
+		.eq("id", id)
+		.select("id, name, phone, birth_date")
+		.single();
 
 	if (error) {
 		const msg = (error.message || "").toLowerCase();
@@ -144,8 +207,13 @@ export async function updateAdvisor(
 		return { success: false, error: error.message };
 	}
 
+	if (updatedAdvisor?.id) {
+		await syncAdvisorBirthdayReminder(supabase, updatedAdvisor);
+	}
+
 	revalidatePath("/advisors");
 	revalidatePath(`/advisors/${id}`);
+	revalidatePath("/reminders");
 	return { success: true };
 }
 

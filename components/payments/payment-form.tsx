@@ -60,7 +60,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
     defaultValues: {
       sale_id: initialSaleId ?? "",
       customer_id: selectedSale?.customer_id ?? "",
-      amount: 0,
+      amount: undefined as any,
       payment_date: new Date().toISOString().split('T')[0],
       payment_mode: "cash",
       slip_number: "",
@@ -245,7 +245,11 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
                         onChange={(e) => {
                           const raw = e.target.value;
                           const sanitized = raw.replace(/^0+(?=\d)/, "");
-                          const next = sanitized === "" ? 0 : Number(sanitized);
+                          const next = sanitized === "" ? undefined : Number(sanitized);
+                          if (next === undefined) {
+                            field.onChange(undefined);
+                            return;
+                          }
                           if (saleRemaining > 0 && next > saleRemaining) {
                             field.onChange(saleRemaining);
                             return;

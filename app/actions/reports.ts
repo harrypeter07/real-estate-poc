@@ -62,11 +62,16 @@ export async function getReportStats(filters?: ReportFilters) {
 		.from("advisors")
 		.select("id, name, advisor_commissions(total_commission_amount, amount_paid)");
 
-	const { data: commissionPayments } = await supabase
+	const { data: commissionPayments, error: commissionPaymentsErr } = await supabase
 		.from("advisor_commission_payments")
 		.select("extra_paid_amount, paid_date");
+	const safeCommissionPayments =
+		commissionPaymentsErr &&
+		(commissionPaymentsErr.message || "").toLowerCase().includes("extra_paid_amount")
+			? []
+			: commissionPayments ?? [];
 
-	const filteredCommissionPayments = (commissionPayments ?? []).filter((p: any) =>
+	const filteredCommissionPayments = safeCommissionPayments.filter((p: any) =>
 		inRange(p.paid_date ?? "", start, end)
 	);
 	const totalExtraCommissionPaid = filteredCommissionPayments.reduce(
@@ -308,11 +313,16 @@ export async function getProjectAnalytics(projectId: string) {
 
 	let extraCommissionPaid = 0;
 	if (commissionIds.length > 0) {
-		const { data: commPayments } = await supabase
+		const { data: commPayments, error: commPaymentsErr } = await supabase
 			.from("advisor_commission_payments")
 			.select("extra_paid_amount")
 			.in("commission_id", commissionIds);
-		extraCommissionPaid = (commPayments ?? []).reduce(
+		const safeCommPayments =
+			commPaymentsErr &&
+			(commPaymentsErr.message || "").toLowerCase().includes("extra_paid_amount")
+				? []
+				: commPayments ?? [];
+		extraCommissionPaid = safeCommPayments.reduce(
 			(sum: number, p: any) => sum + Number(p.extra_paid_amount ?? 0),
 			0
 		);

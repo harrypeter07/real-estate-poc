@@ -7,10 +7,26 @@ export async function getCommissions() {
 	const supabase = await createClient();
 	if (!supabase) return [];
 
-	const { data, error } = await supabase
-		.from("advisor_commissions")
-		.select(
-			`
+	const baseSelect = `
+      *,
+      advisors(name, code),
+      plot_sales(
+        total_sale_amount,
+        amount_paid,
+        plots(plot_number, size_sqft, projects(name, min_plot_rate))
+      ),
+      advisor_commission_payments(
+        id,
+        amount,
+        paid_date,
+        payment_mode,
+        reference_number,
+        receipt_path,
+        note,
+        created_at
+      )
+    `;
+	const extraSelect = `
       *,
       advisors(name, code),
       plot_sales(
@@ -29,22 +45,52 @@ export async function getCommissions() {
         note,
         created_at
       )
-    `
-		)
-		.order("created_at", { ascending: false });
+    `;
 
+	const { data: dataWithExtra, error: errWithExtra } = await supabase
+		.from("advisor_commissions")
+		.select(extraSelect)
+		.order("created_at", { ascending: false });
+	if (!errWithExtra) return dataWithExtra || [];
+
+	const msg = (errWithExtra.message || "").toLowerCase();
+	if (!msg.includes("extra_paid_amount")) throw new Error(errWithExtra.message);
+
+	const { data, error } = await supabase
+		.from("advisor_commissions")
+		.select(baseSelect)
+		.order("created_at", { ascending: false });
 	if (error) throw new Error(error.message);
-	return data || [];
+	return (data || []).map((row: any) => ({
+		...row,
+		advisor_commission_payments: (row.advisor_commission_payments ?? []).map(
+			(p: any) => ({ ...p, extra_paid_amount: 0 })
+		),
+	}));
 }
 
 export async function getAdvisorCommissions(advisorId: string) {
 	const supabase = await createClient();
 	if (!supabase) return [];
 
-	const { data, error } = await supabase
-		.from("advisor_commissions")
-		.select(
-			`
+	const baseSelect = `
+      *,
+      plot_sales(
+        total_sale_amount,
+        amount_paid,
+        plots(plot_number, size_sqft, projects(name))
+      ),
+      advisor_commission_payments(
+        id,
+        amount,
+        paid_date,
+        payment_mode,
+        reference_number,
+        note,
+        created_at
+      )
+    `;
+	const extraSelect = `
       *,
       plot_sales(
         total_sale_amount,
@@ -61,13 +107,30 @@ export async function getAdvisorCommissions(advisorId: string) {
         note,
         created_at
       )
-    `
-		)
+    `;
+
+	const { data: dataWithExtra, error: errWithExtra } = await supabase
+		.from("advisor_commissions")
+		.select(extraSelect)
 		.eq("advisor_id", advisorId)
 		.order("created_at", { ascending: false });
+	if (!errWithExtra) return dataWithExtra || [];
 
+	const msg = (errWithExtra.message || "").toLowerCase();
+	if (!msg.includes("extra_paid_amount")) throw new Error(errWithExtra.message);
+
+	const { data, error } = await supabase
+		.from("advisor_commissions")
+		.select(baseSelect)
+		.eq("advisor_id", advisorId)
+		.order("created_at", { ascending: false });
 	if (error) throw new Error(error.message);
-	return data || [];
+	return (data || []).map((row: any) => ({
+		...row,
+		advisor_commission_payments: (row.advisor_commission_payments ?? []).map(
+			(p: any) => ({ ...p, extra_paid_amount: 0 })
+		),
+	}));
 }
 
 export async function recordCommissionPayment(
@@ -131,6 +194,15 @@ export async function recordCommissionPayment(
 			)} above currently eligible commission.`,
 		};
 	}
+	if (extraPaidAmount > 0.0001 && meta?.allow_extra) {
+		const extraReason = (meta?.note ?? "").trim();
+		if (!extraReason) {
+			return {
+				success: false,
+				error: "Reason is required for extra payment.",
+			};
+		}
+	}
 
 	// New flow: store payment row (history). Totals are kept in sync by DB trigger.
 	const note = meta?.note?.trim() || null;
@@ -139,7 +211,7 @@ export async function recordCommissionPayment(
 	const referenceNumber = meta?.reference_number?.trim() || null;
 	const receiptPath = meta?.receipt_path?.trim() || null;
 
-	const { error: payErr } = await supabase.from("advisor_commission_payments").insert({
+	const payload = {
 		commission_id: id,
 		amount: add,
 		extra_paid_amount: extraPaidAmount,
@@ -148,8 +220,23 @@ export async function recordCommissionPayment(
 		reference_number: referenceNumber,
 		receipt_path: receiptPath,
 		note,
-	});
-	if (payErr) return { success: false, error: payErr.message };
+	};
+	const { error: payErr } = await supabase
+		.from("advisor_commission_payments")
+		.insert(payload);
+	if (payErr) {
+		const msg = (payErr.message || "").toLowerCase();
+		if (msg.includes("extra_paid_amount")) {
+			const { extra_paid_amount, ...fallbackPayload } = payload as any;
+			const { error: fallbackErr } = await supabase
+				.from("advisor_commission_payments")
+				.insert(fallbackPayload);
+			if (fallbackErr) return { success: false, error: fallbackErr.message };
+			revalidatePath("/commissions");
+			return { success: true, extraPaidAmount: 0 };
+		}
+		return { success: false, error: payErr.message };
+	}
 
 	revalidatePath("/commissions");
 	return { success: true, extraPaidAmount };

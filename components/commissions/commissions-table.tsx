@@ -52,6 +52,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const [payStatusText, setPayStatusText] = useState("");
   const [confirmExtraOpen, setConfirmExtraOpen] = useState(false);
   const [pendingExtraAmount, setPendingExtraAmount] = useState(0);
+  const [extraReason, setExtraReason] = useState("");
 
   const remaining = useMemo(() => {
     if (!selected) return 0;
@@ -102,6 +103,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     setPayStatusText("");
     setConfirmExtraOpen(false);
     setPendingExtraAmount(0);
+    setExtraReason("");
     setDialogMode(mode);
     setOpen(true);
   }
@@ -138,20 +140,13 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     await submitPayInternal(false);
   }
 
-  async function submitPayInternal(allowExtra: boolean) {
+  async function submitPayInternal(allowExtra: boolean, overrideNote?: string) {
     if (!selected) return;
     const amt = Number(payAmount);
     if (!Number.isFinite(amt) || amt <= 0) {
       toast.error("Enter a valid amount");
       setPayStatus("error");
       setPayStatusText("Enter a valid payment amount.");
-      playSubmitTone("error");
-      return;
-    }
-    if (amt > availableNow) {
-      toast.error("Amount exceeds eligible commission");
-      setPayStatus("error");
-      setPayStatusText("Amount exceeds eligible commission.");
       playSubmitTone("error");
       return;
     }
@@ -164,7 +159,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
         payment_mode: paymentMode,
         reference_number: referenceNumber,
         receipt_path: receiptPath,
-        note,
+        note: overrideNote ?? note,
         allow_extra: allowExtra,
       });
       if ((res as any).requiresExtraConfirmation) {
@@ -562,6 +557,17 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
             <p className="text-zinc-500">
               Do you want to continue and record this as an extra payment?
             </p>
+            <div>
+              <div className="text-xs font-semibold text-zinc-600 mb-1">
+                Reason / Note for extra payment *
+              </div>
+              <Textarea
+                rows={3}
+                value={extraReason}
+                onChange={(e) => setExtraReason(e.target.value)}
+                placeholder="Explain why extra payment is being given..."
+              />
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 type="button"
@@ -572,9 +578,18 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               </Button>
               <Button
                 type="button"
+                disabled={!extraReason.trim()}
                 onClick={async () => {
+                  const reasonText = extraReason.trim();
+                  if (!reasonText) {
+                    toast.error("Reason is required for extra payment");
+                    return;
+                  }
                   setConfirmExtraOpen(false);
-                  await submitPayInternal(true);
+                  const mergedNote = [note?.trim(), `Extra payment reason: ${reasonText}`]
+                    .filter(Boolean)
+                    .join("\n\n");
+                  await submitPayInternal(true, mergedNote);
                 }}
               >
                 Confirm Extra Payment

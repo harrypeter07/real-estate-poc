@@ -47,7 +47,7 @@ export function EnquiriesClient({
 		<div className="space-y-6">
 			<PageHeader
 				title="Enquiries"
-				subtitle={`${initialEnquiries.length} temporary leads`}
+				subtitle={`${initialEnquiries.length} active enquiries`}
 				action={
 					<div className="flex gap-2 flex-wrap">
 						<Button

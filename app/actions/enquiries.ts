@@ -217,16 +217,33 @@ export async function createEnquiryCustomer(
 		// If this is still a temporary customer, always link it to the latest enquiry
 		// for that phone. Permanent customers keep their existing linkage (if any).
 		const shouldSetTempLink = existingCustomer.is_active === false;
+
+		const customerUpdates: any = {
+			enquiry_temp_id: shouldSetTempLink ? enquiryId : existingCustomer.enquiry_temp_id,
+			// keep regular customer active state as-is; do not overwrite if it already has notes
+			notes:
+				existingCustomer.notes && String(existingCustomer.notes).trim()
+					? existingCustomer.notes
+					: parsed.data.details || null,
+		};
+
+		// For temporary customers, keep user-related fields in sync as user types / selects.
+		if (shouldSetTempLink) {
+			customerUpdates.name = parsed.data.name;
+			if (parsed.data.alternate_phone && parsed.data.alternate_phone.trim()) {
+				customerUpdates.alternate_phone = parsed.data.alternate_phone.trim();
+			}
+			if (parsed.data.address && parsed.data.address.trim()) {
+				customerUpdates.address = parsed.data.address.trim();
+			}
+			if (parsed.data.birth_date) {
+				customerUpdates.birth_date = parsed.data.birth_date;
+			}
+		}
+
 		const { error: custUpdErr } = await supabase
 			.from("customers")
-			.update({
-				enquiry_temp_id: shouldSetTempLink ? enquiryId : existingCustomer.enquiry_temp_id,
-				// keep regular customer active state as-is; do not overwrite if it already has notes
-				notes:
-					existingCustomer.notes && String(existingCustomer.notes).trim()
-						? existingCustomer.notes
-						: parsed.data.details || null,
-			})
+			.update(customerUpdates)
 			.eq("id", existingCustomer.id);
 
 		if (custUpdErr) {

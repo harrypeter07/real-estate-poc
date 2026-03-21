@@ -311,6 +311,7 @@ export function SaleForm({
   }
 
   return (
+    <>
     <Card className="max-w-4xl w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
         <div>
@@ -782,5 +783,6 @@ export function SaleForm({
         customerName={shareModal.customerName}
       />
     )}
+    </>
   );
 }

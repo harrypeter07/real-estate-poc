@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Button,
   Input,
@@ -41,6 +41,8 @@ interface PaymentFormProps {
 export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [statusText, setStatusText] = useState("");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareSaleId, setShareSaleId] = useState<string | null>(null);
   const [shareCustomerPhone, setShareCustomerPhone] = useState<string | null>(null);
@@ -116,6 +118,33 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
     });
   };
 
+  const playSubmitTone = (kind: "success" | "error") => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.value = kind === "success" ? 740 : 210;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "success" ? 0.2 : 0.14));
+      osc.start(now);
+      osc.stop(now + (kind === "success" ? 0.22 : 0.16));
+      setTimeout(() => void ctx.close(), 300);
+    } catch {
+      // Ignore audio errors (browser policy/device issues)
+    }
+  };
+
   async function onSubmit(values: PaymentFormValues) {
     if (saleRemaining <= 0) {
       toast.error("This sale is already fully paid");
@@ -127,20 +156,31 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
     }
 
     setLoading(true);
+    setSubmitStatus("idle");
+    setStatusText("");
     try {
       const result = await createPayment(values);
       if (!result.success) {
         toast.error("Error", { description: result.error });
+        setSubmitStatus("error");
+        setStatusText(result.error ?? "Failed to record payment");
+        playSubmitTone("error");
         return;
       }
 
       toast.success("Payment recorded successfully");
+      setSubmitStatus("success");
+      setStatusText("Payment submitted successfully. Opening receipt sharing...");
+      playSubmitTone("success");
       setShareSaleId(values.sale_id);
       setShareCustomerPhone(activeSale?.customers?.phone ?? null);
       setShareCustomerName(activeSale?.customers?.name ?? null);
       setShareModalOpen(true);
     } catch (err) {
       toast.error("Something went wrong");
+      setSubmitStatus("error");
+      setStatusText("Something went wrong while submitting payment.");
+      playSubmitTone("error");
     } finally {
       setLoading(false);
     }
@@ -322,11 +362,41 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
 
             <div className="flex gap-3 pt-3 border-t">
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-              <Button type="submit" disabled={loading} className="min-w-[120px]">
+              <Button
+                type="submit"
+                disabled={loading}
+                className={`min-w-[140px] transition-all duration-300 ${
+                  loading
+                    ? "scale-[1.02] shadow-md"
+                    : submitStatus === "success"
+                    ? "bg-green-600 hover:bg-green-600"
+                    : ""
+                }`}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Record Payment
+                {loading
+                  ? "Submitting..."
+                  : submitStatus === "success"
+                  ? "Submitted"
+                  : "Record Payment"}
               </Button>
             </div>
+            {submitStatus !== "idle" && (
+              <div
+                className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+                  submitStatus === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {submitStatus === "success" ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <span>{statusText}</span>
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

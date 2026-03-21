@@ -112,6 +112,7 @@ export type AdvisorCommissionPayment = {
   id: string;
   commission_id: string;
   amount: number;
+  extra_paid_amount?: number;
   paid_date: string;
   payment_mode?: 'cash' | 'online' | 'cheque';
   reference_number?: string;

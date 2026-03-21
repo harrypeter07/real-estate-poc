@@ -42,7 +42,7 @@ export default async function DashboardPage({
 			</Suspense>
 
 			{/* 1. Summary Row - 4 key metrics */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 				<Card className="bg-zinc-900 text-white border-zinc-800">
 					<CardHeader className="pb-2">
 						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
@@ -83,6 +83,18 @@ export default async function DashboardPage({
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.summary.netProfit)}</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
+							<IndianRupee className="h-3 w-3 text-amber-600" /> Extra Commission Paid
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<p className="text-2xl font-bold text-amber-700">
+							{formatCurrency((stats.summary as any).totalExtraCommissionPaid ?? 0)}
+						</p>
 					</CardContent>
 				</Card>
 			</div>

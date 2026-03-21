@@ -62,6 +62,18 @@ export async function getReportStats(filters?: ReportFilters) {
 		.from("advisors")
 		.select("id, name, advisor_commissions(total_commission_amount, amount_paid)");
 
+	const { data: commissionPayments } = await supabase
+		.from("advisor_commission_payments")
+		.select("extra_paid_amount, paid_date");
+
+	const filteredCommissionPayments = (commissionPayments ?? []).filter((p: any) =>
+		inRange(p.paid_date ?? "", start, end)
+	);
+	const totalExtraCommissionPaid = filteredCommissionPayments.reduce(
+		(sum, p: any) => sum + Number(p.extra_paid_amount ?? 0),
+		0
+	);
+
 	const advisorPerformance = (advisors ?? []).map((a: any) => {
 		const comms = (a.advisor_commissions as any[]) || [];
 		const total = comms.reduce((s, c) => s + Number(c.total_commission_amount ?? 0), 0);
@@ -215,6 +227,7 @@ export async function getReportStats(filters?: ReportFilters) {
 			enquiryConvertedCustomers: upgradedInPeriod.length,
 			enquiryConvertedCustomersBoughtPlots: boughtUpgradedCustomerIds.size,
 			enquiryConvertedRevenue,
+			totalExtraCommissionPaid,
 		},
 		enquiryConversionTopCategories: Object.entries(categoryCounts)
 			.map(([category, count]) => ({ category, count }))
@@ -287,11 +300,30 @@ export async function getProjectAnalytics(projectId: string) {
 		.sort((a: any, b: any) => b.value - a.value)
 		.slice(0, 10);
 
+	const { data: comms } = await supabase
+		.from("advisor_commissions")
+		.select("id, sale_id")
+		.in("sale_id", (sales ?? []).map((s: any) => s.id));
+	const commissionIds = (comms ?? []).map((c: any) => c.id);
+
+	let extraCommissionPaid = 0;
+	if (commissionIds.length > 0) {
+		const { data: commPayments } = await supabase
+			.from("advisor_commission_payments")
+			.select("extra_paid_amount")
+			.in("commission_id", commissionIds);
+		extraCommissionPaid = (commPayments ?? []).reduce(
+			(sum: number, p: any) => sum + Number(p.extra_paid_amount ?? 0),
+			0
+		);
+	}
+
 	return {
 		project: project as any,
 		plots: { total, sold, available },
 		revenue: { total: totalRevenue, salesValue: totalSalesValue, outstanding },
 		layoutExpense: Number((project as any).layout_expense ?? 0),
+		extraCommissionPaid,
 		advisors: advisorsInProject,
 		topPlots,
 	};
@@ -310,6 +342,7 @@ function getEmptyReport() {
 			enquiryConvertedCustomers: 0,
 			enquiryConvertedCustomersBoughtPlots: 0,
 			enquiryConvertedRevenue: 0,
+			totalExtraCommissionPaid: 0,
 		},
 		enquiryConversionTopCategories: [] as { category: string; count: number }[],
 		advisorPerformance: [] as { name: string; totalCommission: number; paidCommission: number; pending: number }[],

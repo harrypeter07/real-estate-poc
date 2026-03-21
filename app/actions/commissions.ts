@@ -21,6 +21,7 @@ export async function getCommissions() {
       advisor_commission_payments(
         id,
         amount,
+        extra_paid_amount,
         paid_date,
         payment_mode,
         reference_number,
@@ -53,6 +54,7 @@ export async function getAdvisorCommissions(advisorId: string) {
       advisor_commission_payments(
         id,
         amount,
+        extra_paid_amount,
         paid_date,
         payment_mode,
         reference_number,
@@ -77,6 +79,7 @@ export async function recordCommissionPayment(
 		payment_mode?: "cash" | "online" | "cheque";
 		reference_number?: string;
 		receipt_path?: string;
+		allow_extra?: boolean;
 	},
 ) {
 	const supabase = await createClient();
@@ -117,12 +120,15 @@ export async function recordCommissionPayment(
 	const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
 	const eligible = Math.max(0, profitTotal) * ratio;
 	const availableToPay = Math.max(0, eligible - alreadyPaidToAdvisor);
-	if (add > availableToPay + 0.0001) {
+	const extraPaidAmount = Math.max(0, add - availableToPay);
+	if (extraPaidAmount > 0.0001 && !meta?.allow_extra) {
 		return {
 			success: false,
-			error: `Payment exceeds eligible commission. Eligible now: ₹ ${eligible.toLocaleString(
-				"en-IN",
-			)} (available: ₹ ${availableToPay.toLocaleString("en-IN")})`,
+			requiresExtraConfirmation: true,
+			extraPaidAmount,
+			error: `This payment includes extra payout of ₹ ${extraPaidAmount.toLocaleString(
+				"en-IN"
+			)} above currently eligible commission.`,
 		};
 	}
 
@@ -136,6 +142,7 @@ export async function recordCommissionPayment(
 	const { error: payErr } = await supabase.from("advisor_commission_payments").insert({
 		commission_id: id,
 		amount: add,
+		extra_paid_amount: extraPaidAmount,
 		paid_date: paidDate,
 		payment_mode: paymentMode,
 		reference_number: referenceNumber,
@@ -145,5 +152,5 @@ export async function recordCommissionPayment(
 	if (payErr) return { success: false, error: payErr.message };
 
 	revalidatePath("/commissions");
-	return { success: true };
+	return { success: true, extraPaidAmount };
 }

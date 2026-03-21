@@ -50,10 +50,26 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const [note, setNote] = useState("");
   const [payStatus, setPayStatus] = useState<"idle" | "success" | "error">("idle");
   const [payStatusText, setPayStatusText] = useState("");
+  const [confirmExtraOpen, setConfirmExtraOpen] = useState(false);
+  const [pendingExtraAmount, setPendingExtraAmount] = useState(0);
 
   const remaining = useMemo(() => {
     if (!selected) return 0;
-    return Number(selected.total_commission_amount ?? 0) - Number(selected.amount_paid ?? 0);
+    return Math.max(
+      0,
+      Number(selected.total_commission_amount ?? 0) - Number(selected.amount_paid ?? 0)
+    );
+  }, [selected]);
+
+  const totalExtraPaid = useMemo(() => {
+    if (!selected) return 0;
+    const history = Array.isArray(selected.advisor_commission_payments)
+      ? selected.advisor_commission_payments
+      : [];
+    return history.reduce(
+      (sum: number, p: any) => sum + Number(p.extra_paid_amount ?? 0),
+      0
+    );
   }, [selected]);
 
   const eligibleNow = useMemo(() => {
@@ -84,6 +100,8 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     setNote("");
     setPayStatus("idle");
     setPayStatusText("");
+    setConfirmExtraOpen(false);
+    setPendingExtraAmount(0);
     setDialogMode(mode);
     setOpen(true);
   }
@@ -117,6 +135,10 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   };
 
   async function submitPay() {
+    await submitPayInternal(false);
+  }
+
+  async function submitPayInternal(allowExtra: boolean) {
     if (!selected) return;
     const amt = Number(payAmount);
     if (!Number.isFinite(amt) || amt <= 0) {
@@ -143,7 +165,14 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
         reference_number: referenceNumber,
         receipt_path: receiptPath,
         note,
+        allow_extra: allowExtra,
       });
+      if ((res as any).requiresExtraConfirmation) {
+        setPendingExtraAmount(Number((res as any).extraPaidAmount ?? 0));
+        setConfirmExtraOpen(true);
+        setSaving(false);
+        return;
+      }
       if (!res.success) {
         toast.error("Payment failed", { description: res.error });
         setPayStatus("error");
@@ -153,7 +182,12 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
       }
       toast.success("Commission payment recorded");
       setPayStatus("success");
-      setPayStatusText("Commission payment recorded successfully.");
+      const extra = Number((res as any).extraPaidAmount ?? 0);
+      setPayStatusText(
+        extra > 0
+          ? `Commission payment recorded with extra paid: ${formatCurrency(extra)}.`
+          : "Commission payment recorded successfully."
+      );
       playSubmitTone("success");
       setOpen(false);
       setSelected(null);
@@ -189,6 +223,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                 <TableHead>Total Commission</TableHead>
                 <TableHead>Paid</TableHead>
                 <TableHead>Remaining</TableHead>
+                <TableHead>Extra Paid</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -230,6 +265,13 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     </TableCell>
                     <TableCell className="font-bold text-red-600">
                       {formatCurrency(rem)}
+                    </TableCell>
+                    <TableCell className="font-semibold text-amber-600">
+                      {formatCurrency(
+                        Number(comm.amount_paid ?? 0) > Number(comm.total_commission_amount ?? 0)
+                          ? Number(comm.amount_paid ?? 0) - Number(comm.total_commission_amount ?? 0)
+                          : 0
+                      )}
                     </TableCell>
                     <TableCell>
                       {isPaid ? (
@@ -312,6 +354,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     <InfoRow label="Advisor earned so far" value={formatCurrency(eligibleNow)} strong />
                     <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />
                     <InfoRow label="Remaining (overall)" value={formatCurrency(remaining)} />
+                    <InfoRow label="Extra paid (overall)" value={formatCurrency(totalExtraPaid)} />
                     {selected.notes && (
                       <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                         {selected.notes}
@@ -353,6 +396,11 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                                     {p.note}
                                   </div>
                                 ) : null}
+                                {Number(p.extra_paid_amount ?? 0) > 0 && (
+                                  <div className="text-[11px] text-amber-700 font-semibold">
+                                    Extra paid: {formatCurrency(Number(p.extra_paid_amount ?? 0))}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <ReceiptViewButton
@@ -495,6 +543,44 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               ) : null}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmExtraOpen} onOpenChange={setConfirmExtraOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Extra Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-zinc-700">
+              This payment includes an extra payout of{" "}
+              <span className="font-bold text-amber-700">
+                {formatCurrency(pendingExtraAmount)}
+              </span>{" "}
+              beyond currently eligible commission.
+            </p>
+            <p className="text-zinc-500">
+              Do you want to continue and record this as an extra payment?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setConfirmExtraOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  setConfirmExtraOpen(false);
+                  await submitPayInternal(true);
+                }}
+              >
+                Confirm Extra Payment
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

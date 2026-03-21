@@ -15,7 +15,7 @@ import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
-import { getProjectAnalytics } from "@/app/actions/reports";
+import { getProjectAnalytics, getReportStats } from "@/app/actions/reports";
 import Link from "next/link";
 import { ProjectSelector } from "@/components/reports/project-selector";
 
@@ -43,6 +43,10 @@ export default async function ReportsPage({
 		.order("name");
 
 	const projectAnalytics = projectId ? await getProjectAnalytics(projectId) : null;
+	const reportStats = await getReportStats({
+		startDate: params.from ?? undefined,
+		endDate: params.to ?? undefined,
+	});
 
 	// Overview stats (all projects or when no project selected)
 	const { count: projectsCount } = await supabase.from("projects").select("*", { count: "exact", head: true });
@@ -77,6 +81,7 @@ export default async function ReportsPage({
 						<StatCard title="Plots Sold" value={String(projectAnalytics.plots.sold)} icon={Handshake} color="green" />
 						<StatCard title="Plots Available" value={String(projectAnalytics.plots.available)} icon={Building2} color="zinc" />
 						<StatCard title="Revenue Collected" value={formatCurrency(projectAnalytics.revenue.total)} icon={CreditCard} color="orange" />
+						<StatCard title="Extra Commission Paid" value={formatCurrency((projectAnalytics as any).extraCommissionPaid ?? 0)} icon={CreditCard} color="zinc" />
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -156,6 +161,12 @@ export default async function ReportsPage({
 						<StatCard title="Active Customers" value={customersCount?.toString() || "0"} icon={Users} color="green" />
 						<StatCard title="Total Sales" value={formatCurrency(totalSalesValue)} icon={Handshake} color="orange" />
 						<StatCard title="Revenue Collected" value={formatCurrency(totalCollected)} icon={CreditCard} color="zinc" />
+						<StatCard
+							title="Extra Commission Paid"
+							value={formatCurrency((reportStats.summary as any).totalExtraCommissionPaid ?? 0)}
+							icon={CreditCard}
+							color="orange"
+						/>
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

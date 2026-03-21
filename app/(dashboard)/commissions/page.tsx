@@ -47,7 +47,16 @@ export default async function CommissionsPage({
 
   const totalCommissions = filteredCommissions.reduce((sum, c) => sum + Number(c.total_commission_amount), 0);
   const totalPaid = filteredCommissions.reduce((sum, c) => sum + Number(c.amount_paid), 0);
-  const totalPending = totalCommissions - totalPaid;
+  const totalPending = Math.max(0, totalCommissions - totalPaid);
+  const totalExtraPaid = filteredCommissions.reduce((sum, c: any) => {
+    const list = Array.isArray(c.advisor_commission_payments)
+      ? c.advisor_commission_payments
+      : [];
+    return (
+      sum +
+      list.reduce((s: number, p: any) => s + Number(p.extra_paid_amount ?? 0), 0)
+    );
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -56,7 +65,7 @@ export default async function CommissionsPage({
         subtitle={`Tracking ${filteredCommissions.length} commission payouts`}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs font-bold uppercase tracking-wider">
@@ -79,6 +88,14 @@ export default async function CommissionsPage({
               Total Pending
             </div>
             <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-amber-600 mb-2 text-xs font-bold uppercase tracking-wider">
+              Extra Paid
+            </div>
+            <p className="text-2xl font-bold">{formatCurrency(totalExtraPaid)}</p>
           </CardContent>
         </Card>
       </div>

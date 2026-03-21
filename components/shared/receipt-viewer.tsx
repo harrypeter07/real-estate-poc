@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,6 +17,7 @@ export function ReceiptViewer({
   const [downloading, setDownloading] = useState(false);
   const [url, setUrl] = useState("");
   const [filename, setFilename] = useState("");
+  const isPdf = (filename || receiptPath || "").toLowerCase().endsWith(".pdf");
 
   useEffect(() => {
     let mounted = true;
@@ -84,10 +85,15 @@ export function ReceiptViewer({
     }
   }
 
+  function handleOpenInNewTab() {
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   if (!receiptPath) {
     return (
       <div className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
-        No receipt image attached.
+        No receipt attached.
       </div>
     );
   }
@@ -99,19 +105,20 @@ export function ReceiptViewer({
           <div className="text-sm font-semibold text-zinc-900">{title}</div>
         </div>
         <Badge variant="secondary" className="text-[10px] shrink-0">
-          Image
+          {isPdf ? "PDF" : "Image"}
         </Badge>
       </div>
 
       {url ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
-            alt={title}
-            className="w-full rounded-md border border-zinc-200"
-          />
-          <div className="flex justify-end">
+        <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+          <p className="text-sm text-zinc-600 mb-3">
+            Preview is disabled here. Open the receipt in a new tab.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={handleOpenInNewTab}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View {isPdf ? "PDF" : "File"}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -123,7 +130,7 @@ export function ReceiptViewer({
               {downloading ? "Downloading…" : "Download"}
             </Button>
           </div>
-        </>
+        </div>
       ) : (
         <div className="text-sm text-zinc-500">Receipt not available.</div>
       )}

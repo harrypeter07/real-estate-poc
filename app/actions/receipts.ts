@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 
 export type ReceiptResult = {
 	success: boolean;
@@ -55,91 +56,164 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const advisor = s.advisors;
 	const soldBy = s.sold_by_admin ? "Admin (Direct)" : advisor?.name ?? "—";
 
-	const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Receipt - ${plot?.plot_number ?? ""}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: #1f2937; line-height: 1.5; padding: 24px; max-width: 700px; margin: 0 auto; }
-    .header { text-align: center; border-bottom: 2px solid #111827; padding-bottom: 16px; margin-bottom: 20px; }
-    .company { font-size: 18px; font-weight: 700; color: #111827; }
-    .tagline { font-size: 11px; color: #6b7280; margin-top: 4px; }
-    .section { margin-bottom: 20px; }
-    .section-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #4b5563; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
-    table { width: 100%; border-collapse: collapse; }
-    td, th { padding: 8px 12px; text-align: left; border: 1px solid #e5e7eb; }
-    th { background: #f9fafb; font-weight: 600; color: #374151; }
-    .amount { text-align: right; font-weight: 600; }
-    .total-row { font-weight: 700; background: #f3f4f6; }
-    .terms { font-size: 10px; color: #6b7280; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
-    .receipt-id { font-size: 10px; color: #9ca3af; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="company">MG Infra Nagpur</div>
-    <div class="tagline">Land & Plot Development | Nagpur, Maharashtra</div>
-  </div>
+	// Build a styled PDF bill (instead of HTML file)
+	const pdfDoc = await PDFDocument.create();
+	const page = pdfDoc.addPage([595, 842]); // A4 portrait
+	const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+	const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+	const { width, height } = page.getSize();
 
-  <div class="section">
-    <div class="section-title">Receipt / Sale Confirmation</div>
-    <table>
-      <tr><th>Receipt Ref</th><td>#${saleId.slice(0, 8).toUpperCase()}</td></tr>
-      <tr><th>Date</th><td>${formatDate(s.token_date || s.agreement_date)}</td></tr>
-    </table>
-  </div>
+	// Watermark
+	page.drawText("MG INFRA", {
+		x: 170,
+		y: 420,
+		size: 72,
+		font: fontBold,
+		color: rgb(0.93, 0.94, 0.97),
+		rotate: degrees(32),
+	});
 
-  <div class="section">
-    <div class="section-title">Customer Details</div>
-    <table>
-      <tr><th>Name</th><td>${customer?.name ?? "—"}</td></tr>
-      <tr><th>Phone</th><td>${customer?.phone ?? "—"}</td></tr>
-      <tr><th>Address</th><td>${customer?.address ?? "—"}</td></tr>
-    </table>
-  </div>
+	// Header block
+	page.drawRectangle({
+		x: 0,
+		y: height - 120,
+		width,
+		height: 120,
+		color: rgb(0.08, 0.36, 0.62),
+	});
+	page.drawText("MG INFRA NAGPUR", {
+		x: 38,
+		y: height - 50,
+		size: 24,
+		font: fontBold,
+		color: rgb(1, 1, 1),
+	});
+	page.drawText("Land & Plot Development", {
+		x: 40,
+		y: height - 74,
+		size: 11,
+		font,
+		color: rgb(0.93, 0.98, 1),
+	});
+	page.drawText(`Receipt Ref: #${saleId.slice(0, 8).toUpperCase()}`, {
+		x: width - 220,
+		y: height - 52,
+		size: 10,
+		font: fontBold,
+		color: rgb(1, 1, 1),
+	});
+	page.drawText(`Date: ${formatDate(s.token_date || s.agreement_date)}`, {
+		x: width - 220,
+		y: height - 70,
+		size: 10,
+		font,
+		color: rgb(0.95, 0.98, 1),
+	});
 
-  <div class="section">
-    <div class="section-title">Transaction Details</div>
-    <table>
-      <tr><th>Project</th><td>${project?.name ?? "—"}${project?.location ? `, ${project.location}` : ""}</td></tr>
-      <tr><th>Plot</th><td>${plot?.plot_number ?? "—"} (${plot?.size_sqft ?? "—"} sqft)</td></tr>
-      <tr><th>Phase</th><td>${String(s.sale_phase ?? "").replace("_", " ")}</td></tr>
-      <tr><th>Token Date</th><td>${formatDate(s.token_date)}</td></tr>
-      <tr><th>Agreement Date</th><td>${formatDate(s.agreement_date)}</td></tr>
-      <tr><th>Sold By</th><td>${soldBy}</td></tr>
-    </table>
-  </div>
+	let y = height - 150;
+	const leftX = 40;
+	const lineGap = 16;
 
-  <div class="section">
-    <div class="section-title">Payment Summary</div>
-    <table>
-      <tr><th>Total Sale Amount</th><td class="amount">${formatCurrency(Number(s.total_sale_amount ?? 0))}</td></tr>
-      <tr><th>Down Payment</th><td class="amount">${formatCurrency(Number(s.down_payment ?? 0))}</td></tr>
-      <tr><th>Amount Paid</th><td class="amount">${formatCurrency(Number(s.amount_paid ?? 0))}</td></tr>
-      <tr class="total-row"><th>Remaining Amount</th><td class="amount">${formatCurrency(Number(s.remaining_amount ?? 0))}</td></tr>
-      ${s.monthly_emi ? `<tr><th>Monthly EMI</th><td class="amount">${formatCurrency(Number(s.monthly_emi))} (Day ${s.emi_day ?? "—"})</td></tr>` : ""}
-    </table>
-  </div>
+	const drawSectionTitle = (title: string) => {
+		page.drawRectangle({
+			x: leftX - 4,
+			y: y - 4,
+			width: 515,
+			height: 20,
+			color: rgb(0.94, 0.96, 0.99),
+		});
+		page.drawText(title, {
+			x: leftX,
+			y,
+			size: 11,
+			font: fontBold,
+			color: rgb(0.1, 0.2, 0.34),
+		});
+		y -= lineGap + 4;
+	};
 
-  <div class="terms">
-    <strong>Terms & Conditions:</strong><br>
-    • This is a computer-generated receipt and does not require a signature.<br>
-    • Please preserve this receipt for your records.<br>
-    • For any queries, contact MG Infra Nagpur.<br>
-    <div class="receipt-id">Sale ID: ${saleId}</div>
-  </div>
-</body>
-</html>`;
+	const drawRow = (label: string, value: string, strong = false) => {
+		page.drawText(label, {
+			x: leftX,
+			y,
+			size: 10.5,
+			font,
+			color: rgb(0.3, 0.35, 0.4),
+		});
+		page.drawText(value, {
+			x: 220,
+			y,
+			size: 10.5,
+			font: strong ? fontBold : font,
+			color: rgb(0.12, 0.12, 0.12),
+		});
+		y -= lineGap;
+	};
 
-	const path = `sale-receipts/${saleId}-${Date.now()}.html`;
+	drawSectionTitle("Customer Details");
+	drawRow("Name", customer?.name ?? "—");
+	drawRow("Phone", customer?.phone ?? "—");
+	drawRow("Address", customer?.address ?? "—");
+	y -= 4;
+
+	drawSectionTitle("Transaction Details");
+	drawRow("Project", `${project?.name ?? "—"}${project?.location ? `, ${project.location}` : ""}`);
+	drawRow("Plot", `${plot?.plot_number ?? "—"} (${plot?.size_sqft ?? "—"} sqft)`);
+	drawRow("Phase", String(s.sale_phase ?? "").replace("_", " "));
+	drawRow("Token Date", formatDate(s.token_date));
+	drawRow("Agreement Date", formatDate(s.agreement_date));
+	drawRow("Sold By", soldBy);
+	y -= 4;
+
+	drawSectionTitle("Payment Summary");
+	drawRow("Total Sale Amount", formatCurrency(Number(s.total_sale_amount ?? 0)));
+	drawRow("Down Payment", formatCurrency(Number(s.down_payment ?? 0)));
+	drawRow("Amount Paid", formatCurrency(Number(s.amount_paid ?? 0)));
+	drawRow("Remaining Amount", formatCurrency(Number(s.remaining_amount ?? 0)), true);
+	if (s.monthly_emi) {
+		drawRow(
+			"Monthly EMI",
+			`${formatCurrency(Number(s.monthly_emi))} (Day ${s.emi_day ?? "—"})`
+		);
+	}
+	y -= 6;
+
+	drawSectionTitle("Terms & Conditions");
+	drawRow("•", "This is a computer-generated receipt and does not require signature.");
+	drawRow("•", "Please preserve this receipt for your records.");
+	drawRow("•", "For any queries, contact MG Infra Nagpur.");
+	drawRow("Sale ID", saleId);
+
+	// Footer strip
+	page.drawRectangle({
+		x: 0,
+		y: 0,
+		width,
+		height: 40,
+		color: rgb(0.97, 0.97, 0.98),
+	});
+	page.drawText("Online copy of bill", {
+		x: 42,
+		y: 15,
+		size: 9,
+		font,
+		color: rgb(0.55, 0.58, 0.62),
+	});
+	page.drawText("Generated by MG Infra CRM", {
+		x: width - 190,
+		y: 15,
+		size: 9,
+		font,
+		color: rgb(0.55, 0.58, 0.62),
+	});
+
+	const pdfBytes = await pdfDoc.save();
+	const path = `sale-receipts/${saleId}-${Date.now()}.pdf`;
 
 	const { error: uploadErr } = await supabase.storage
 		.from("receipts")
-		.upload(path, html, {
-			contentType: "text/html",
+		.upload(path, pdfBytes, {
+			contentType: "application/pdf",
 			upsert: true,
 		});
 

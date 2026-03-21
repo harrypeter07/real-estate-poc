@@ -196,6 +196,9 @@ export function PlotLayoutGrid({
 									<span className="text-[13px] font-bold">
 										{plot.plot_number}
 									</span>
+									<span className="pointer-events-none absolute top-1 left-0 right-0 text-[10px] font-semibold text-zinc-700">
+										{Number(plot.size_sqft || 0).toLocaleString("en-IN")} sqft
+									</span>
 									<span className="pointer-events-none absolute bottom-1 left-0 right-0 text-[10px] font-medium text-zinc-700">
 										{cfg.label}
 									</span>

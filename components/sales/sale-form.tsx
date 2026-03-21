@@ -79,6 +79,7 @@ export function SaleForm({
   const selectedAdvisorId = form.watch("advisor_id");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
   const downPayment = form.watch("down_payment") ?? 0;
+  const emiMonths = form.watch("emi_months");
   const remaining = totalSaleAmount - downPayment;
 
   const selectedPlot = useMemo(
@@ -184,7 +185,6 @@ export function SaleForm({
     assignedFaceRatePerSqft < projectMinRatePerSqft;
 
   const receivedNow = Number(downPayment ?? 0);
-  const emiMonths = form.watch("emi_months");
   const finance = useMemo(() => {
     const safeZero = {
       baseTotal: 0,
@@ -468,19 +468,6 @@ export function SaleForm({
                     render={({ field }) => (
                       <FormItem className="sm:col-span-1 min-w-0">
                         <FormLabel>Token Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="agreement_date"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-1 min-w-0">
-                        <FormLabel>Agreement Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />
                         </FormControl>

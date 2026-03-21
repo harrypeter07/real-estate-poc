@@ -31,6 +31,7 @@ import { paymentSchema, type PaymentFormValues } from "@/lib/validations/payment
 import { createPayment } from "@/app/actions/payments";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { ReceiptUpload } from "@/components/shared/receipt-upload";
+import { ShareReceiptModal } from "@/components/sales/share-receipt-modal";
 
 interface PaymentFormProps {
   sales: any[];
@@ -40,6 +41,10 @@ interface PaymentFormProps {
 export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareSaleId, setShareSaleId] = useState<string | null>(null);
+  const [shareCustomerPhone, setShareCustomerPhone] = useState<string | null>(null);
+  const [shareCustomerName, setShareCustomerName] = useState<string | null>(null);
   const [draftId] = useState(() =>
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
@@ -130,8 +135,10 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       }
 
       toast.success("Payment recorded successfully");
-      router.push("/payments");
-      router.refresh();
+      setShareSaleId(values.sale_id);
+      setShareCustomerPhone(activeSale?.customers?.phone ?? null);
+      setShareCustomerName(activeSale?.customers?.name ?? null);
+      setShareModalOpen(true);
     } catch (err) {
       toast.error("Something went wrong");
     } finally {
@@ -140,7 +147,8 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   }
 
   return (
-    <Card className="max-w-2xl w-full">
+    <>
+      <Card className="max-w-2xl w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
         <div>
           <CardTitle className="text-lg">Record Payment</CardTitle>
@@ -322,6 +330,24 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
           </form>
         </Form>
       </CardContent>
-    </Card>
+      </Card>
+
+      {shareSaleId && (
+        <ShareReceiptModal
+          open={shareModalOpen}
+          onOpenChange={(open) => {
+            setShareModalOpen(open);
+            if (!open) {
+              router.push("/payments");
+              router.refresh();
+            }
+          }}
+          saleId={shareSaleId}
+          customerPhone={shareCustomerPhone}
+          customerName={shareCustomerName}
+          donePath="/payments"
+        />
+      )}
+    </>
   );
 }

@@ -18,6 +18,7 @@ interface ShareReceiptModalProps {
 	saleId: string;
 	customerPhone?: string | null;
 	customerName?: string | null;
+	donePath?: string;
 }
 
 export function ShareReceiptModal({
@@ -26,6 +27,7 @@ export function ShareReceiptModal({
 	saleId,
 	customerPhone,
 	customerName,
+	donePath = "/sales",
 }: ShareReceiptModalProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
@@ -63,7 +65,7 @@ export function ShareReceiptModal({
 
 	const handleDone = () => {
 		onOpenChange(false);
-		router.push("/sales");
+		router.push(donePath);
 		router.refresh();
 	};
 

@@ -213,7 +213,7 @@ export async function getSales() {
 			`
       *,
       plots(plot_number, projects(name)),
-      customers(name),
+      customers(name, phone),
       advisors(name)
     `
 		)

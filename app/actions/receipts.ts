@@ -65,6 +65,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 	const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 	const { width, height } = page.getSize();
+	let isFirstSection = true;
 
 	// Watermark
 	page.drawText("S-INFRA", {
@@ -113,6 +114,25 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		color: rgb(0.95, 0.98, 1),
 	});
 
+	// Exact app icon (from favicon.svg) in header top-right.
+	const logoScale = 1.05;
+	const logoX = width - 108;
+	const logoY = height - 76;
+	const logoStroke = {
+		borderColor: rgb(1, 1, 1),
+		borderWidth: 1.4,
+		scale: logoScale,
+		x: logoX,
+		y: logoY,
+	};
+	page.drawSvgPath("M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z", logoStroke);
+	page.drawSvgPath("M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2", logoStroke);
+	page.drawSvgPath("M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2", logoStroke);
+	page.drawSvgPath("M10 6h4", logoStroke);
+	page.drawSvgPath("M10 10h4", logoStroke);
+	page.drawSvgPath("M10 14h4", logoStroke);
+	page.drawSvgPath("M10 18h4", logoStroke);
+
 	const left = 36;
 	let y = height - 146;
 	const tableWidth = width - 72;
@@ -123,6 +143,9 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		title: string,
 		rows: Array<{ key: string; value: string; strong?: boolean }>
 	) => {
+		// Add extra breathing space between table sections to avoid visual sticking.
+		if (!isFirstSection) y -= 8;
+
 		// Section title bar
 		page.drawRectangle({
 			x: left,
@@ -190,7 +213,8 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 			});
 		}
 
-		y -= bodyHeight + 14;
+		y -= bodyHeight + 18;
+		isFirstSection = false;
 	};
 
 	drawTable("Customer Details", [

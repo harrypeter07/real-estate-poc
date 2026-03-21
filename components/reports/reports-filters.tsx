@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input } from "@/components/ui";
+import { Loader2 } from "lucide-react";
 
 export function ReportsFilters() {
 	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
 	const searchParams = useSearchParams();
 	const from = searchParams.get("from") ?? "";
 	const to = searchParams.get("to") ?? "";
@@ -21,7 +23,9 @@ export function ReportsFilters() {
 		const params = new URLSearchParams();
 		if (start) params.set("from", start);
 		if (end) params.set("to", end);
-		router.push(`/reports?${params.toString()}`);
+		startTransition(() => {
+			router.push(`/reports?${params.toString()}`);
+		});
 	}
 
 	const now = new Date();
@@ -87,9 +91,16 @@ export function ReportsFilters() {
 					size="sm"
 					variant="outline"
 					onClick={() => setRange(customFrom, customTo)}
-					disabled={!customFrom || !customTo}
+					disabled={!customFrom || !customTo || isPending}
 				>
-					Apply
+					{isPending ? (
+						<>
+							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+							Applying...
+						</>
+					) : (
+						"Apply"
+					)}
 				</Button>
 			</div>
 		</div>

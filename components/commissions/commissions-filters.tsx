@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
+import { Loader2 } from "lucide-react";
 
 export function CommissionsFilters() {
 	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
 	const searchParams = useSearchParams();
 	const from = searchParams.get("from") ?? "";
 	const to = searchParams.get("to") ?? "";
@@ -26,7 +28,9 @@ export function CommissionsFilters() {
 		if (customFrom) params.set("from", customFrom);
 		if (customTo) params.set("to", customTo);
 		if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
-		router.push(`/commissions?${params.toString()}`);
+		startTransition(() => {
+			router.push(`/commissions?${params.toString()}`);
+		});
 	}
 
 	function clearFilters() {
@@ -121,8 +125,16 @@ export function CommissionsFilters() {
 					size="sm"
 					variant="outline"
 					onClick={applyFilters}
+					disabled={isPending}
 				>
-					Apply
+					{isPending ? (
+						<>
+							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+							Applying...
+						</>
+					) : (
+						"Apply"
+					)}
 				</Button>
 				<Button
 					size="sm"

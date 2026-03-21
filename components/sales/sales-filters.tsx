@@ -12,7 +12,11 @@ const phaseOptions = [
 	{ value: "full_payment", label: "Full Payment" },
 ];
 
-export function SalesFilters() {
+export function SalesFilters({
+	projects = [],
+}: {
+	projects?: Array<{ id: string; name: string }>;
+}) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const searchParams = useSearchParams();
@@ -20,18 +24,24 @@ export function SalesFilters() {
 	const to = searchParams.get("to") ?? "";
 	const phase = searchParams.get("phase") ?? "all";
 	const advisor = searchParams.get("advisor") ?? "";
+	const project = searchParams.get("project") ?? "all";
+	const sort = searchParams.get("sort") ?? "newest";
 	
 	const [customFrom, setCustomFrom] = useState(from);
 	const [customTo, setCustomTo] = useState(to);
 	const [selectedPhase, setSelectedPhase] = useState(phase);
 	const [selectedAdvisor, setSelectedAdvisor] = useState(advisor);
+	const [selectedProject, setSelectedProject] = useState(project);
+	const [selectedSort, setSelectedSort] = useState(sort);
 
 	useEffect(() => {
 		setCustomFrom(from);
 		setCustomTo(to);
 		setSelectedPhase(phase);
 		setSelectedAdvisor(advisor);
-	}, [from, to, phase, advisor]);
+		setSelectedProject(project);
+		setSelectedSort(sort);
+	}, [from, to, phase, advisor, project, sort]);
 
 	function applyFilters() {
 		const params = new URLSearchParams();
@@ -39,6 +49,8 @@ export function SalesFilters() {
 		if (customTo) params.set("to", customTo);
 		if (selectedPhase && selectedPhase !== "all") params.set("phase", selectedPhase);
 		if (selectedAdvisor && selectedAdvisor !== "all") params.set("advisor", selectedAdvisor);
+		if (selectedProject && selectedProject !== "all") params.set("project", selectedProject);
+		if (selectedSort && selectedSort !== "newest") params.set("sort", selectedSort);
 		startTransition(() => {
 			router.push(`/sales?${params.toString()}`);
 		});
@@ -48,6 +60,8 @@ export function SalesFilters() {
 		setCustomFrom("");
 		setCustomTo("");
 		setSelectedPhase("all");
+		setSelectedProject("all");
+		setSelectedSort("newest");
 		router.push("/sales");
 	}
 
@@ -68,6 +82,8 @@ export function SalesFilters() {
 						setCustomFrom("");
 						setCustomTo("");
 						setSelectedPhase("all");
+						setSelectedProject("all");
+						setSelectedSort("newest");
 						router.push("/sales");
 					}}
 				>
@@ -113,6 +129,30 @@ export function SalesFilters() {
 						{phaseOptions.map(opt => (
 							<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
 						))}
+					</SelectContent>
+				</Select>
+				<Select value={selectedProject} onValueChange={setSelectedProject}>
+					<SelectTrigger className="w-40 h-9">
+						<SelectValue placeholder="Project" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">All Projects</SelectItem>
+						{projects.map((p) => (
+							<SelectItem key={p.id} value={p.id}>
+								{p.name}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<Select value={selectedSort} onValueChange={setSelectedSort}>
+					<SelectTrigger className="w-44 h-9">
+						<SelectValue placeholder="Sort by" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="newest">Sort: Newest</SelectItem>
+						<SelectItem value="oldest">Sort: Oldest</SelectItem>
+						<SelectItem value="project">Sort: Project</SelectItem>
+						<SelectItem value="layout">Sort: Layout (Phase)</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>

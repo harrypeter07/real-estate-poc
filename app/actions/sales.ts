@@ -212,7 +212,7 @@ export async function getSales() {
 		.select(
 			`
       *,
-      plots(plot_number, projects(name)),
+      plots(plot_number, projects(id, name)),
       customers(name, phone),
       advisors(name)
     `

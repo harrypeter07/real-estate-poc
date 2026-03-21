@@ -14,6 +14,8 @@ export default async function SalesPage({
     to?: string;
     phase?: string;
     advisor?: string;
+    project?: string;
+    sort?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -30,6 +32,11 @@ export default async function SalesPage({
     typeof params.advisor === "string" && params.advisor !== "all"
       ? params.advisor
       : "";
+  const project =
+    typeof params.project === "string" && params.project !== "all"
+      ? params.project
+      : "";
+  const sort = typeof params.sort === "string" ? params.sort : "newest";
 
   // Filter sales based on criteria
   const filteredSales = sales.filter((sale) => {
@@ -49,9 +56,38 @@ export default async function SalesPage({
     if (advisor) {
       if (String(sale.advisor_id ?? "") !== advisor) return false;
     }
+    // Project filter
+    if (project) {
+      const projectId = String((sale as any).plots?.projects?.id ?? "");
+      if (projectId !== project) return false;
+    }
 
     return true;
   });
+
+  const sortedSales = [...filteredSales].sort((a: any, b: any) => {
+    if (sort === "oldest") {
+      return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
+    }
+    if (sort === "project") {
+      return String(a.plots?.projects?.name ?? "").localeCompare(
+        String(b.plots?.projects?.name ?? "")
+      );
+    }
+    if (sort === "layout") {
+      return String(a.sale_phase ?? "").localeCompare(String(b.sale_phase ?? ""));
+    }
+    // newest default
+    return String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
+  });
+
+  const projectOptions = Array.from(
+    new Map(
+      sales
+        .filter((s: any) => s?.plots?.projects?.id)
+        .map((s: any) => [s.plots.projects.id, { id: s.plots.projects.id, name: s.plots.projects.name }])
+    ).values()
+  );
 
   return (
     <div className="space-y-6">
@@ -68,7 +104,7 @@ export default async function SalesPage({
         }
       />
 
-      <SalesFilters />
+      <SalesFilters projects={projectOptions as any[]} />
 
       {filteredSales.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
@@ -87,7 +123,7 @@ export default async function SalesPage({
           </Link>
         </div>
       ) : (
-        <SalesList sales={filteredSales} />
+        <SalesList sales={sortedSales} />
       )}
     </div>
   );

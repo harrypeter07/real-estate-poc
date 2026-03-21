@@ -104,11 +104,6 @@ export function PlotLayoutGrid({
 		[plots],
 	);
 
-	const columns = useMemo(() => {
-		if (sortedPlots.length === 0) return 1;
-		return Math.ceil(Math.sqrt(sortedPlots.length));
-	}, [sortedPlots.length]);
-
 	const selectedPlot =
 		sortedPlots.find((plot) => plot.id === selectedPlotId) ??
 		sortedPlots[0] ??
@@ -169,7 +164,7 @@ export function PlotLayoutGrid({
 					<div
 						className="grid gap-2"
 						style={{
-							gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+							gridTemplateColumns: `repeat(auto-fill, minmax(36px, 1fr))`,
 						}}
 					>
 						{sortedPlots.map((plot) => {
@@ -193,13 +188,13 @@ export function PlotLayoutGrid({
 											: "",
 									].join(" ")}
 								>
-									<span className="text-[13px] font-bold">
+									<span className="text-[11px] sm:text-[13px] font-bold leading-none">
 										{plot.plot_number}
 									</span>
-									<span className="pointer-events-none absolute top-1 left-0 right-0 text-[10px] font-semibold text-zinc-700">
+									<span className="pointer-events-none absolute top-0.5 left-0 right-0 text-[8px] font-semibold text-zinc-700 hidden sm:block">
 										{Number(plot.size_sqft || 0).toLocaleString("en-IN")} sqft
 									</span>
-									<span className="pointer-events-none absolute bottom-1 left-0 right-0 text-[10px] font-medium text-zinc-700">
+									<span className="pointer-events-none absolute bottom-0.5 left-0 right-0 text-[8px] font-medium text-zinc-700 hidden sm:block">
 										{cfg.label}
 									</span>
 								</button>

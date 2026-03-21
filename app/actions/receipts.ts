@@ -6,11 +6,14 @@ import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 export type ReceiptResult = {
 	success: boolean;
 	url?: string;
+	path?: string;
+	sizeKb?: number;
 	error?: string;
 };
 
 function formatCurrency(amount: number): string {
-	return `₹ ${amount.toLocaleString("en-IN")}`;
+	// Standard PDF WinAnsi fonts do not support the rupee symbol reliably.
+	return `Rs. ${amount.toLocaleString("en-IN")}`;
 }
 
 function formatDate(d: string | null | undefined): string {
@@ -207,14 +210,24 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		color: rgb(0.55, 0.58, 0.62),
 	});
 
-	const pdfBytes = await pdfDoc.save();
+	const pdfBytes = await pdfDoc.save({
+		useObjectStreams: true,
+	});
+	const sizeKb = Math.ceil((pdfBytes.byteLength / 1024) * 10) / 10;
+	if (pdfBytes.byteLength > 100 * 1024) {
+		return {
+			success: false,
+			error: `Generated PDF is ${sizeKb} KB, which exceeds 100 KB limit.`,
+		};
+	}
 	const path = `sale-receipts/${saleId}-${Date.now()}.pdf`;
 
 	const { error: uploadErr } = await supabase.storage
 		.from("receipts")
 		.upload(path, pdfBytes, {
 			contentType: "application/pdf",
-			upsert: true,
+			cacheControl: "31536000",
+			upsert: false,
 		});
 
 	if (uploadErr) {
@@ -231,7 +244,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	}
 
 	const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(path);
-	return { success: true, url: urlData.publicUrl };
+	return { success: true, url: urlData.publicUrl, path, sizeKb };
 }
 
 export async function getReceiptUrl(saleId: string): Promise<string | null> {

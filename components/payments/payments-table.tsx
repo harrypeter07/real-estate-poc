@@ -8,6 +8,7 @@ import {
   Home,
   User,
   Share2,
+  FileText,
 } from "lucide-react";
 import {
   Badge,
@@ -27,11 +28,14 @@ import {
 } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { ReceiptViewer } from "@/components/shared/receipt-viewer";
-import { getReceiptUrlByPath } from "@/app/actions/receipts";
+import { generateReceipt, getReceiptUrlByPath } from "@/app/actions/receipts";
+import { toast } from "sonner";
 
 export function PaymentsTable({ payments }: { payments: any[] }) {
   const [selected, setSelected] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
+  const [generatingReceipt, setGeneratingReceipt] = useState(false);
+  const [generateProgress, setGenerateProgress] = useState(0);
 
   const close = () => {
     setOpen(false);
@@ -46,6 +50,11 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
     const plot = selected.plot_sales?.plots?.plot_number ?? "—";
     return `${project} • ${plot}`;
   }, [selected]);
+  const generatedPdfPath =
+    selected?.plot_sales?.receipt_path &&
+    String(selected.plot_sales.receipt_path).toLowerCase().endsWith(".pdf")
+      ? selected.plot_sales.receipt_path
+      : null;
 
   if (!hasRows) {
     return (
@@ -179,14 +188,69 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
               </div>
 
               <div className="space-y-2">
-                {(selected.receipt_path || selected.plot_sales?.receipt_path) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-2"
+                  disabled={generatingReceipt || !selected.sale_id}
+                  onClick={async () => {
+                    if (!selected?.sale_id) return;
+                    setGeneratingReceipt(true);
+                    setGenerateProgress(8);
+                    const timer = setInterval(() => {
+                      setGenerateProgress((p) => (p >= 92 ? 92 : p + 8));
+                    }, 180);
+                    try {
+                      const res = await generateReceipt(selected.sale_id);
+                      if (!res.success || !res.path) {
+                        toast.error("Failed to generate receipt", {
+                          description: res.error ?? "Please try again.",
+                        });
+                        return;
+                      }
+                      setGenerateProgress(100);
+                      setSelected((prev: any) => ({
+                        ...prev,
+                        plot_sales: {
+                          ...(prev?.plot_sales ?? {}),
+                          receipt_path: res.path,
+                        },
+                      }));
+                      toast.success("Receipt generated", {
+                        description: res.sizeKb ? `PDF size: ${res.sizeKb} KB` : undefined,
+                      });
+                    } finally {
+                      clearInterval(timer);
+                      setGeneratingReceipt(false);
+                      setTimeout(() => setGenerateProgress(0), 500);
+                    }
+                  }}
+                >
+                  <FileText className="h-4 w-4" />
+                  {generatingReceipt ? "Generating receipt..." : "Generate Receipt"}
+                </Button>
+                {generatingReceipt && (
+                  <div className="w-full rounded-md border border-zinc-200 bg-zinc-50 p-2">
+                    <div className="mb-1 flex items-center justify-between text-[11px] text-zinc-600">
+                      <span>Preparing and uploading PDF...</span>
+                      <span>{Math.min(100, Math.max(0, Math.round(generateProgress)))}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded bg-zinc-200">
+                      <div
+                        className="h-full bg-zinc-900 transition-all duration-200"
+                        style={{ width: `${Math.min(100, Math.max(0, generateProgress))}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {generatedPdfPath && (
                   <ShareReceiptButton
-                    receiptPath={selected.plot_sales?.receipt_path ?? selected.receipt_path}
+                    receiptPath={generatedPdfPath}
                     customerPhone={selected.customers?.phone}
                   />
                 )}
                 <ReceiptViewer
-                  receiptPath={selected.receipt_path ?? selected.plot_sales?.receipt_path}
+                  receiptPath={generatedPdfPath}
                   title="Receipt"
                 />
               </div>

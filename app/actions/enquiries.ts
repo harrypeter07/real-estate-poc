@@ -32,6 +32,105 @@ export type EnquiryCustomerRow = {
 	upgraded_from_enquiry_at: string | null;
 };
 
+export type EnquiryTempCustomerForModal = {
+	id: string;
+	name: string;
+	phone: string;
+	is_active: boolean;
+	created_at: string;
+	enquiry_temp_id: string | null;
+	latest_enquiry_category: string | null;
+	latest_enquiry_details: string | null;
+	latest_enquiry_project_name: string | null;
+};
+
+export async function getTempCustomersByPhone(
+	phone: string
+): Promise<
+	Array<{
+		id: string;
+		name: string;
+		phone: string;
+		alternate_phone: string | null;
+		address: string | null;
+		birth_date: string | null;
+		enquiry_temp_id: string | null;
+		created_at: string;
+	}>
+> {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data, error } = await supabase
+		.from("customers")
+		.select(
+			"id,name,phone,alternate_phone,address,birth_date,enquiry_temp_id,created_at"
+		)
+		.eq("phone", phone)
+		.eq("is_active", false)
+		.not("enquiry_temp_id", "is", null)
+		.order("created_at", { ascending: false });
+
+	if (error) throw new Error(error.message);
+	return (data ?? []) as any;
+}
+
+export async function getEnquiryTempCustomersForModal(): Promise<EnquiryTempCustomerForModal[]> {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data: tempCustomers, error: custErr } = await supabase
+		.from("customers")
+		.select("id,name,phone,is_active,created_at,enquiry_temp_id")
+		.eq("is_active", false)
+		.not("enquiry_temp_id", "is", null)
+		.order("created_at", { ascending: false });
+
+	if (custErr) throw new Error(custErr.message);
+
+	const customers = (tempCustomers ?? []) as Array<{
+		id: string;
+		name: string;
+		phone: string;
+		is_active: boolean;
+		created_at: string;
+		enquiry_temp_id: string | null;
+	}>;
+
+	const enquiryIds = customers
+		.map((c) => c.enquiry_temp_id)
+		.filter(Boolean) as string[];
+
+	if (enquiryIds.length === 0) return [];
+
+	const { data: enquiries, error: enqErr } = await supabase
+		.from("enquiry_customers")
+		.select("id,category,details,project_id,projects(name)")
+		.in("id", enquiryIds);
+
+	if (enqErr) throw new Error(enqErr.message);
+
+	const enqById = new Map<string, any>();
+	for (const e of enquiries ?? []) {
+		enqById.set(e.id, e);
+	}
+
+	return customers.map((c) => {
+		const e = c.enquiry_temp_id ? enqById.get(c.enquiry_temp_id) : null;
+		return {
+			id: c.id,
+			name: c.name,
+			phone: c.phone,
+			is_active: c.is_active,
+			created_at: c.created_at,
+			enquiry_temp_id: c.enquiry_temp_id,
+			latest_enquiry_category: e?.category ?? null,
+			latest_enquiry_details: e?.details ?? null,
+			latest_enquiry_project_name: e?.projects?.name ?? null,
+		};
+	});
+}
+
 export async function getEnquiryCustomers(): Promise<EnquiryRow[]> {
 	const supabase = await createClient();
 	if (!supabase) return [];
@@ -78,64 +177,28 @@ export async function createEnquiryCustomer(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	// Dedup enquiry by phone (simple rule: if phone already exists, reuse).
-	const { data: existingEnquiry, error: enquiryFindErr } = await supabase
+	// Insert enquiry record always (same phone can have multiple enquiries).
+	const { data: enquiry, error: enquiryErr } = await supabase
 		.from("enquiry_customers")
+		.insert({
+			name: parsed.data.name,
+			phone: parsed.data.phone,
+			alternate_phone: parsed.data.alternate_phone || null,
+			address: parsed.data.address || null,
+			birth_date: parsed.data.birth_date || null,
+			project_id: parsed.data.project_id || null,
+			category: parsed.data.category,
+			details: parsed.data.details || null,
+			is_active: parsed.data.is_active,
+		})
 		.select("id")
-		.eq("phone", parsed.data.phone)
-		.maybeSingle();
+		.single();
 
-	let enquiryId: string;
-	let reusedEnquiry = false;
-
-	if (enquiryFindErr) {
-		return { success: false, error: enquiryFindErr.message };
+	if (enquiryErr || !enquiry) {
+		return { success: false, error: enquiryErr?.message || "Failed to create enquiry" };
 	}
 
-	if (existingEnquiry?.id) {
-		reusedEnquiry = true;
-		enquiryId = existingEnquiry.id;
-		const { error: enquiryUpdErr } = await supabase
-			.from("enquiry_customers")
-			.update({
-				name: parsed.data.name,
-				alternate_phone: parsed.data.alternate_phone || null,
-				address: parsed.data.address || null,
-				birth_date: parsed.data.birth_date || null,
-				project_id: parsed.data.project_id || null,
-				category: parsed.data.category,
-				details: parsed.data.details || null,
-				is_active: parsed.data.is_active,
-				updated_at: new Date().toISOString(),
-			})
-			.eq("id", existingEnquiry.id);
-
-		if (enquiryUpdErr) {
-			return { success: false, error: enquiryUpdErr.message };
-		}
-	} else {
-		const { data: enquiry, error: enquiryErr } = await supabase
-			.from("enquiry_customers")
-			.insert({
-				name: parsed.data.name,
-				phone: parsed.data.phone,
-				alternate_phone: parsed.data.alternate_phone || null,
-				address: parsed.data.address || null,
-				birth_date: parsed.data.birth_date || null,
-				project_id: parsed.data.project_id || null,
-				category: parsed.data.category,
-				details: parsed.data.details || null,
-				is_active: parsed.data.is_active,
-			})
-			.select("id")
-			.single();
-
-		if (enquiryErr || !enquiry) {
-			return { success: false, error: enquiryErr?.message || "Failed to create enquiry" };
-		}
-
-		enquiryId = enquiry.id;
-	}
+	const enquiryId = enquiry.id;
 
 	// If a customer with same phone exists, reuse it; otherwise create a temp customer.
 	const { data: existingCustomer, error: custFindErr } = await supabase
@@ -195,7 +258,7 @@ export async function createEnquiryCustomer(
 	revalidatePath("/enquiries");
 	revalidatePath("/customers");
 
-	return { success: true, enquiryId, customerId, reusedEnquiry };
+	return { success: true, enquiryId, customerId };
 }
 
 export async function getEnquiryLinkedCustomers(

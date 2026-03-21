@@ -9,35 +9,45 @@ import { getSales } from "@/app/actions/sales";
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    phase?: string;
+    advisor?: string;
+  }>;
 }) {
+  const params = await searchParams;
   const sales = await getSales();
 
   // Extract filter parameters
-  const from = typeof searchParams.from === "string" ? searchParams.from : "";
-  const to = typeof searchParams.to === "string" ? searchParams.to : "";
-  const phase = typeof searchParams.phase === "string" && searchParams.phase !== "all" ? searchParams.phase : "";
+  const from = params.from ?? "";
+  const to = params.to ?? "";
+  const phase =
+    typeof params.phase === "string" && params.phase !== "all"
+      ? params.phase
+      : "";
+  const advisor =
+    typeof params.advisor === "string" && params.advisor !== "all"
+      ? params.advisor
+      : "";
 
   // Filter sales based on criteria
   const filteredSales = sales.filter((sale) => {
-    // Date range filter
-    if (from) {
-      const saleDate = new Date(sale.sale_date);
-      const fromDate = new Date(from);
-      if (saleDate < fromDate) return false;
-    }
-    if (to) {
-      const saleDate = new Date(sale.sale_date);
-      const toDate = new Date(to);
-      toDate.setHours(23, 59, 59, 999);
-      if (saleDate > toDate) return false;
-    }
+    // Date range filter (timezone-safe)
+    const saleDateStr = String(sale.created_at ?? "").slice(0, 10); // YYYY-MM-DD
+    if (from && (!saleDateStr || saleDateStr < from)) return false;
+    if (to && (!saleDateStr || saleDateStr > to)) return false;
 
     // Phase filter (case-insensitive)
     if (phase) {
       const salePhase = String(sale.sale_phase ?? "").toLowerCase().trim();
       const filterPhase = phase.toLowerCase().trim();
       if (salePhase !== filterPhase) return false;
+    }
+
+    // Advisor filter
+    if (advisor) {
+      if (String(sale.advisor_id ?? "") !== advisor) return false;
     }
 
     return true;

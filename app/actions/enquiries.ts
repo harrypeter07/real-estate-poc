@@ -307,7 +307,7 @@ export async function upgradeEnquiryToCustomer(opts: {
 
 	const { data: enquiry, error: enquiryErr } = await supabase
 		.from("enquiry_customers")
-		.select("category,details")
+		.select("phone,category,details")
 		.eq("id", enquiryId)
 		.single();
 
@@ -329,18 +329,64 @@ export async function upgradeEnquiryToCustomer(opts: {
 	if (error) return { success: false, error: error.message };
 
 	// Mark enquiry as upgraded
-	await supabase.from("enquiry_customers").update({
-		is_active: false,
-		upgraded_customer_id: customerId,
-		upgraded_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	}).eq("id", enquiryId);
+	await supabase
+		.from("enquiry_customers")
+		.update({
+			is_active: false,
+			upgraded_customer_id: customerId,
+			upgraded_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
+		})
+		.eq("phone", enquiry.phone)
+		.eq("is_active", true);
 
 	revalidatePath("/enquiries");
 	revalidatePath("/customers");
 	revalidatePath("/reports");
 
 	return { success: true };
+}
+
+export async function upgradeTempCustomerToCustomer(opts: {
+	customerId: string;
+}): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) {
+		return { success: false, error: "Database connection failed" };
+	}
+
+	const { data: customer, error: custErr } = await supabase
+		.from("customers")
+		.select("id,phone,enquiry_temp_id")
+		.eq("id", opts.customerId)
+		.single();
+
+	if (custErr || !customer) {
+		return { success: false, error: custErr?.message || "Customer not found" };
+	}
+
+	// Prefer the stored temp enquiry link.
+	let enquiryId: string | null = customer.enquiry_temp_id ?? null;
+
+	if (!enquiryId) {
+		const { data: latestEnq, error: enqErr } = await supabase
+			.from("enquiry_customers")
+			.select("id")
+			.eq("phone", customer.phone)
+			.eq("is_active", true)
+			.order("created_at", { ascending: false })
+			.limit(1)
+			.maybeSingle();
+
+		if (enqErr) return { success: false, error: enqErr.message };
+		enquiryId = latestEnq?.id ?? null;
+	}
+
+	if (!enquiryId) {
+		return { success: false, error: "No active enquiry found to upgrade from" };
+	}
+
+	return upgradeEnquiryToCustomer({ enquiryId, customerId: customer.id });
 }
 
 export type ActionResponse = {

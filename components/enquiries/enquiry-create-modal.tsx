@@ -177,14 +177,60 @@ export function EnquiryCreateModal({
 						<Plus className="h-4 w-4 shrink-0" />
 						New Enquiry
 					</DialogTitle>
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-					>
-						Close
-					</Button>
+					<div className="flex items-center gap-2">
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							onClick={() => {
+								const names = [
+									"Vijay Sharma",
+									"Rahul Gupta",
+									"Sunita Bai",
+									"Ganesh Raut",
+									"Deepak Tighare",
+									"Manisha Kolhe",
+									"Arjun Patil",
+									"Priya Nair",
+								];
+								const routes = ["Wardha Road", "Hingna", "Besa", "Manish Nagar", "MIHAN", "Koradi"];
+								const routesPick = routes[Math.floor(Math.random() * routes.length)];
+								const name = names[Math.floor(Math.random() * names.length)];
+								const phone = String(Math.floor(Math.random() * 9000000000) + 1000000000).slice(0, 10);
+								const altPhone = String(Math.floor(Math.random() * 9000000000) + 1000000000).slice(0, 10);
+								const category = CATEGORY_OPTIONS[Math.floor(Math.random() * CATEGORY_OPTIONS.length)];
+								const details = `Interested in plots near ${routesPick}. Preferred contact time: Evening.`;
+								const projectPick = projects.length
+									? projects[Math.floor(Math.random() * projects.length)].id
+									: null;
+
+								// Force dropdown to reload on phone change.
+								setTempCustomers([]);
+								setSelectedTempCustomerId("none");
+								setForm({
+									name,
+									phone,
+									alternate_phone: altPhone,
+									address: `Plot No ${Math.floor(Math.random() * 500) + 1}, ${routesPick}, Nagpur`,
+									birth_date: "1990-08-20",
+									project_id: projectPick,
+									category,
+									details,
+									is_active: true,
+								});
+							}}
+						>
+							Fill Mock Data
+						</Button>
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+						>
+							Close
+						</Button>
+					</div>
 				</DialogHeader>
 
 				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">

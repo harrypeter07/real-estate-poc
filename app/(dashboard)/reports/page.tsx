@@ -95,7 +95,7 @@ export default async function ReportsPage({
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 						<div className="rounded-lg border border-zinc-200 p-4">
 							<div className="text-[10px] font-semibold uppercase text-zinc-500">
 								Converted enquiries
@@ -112,7 +112,31 @@ export default async function ReportsPage({
 								{stats.summary.enquiryConvertedCustomersBoughtPlots}
 							</div>
 						</div>
+						<div className="rounded-lg border border-zinc-200 p-4">
+							<div className="text-[10px] font-semibold uppercase text-zinc-500">
+								Revenue from converted customers
+							</div>
+							<div className="text-xl font-bold text-blue-700">
+								{formatCurrency(stats.summary.enquiryConvertedRevenue)}
+							</div>
+						</div>
 					</div>
+
+					{stats.enquiryConversionTopCategories.length > 0 ? (
+						<div className="mt-4">
+							<div className="text-[10px] font-semibold uppercase text-zinc-500 mb-2">
+								Top enquiry categories (upgrades)
+							</div>
+							<div className="space-y-2">
+								{stats.enquiryConversionTopCategories.map((c) => (
+									<div key={c.category} className="flex justify-between items-center">
+										<span className="text-sm text-zinc-700 truncate pr-2">{c.category}</span>
+										<span className="text-sm font-bold text-zinc-900">{c.count}</span>
+									</div>
+								))}
+							</div>
+						</div>
+					) : null}
 				</CardContent>
 			</Card>
 

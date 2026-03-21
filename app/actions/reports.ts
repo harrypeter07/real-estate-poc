@@ -161,10 +161,33 @@ export async function getReportStats(filters?: ReportFilters) {
 	);
 
 	const upgradedCustomerIds = new Set(upgradedInPeriod.map((c: any) => c.id));
+	const convertedSales = filteredSales.filter(
+		(s: any) => !!s.customer_id && upgradedCustomerIds.has(s.customer_id)
+	);
 	const boughtUpgradedCustomerIds = new Set(
-		filteredSales
-			.filter((s: any) => !!s.customer_id && upgradedCustomerIds.has(s.customer_id))
-			.map((s: any) => s.customer_id)
+		convertedSales.map((s: any) => s.customer_id)
+	);
+
+	// 12b. Enquiry category breakdown (from upgraded customers)
+	const enquiryIds = upgradedInPeriod
+		.map((c: any) => c.upgraded_from_enquiry_id)
+		.filter(Boolean);
+	const categoryCounts: Record<string, number> = {};
+	if (enquiryIds.length > 0) {
+		const { data: upgradedEnquiries } = await supabase
+			.from("enquiry_customers")
+			.select("id, category")
+			.in("id", enquiryIds);
+
+		for (const e of upgradedEnquiries ?? []) {
+			const cat = (e as any).category ?? "other";
+			categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+		}
+	}
+
+	const enquiryConvertedRevenue = convertedSales.reduce(
+		(sum, s: any) => sum + Number(s.total_sale_amount ?? 0),
+		0
 	);
 
 	// 13. Sale count by month (for trend)
@@ -189,7 +212,12 @@ export async function getReportStats(filters?: ReportFilters) {
 			paymentsCount: filteredPayments.length,
 			enquiryConvertedCustomers: upgradedInPeriod.length,
 			enquiryConvertedCustomersBoughtPlots: boughtUpgradedCustomerIds.size,
+			enquiryConvertedRevenue,
 		},
+		enquiryConversionTopCategories: Object.entries(categoryCounts)
+			.map(([category, count]) => ({ category, count }))
+			.sort((a, b) => b.count - a.count)
+			.slice(0, 5),
 		advisorPerformance,
 		projectStats,
 		revenueByProject: Object.entries(revenueByProject).map(([name, v]) => ({ name, value: v })),
@@ -216,7 +244,9 @@ function getEmptyReport() {
 			paymentsCount: 0,
 			enquiryConvertedCustomers: 0,
 			enquiryConvertedCustomersBoughtPlots: 0,
+			enquiryConvertedRevenue: 0,
 		},
+		enquiryConversionTopCategories: [] as { category: string; count: number }[],
 		advisorPerformance: [] as { name: string; totalCommission: number; paidCommission: number; pending: number }[],
 		projectStats: [] as { name: string; total: number; sold: number; soldInPeriod: number; available: number }[],
 		revenueByProject: [] as { name: string; value: number }[],

@@ -51,7 +51,9 @@ export function ExpenseForm({
     defaultValues: {
       description: "",
       amount: undefined as any,
+      paid_amount: undefined as any,
       expense_date: new Date().toISOString().split('T')[0],
+      payment_type: "cash",
       category: "misc",
       project_id: null,
       receipt_note: "",
@@ -73,11 +75,14 @@ export function ExpenseForm({
       ? projects[Math.floor(Math.random() * projects.length)]
       : null;
     const randomIndex = Math.floor(Math.random() * descriptions.length);
+    const amount = Math.floor(Math.random() * 5000) + 200;
 
     form.reset({
       description: descriptions[randomIndex],
-      amount: Math.floor(Math.random() * 5000) + 200,
+      amount,
+      paid_amount: amount,
       expense_date: new Date().toISOString().split('T')[0],
+      payment_type: "cash",
       category: categories[randomIndex],
       project_id: randomProject?.id ?? null,
       receipt_note: `Receipt #${Math.floor(Math.random() * 10000)}`,
@@ -188,6 +193,29 @@ export function ExpenseForm({
               />
               <FormField
                 control={form.control}
+                name="paid_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Paid Amount (₹) *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const sanitized = raw.replace(/^0+(?=\d)/, "");
+                        field.onChange(
+                          sanitized === "" ? undefined : Number(sanitized)
+                        );
+                      }}
+                    />
+                  </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="expense_date"
                 render={({ field }) => (
                   <FormItem>
@@ -198,6 +226,32 @@ export function ExpenseForm({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="payment_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Type *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="upi">UPI</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

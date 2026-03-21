@@ -31,7 +31,9 @@ export async function createExpense(
 	const { error } = await supabase.from("office_expenses").insert({
 		description: parsed.data.description,
 		amount: parsed.data.amount,
+		paid_amount: parsed.data.paid_amount,
 		expense_date: parsed.data.expense_date,
+		payment_type: parsed.data.payment_type,
 		category: parsed.data.category,
 		project_id: parsed.data.project_id || null,
 		receipt_note: parsed.data.receipt_note || null,

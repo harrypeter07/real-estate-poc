@@ -225,7 +225,10 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
             </TableHeader>
             <TableBody>
               {commissions.map((comm) => {
-                const rem = Number(comm.total_commission_amount ?? 0) - Number(comm.amount_paid ?? 0);
+                const rem = Math.max(
+                  0,
+                  Number(comm.total_commission_amount ?? 0) - Number(comm.amount_paid ?? 0)
+                );
                 const isPaid = rem <= 0;
                 return (
                   <TableRow

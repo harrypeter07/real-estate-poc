@@ -14,6 +14,7 @@ import {
 	TableBody,
 	TableCell,
 	TableHead,
+	TableHeader,
 	TableRow,
 } from "@/components/ui";
 import { getEnquiryLinkedCustomers, upgradeEnquiryToCustomer, type EnquiryCustomerRow, type EnquiryRow } from "@/app/actions/enquiries";
@@ -72,17 +73,18 @@ export function EnquiryUpgradeModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-3xl p-0 overflow-hidden">
-				<DialogHeader className="p-5 pb-4 border-b border-zinc-100 flex items-center justify-between gap-3">
-					<DialogTitle>
-						Customers for {enquiry.name} <span className="text-zinc-500 text-sm">({phone})</span>
+			<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+				<DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5 pb-3 sm:pb-4 flex flex-row flex-wrap items-center justify-between gap-3 text-left">
+					<DialogTitle className="text-base sm:text-lg leading-snug pr-2">
+						Customers for {enquiry.name}{" "}
+						<span className="text-muted-foreground text-sm font-normal">({phone})</span>
 					</DialogTitle>
 					<Button type="button" size="sm" variant="outline" onClick={() => onOpenChange(false)}>
 						Close
 					</Button>
 				</DialogHeader>
 
-				<div className="p-5 space-y-4">
+				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
 					{loading ? (
 						<div className="space-y-3">
 							<Progress value={30} className="h-2" />
@@ -91,15 +93,15 @@ export function EnquiryUpgradeModal({
 					) : customers.length === 0 ? (
 						<div className="text-sm text-zinc-500">No matching customers found yet.</div>
 					) : (
-						<div className="rounded-lg border border-zinc-200 overflow-x-auto">
+						<div className="rounded-lg border border-border overflow-x-auto">
 							<Table>
-								<TableHead>
+								<TableHeader>
 									<TableRow>
-										<TableCell>Customer</TableCell>
-										<TableCell>Status</TableCell>
-										<TableCell>Upgrade</TableCell>
+										<TableHead>Customer</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Upgrade</TableHead>
 									</TableRow>
-								</TableHead>
+								</TableHeader>
 								<TableBody>
 									{customers.map((c) => {
 										const alreadyUpgraded = !!c.upgraded_from_enquiry_id && c.upgraded_from_enquiry_id === enquiry.id;

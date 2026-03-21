@@ -8,24 +8,25 @@
 		--background: 184 45% 92%;
 		--background-2: 184 45% 86%;
 		--background-3: 184 55% 78%;
-		--foreground: 240 10% 3.9%;
+		--foreground: 184 25% 12%;
 		--card: 0 0% 100%;
-		--card-foreground: 240 10% 3.9%;
+		--card-foreground: 184 25% 12%;
 		--popover: 0 0% 100%;
-		--popover-foreground: 240 10% 3.9%;
-		--primary: 240 5.9% 10%;
+		--popover-foreground: 184 25% 12%;
+		/* Brand primary — teal aligned with app background */
+		--primary: 184 42% 32%;
 		--primary-foreground: 0 0% 98%;
-		--secondary: 240 4.8% 95.9%;
-		--secondary-foreground: 240 5.9% 10%;
-		--muted: 240 4.8% 95.9%;
-		--muted-foreground: 240 3.8% 46.1%;
-		--accent: 240 4.8% 95.9%;
-		--accent-foreground: 240 5.9% 10%;
-		--destructive: 0 84.2% 60.2%;
+		--secondary: 184 28% 90%;
+		--secondary-foreground: 184 35% 22%;
+		--muted: 184 20% 93%;
+		--muted-foreground: 184 12% 40%;
+		--accent: 184 35% 88%;
+		--accent-foreground: 184 40% 18%;
+		--destructive: 0 72% 50%;
 		--destructive-foreground: 0 0% 98%;
-		--border: 240 5.9% 90%;
-		--input: 240 5.9% 90%;
-		--ring: 240 10% 3.9%;
+		--border: 184 18% 82%;
+		--input: 184 18% 85%;
+		--ring: 184 42% 38%;
 		--radius: 0.5rem;
 	}
 
@@ -36,8 +37,8 @@
 		--card-foreground: 0 0% 98%;
 		--popover: 240 10% 3.9%;
 		--popover-foreground: 0 0% 98%;
-		--primary: 0 0% 98%;
-		--primary-foreground: 240 5.9% 10%;
+		--primary: 184 38% 42%;
+		--primary-foreground: 0 0% 98%;
 		--secondary: 240 3.7% 15.9%;
 		--secondary-foreground: 0 0% 98%;
 		--muted: 240 3.7% 15.9%;

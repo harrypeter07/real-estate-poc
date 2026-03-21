@@ -45,16 +45,16 @@ export function ProjectAdvisorAssignmentsModal({
 			</div>
 
 			<Dialog open={open} onOpenChange={setOpen}>
-				<DialogContent className="max-w-4xl p-0 overflow-hidden">
-					<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-						<DialogTitle className="flex items-center justify-between gap-3">
+				<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+					<DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5 pb-3 sm:pb-4 text-left">
+						<DialogTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-base sm:text-lg">
 							<span>Advisor Assignment & Face Rates</span>
-							<Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+							<Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)} className="shrink-0 w-fit">
 								Close
 							</Button>
 						</DialogTitle>
 					</DialogHeader>
-					<div className="p-5">
+					<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
 						<ProjectAdvisorAssignments
 							projectId={projectId}
 							advisors={advisors}

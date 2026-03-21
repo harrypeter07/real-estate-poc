@@ -9,6 +9,12 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 5,
+};
+
 export const metadata: Metadata = {
 	title: {
 		default: "S-INFRA CRM | Real Estate & Plot Management",

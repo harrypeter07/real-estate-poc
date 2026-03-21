@@ -68,11 +68,11 @@ export function SaleDetailModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden">
-				<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-					<div className="flex items-center justify-between">
-						<DialogTitle className="flex items-center gap-2">
-							<span className="font-bold text-lg">
+			<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-md flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+				<DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5 pb-3 sm:pb-4 text-left">
+					<div className="flex flex-wrap items-start justify-between gap-3">
+						<DialogTitle className="flex flex-wrap items-center gap-2 text-left">
+							<span className="font-bold text-base sm:text-lg">
 								{sale.plots?.plot_number ?? "—"}
 							</span>
 							<span
@@ -85,20 +85,21 @@ export function SaleDetailModal({
 							type="button"
 							variant="outline"
 							size="sm"
+							className="shrink-0"
 							onClick={() => onOpenChange(false)}
 						>
 							Close
 						</Button>
 					</div>
 					{sale.plots?.projects?.name && (
-						<p className="text-sm text-zinc-500 flex items-center gap-1 mt-1">
-							<MapPin className="h-3.5 w-3.5" />
+						<p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+							<MapPin className="h-3.5 w-3.5 shrink-0" />
 							{sale.plots.projects.name}
 						</p>
 					)}
 				</DialogHeader>
 
-				<div className="p-5 space-y-4">
+				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
 					<div>
 						<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
 							Amount

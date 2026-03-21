@@ -71,11 +71,11 @@ export function PasswordResetButton({
 			</Button>
 
 			<Dialog open={open} onOpenChange={setOpen}>
-				<DialogContent className="max-w-lg p-0 overflow-hidden">
-					<DialogHeader className="p-5 pb-4 border-b border-zinc-100">
-						<DialogTitle>Reset Advisor Password</DialogTitle>
+				<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-lg flex-col gap-0 overflow-hidden p-0">
+					<DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5 pb-3 sm:pb-4 text-left">
+						<DialogTitle className="text-base sm:text-lg">Reset Advisor Password</DialogTitle>
 					</DialogHeader>
-					<div className="p-5 space-y-4">
+					<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
 						<div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
 							<p className="text-xs text-zinc-600">
 								For security, you cannot view the current password. You can only

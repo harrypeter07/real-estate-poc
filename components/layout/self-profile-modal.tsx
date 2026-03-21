@@ -92,9 +92,9 @@ export function SelfProfileModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl p-0 overflow-hidden">
-				<DialogHeader className="p-5 pb-4 border-b border-zinc-100 flex items-center justify-between gap-3">
-					<DialogTitle className="flex items-center gap-2">
+			<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+				<DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5 pb-3 sm:pb-4 flex flex-row flex-wrap items-center justify-between gap-3 text-left">
+					<DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
 						Self Profile
 					</DialogTitle>
 					<Button
@@ -107,7 +107,7 @@ export function SelfProfileModal({
 					</Button>
 				</DialogHeader>
 
-				<div className="p-5">
+				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
 					{loading || !profile ? (
 						<div className="space-y-3">
 							<div className="h-8 w-48 bg-zinc-200 rounded animate-pulse" />

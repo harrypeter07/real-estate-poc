@@ -65,8 +65,8 @@ export function TemplatesModal() {
 			</Button>
 
 			<Dialog open={open} onOpenChange={setOpen}>
-				<DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 border-zinc-200 shadow-xl sm:rounded-xl">
-					<DialogHeader className="p-5 pb-4 border-b border-zinc-100 bg-gradient-to-b from-zinc-50/80 to-white">
+				<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-2xl flex-col gap-0 overflow-hidden border-border p-0 shadow-xl sm:rounded-xl">
+					<DialogHeader className="shrink-0 border-b border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5 pb-3 sm:pb-4 text-left">
 						<DialogTitle className="flex items-center justify-between gap-3 text-lg font-semibold">
 							<div className="flex items-center gap-2 min-w-0">
 								<Sparkles className="h-5 w-5 text-amber-500 shrink-0" />
@@ -81,7 +81,7 @@ export function TemplatesModal() {
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
+					<div className="min-h-0 flex-1 overflow-hidden flex flex-col md:flex-row">
 						{/* Template list */}
 						<div className="flex-1 overflow-y-auto border-b md:border-b-0 md:border-r border-zinc-100 p-4 min-h-[200px] md:min-h-0">
 							<div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">

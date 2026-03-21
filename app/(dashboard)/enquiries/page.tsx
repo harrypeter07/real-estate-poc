@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/shared/page-header";
 import { EnquiriesClient } from "@/components/enquiries/enquiries-client";
 import { createClient } from "@/lib/supabase/server";
 import { getProjects } from "@/app/actions/project-actions";
@@ -15,8 +14,9 @@ export default async function EnquiriesPage() {
 
 	if (!user) redirect("/login");
 
-	const role = (user.user_metadata as any)?.role;
-	if (role !== "admin") redirect("/dashboard");
+	// Match RLS defaults: missing role = admin (only advisors are explicitly tagged).
+	const role = (user.user_metadata as any)?.role ?? "admin";
+	if (role === "advisor") redirect("/advisor");
 
 	const [enquiries, projects] = await Promise.all([
 		getEnquiryCustomers(),
@@ -24,13 +24,7 @@ export default async function EnquiriesPage() {
 	]);
 
 	return (
-		<div className="space-y-6">
-			<PageHeader
-				title="Enquiries"
-				subtitle={`${enquiries.length} temporary leads`}
-			/>
-			<EnquiriesClient initialEnquiries={enquiries} projects={projects} />
-		</div>
+		<EnquiriesClient initialEnquiries={enquiries} projects={projects} />
 	);
 }
 

@@ -1,7 +1,9 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { getProjects } from "@/app/actions/project-actions";
 
-export default function NewExpensePage() {
+export default async function NewExpensePage() {
+  const projects = await getProjects();
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -10,7 +12,7 @@ export default function NewExpensePage() {
         showBackButton
       />
       <div className="flex justify-center">
-        <ExpenseForm />
+        <ExpenseForm projects={projects as any[]} />
       </div>
     </div>
   );

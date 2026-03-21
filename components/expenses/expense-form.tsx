@@ -31,7 +31,11 @@ import { expenseSchema, type ExpenseFormValues } from "@/lib/validations/expense
 import { createExpense } from "@/app/actions/expenses";
 import { ReceiptUpload } from "@/components/shared/receipt-upload";
 
-export function ExpenseForm() {
+export function ExpenseForm({
+  projects = [],
+}: {
+  projects?: Array<{ id: string; name: string }>;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [draftId] = useState(() =>
@@ -47,6 +51,7 @@ export function ExpenseForm() {
       amount: 0,
       expense_date: new Date().toISOString().split('T')[0],
       category: "misc",
+      project_id: null,
       receipt_note: "",
       receipt_path: "",
     },
@@ -61,7 +66,10 @@ export function ExpenseForm() {
       "Printing of project brochures",
       "Cleaning staff salary",
     ];
-    const categories: any[] = ["office", "marketing", "travel", "office", "marketing", "salary"];
+    const categories: any[] = ["office", "marketing", "travel", "utilities", "maintenance", "salary"];
+    const randomProject = projects.length
+      ? projects[Math.floor(Math.random() * projects.length)]
+      : null;
     const randomIndex = Math.floor(Math.random() * descriptions.length);
 
     form.reset({
@@ -69,6 +77,7 @@ export function ExpenseForm() {
       amount: Math.floor(Math.random() * 5000) + 200,
       expense_date: new Date().toISOString().split('T')[0],
       category: categories[randomIndex],
+      project_id: randomProject?.id ?? null,
       receipt_note: `Receipt #${Math.floor(Math.random() * 10000)}`,
     });
   };
@@ -174,7 +183,38 @@ export function ExpenseForm() {
                       <SelectItem value="layout_dev">Layout Development</SelectItem>
                       <SelectItem value="legal">Legal / Registry</SelectItem>
                       <SelectItem value="salary">Staff Salary</SelectItem>
+                      <SelectItem value="utilities">Utilities</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
                       <SelectItem value="misc">Miscellaneous</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="project_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project (optional)</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === "none" ? null : v)}
+                    value={field.value ?? "none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Link to a project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No Project</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

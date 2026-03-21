@@ -25,6 +25,11 @@ export const reminderSchema = z.object({
 		.uuid("Invalid customer selected")
 		.optional()
 		.nullable(),
+	project_id: z
+		.string()
+		.uuid("Invalid project selected")
+		.optional()
+		.nullable(),
 	is_completed: z.boolean().default(false),
 });
 

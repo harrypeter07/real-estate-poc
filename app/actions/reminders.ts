@@ -69,6 +69,7 @@ export async function createReminder(
 		reminder_date: parsed.data.reminder_date,
 		reminder_time: parsed.data.reminder_time || null,
 		customer_id: parsed.data.customer_id || null,
+		project_id: parsed.data.project_id || null,
 		is_completed: parsed.data.is_completed,
 	});
 
@@ -146,6 +147,7 @@ export async function updateReminder(
 			reminder_date: parsed.data.reminder_date,
 			reminder_time: parsed.data.reminder_time || null,
 			customer_id: parsed.data.customer_id || null,
+			project_id: parsed.data.project_id || null,
 			is_completed: parsed.data.is_completed,
 		})
 		.eq("id", id);
@@ -247,6 +249,7 @@ export async function getReminders() {
 							`
             *,
             customers(name, phone),
+            projects(id, name),
             plot_sales(id, emi_day, monthly_emi, remaining_amount)
           `
 						)
@@ -258,6 +261,7 @@ export async function getReminders() {
 					`
           *,
           customers(name, phone),
+          projects(id, name),
           plot_sales(id, emi_day, monthly_emi, remaining_amount)
         `
 				)
@@ -282,6 +286,7 @@ export async function getReminders() {
 			`
       *,
       customers(name, phone),
+      projects(id, name),
       plot_sales(id, emi_day, monthly_emi, remaining_amount)
     `
 		)

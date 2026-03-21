@@ -26,11 +26,12 @@ const TYPE_FILTERS = [
 export default async function RemindersPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ type?: string; date?: string }>;
+	searchParams: Promise<{ type?: string; date?: string; project?: string }>;
 }) {
 	const params = await searchParams;
 	const typeFilter = params.type || "all";
 	const dateFilter = params.date || "all";
+	const projectFilter = params.project || "all";
 
 	const [reminders, customers, birthdayPeople] = await Promise.all([
 		getReminders(),
@@ -44,6 +45,9 @@ export default async function RemindersPage({
 	const filteredReminders = reminders.filter((r) => {
 		// Type Filter
 		if (typeFilter !== "all" && r.type !== typeFilter) return false;
+		if (projectFilter !== "all" && String((r as any).project_id ?? "") !== projectFilter) {
+			return false;
+		}
 
 		// Date Filter
 		if (dateFilter !== "all") {
@@ -73,6 +77,13 @@ export default async function RemindersPage({
 
 	const pendingReminders = filteredReminders.filter((r) => !r.is_completed);
 	const completedReminders = filteredReminders.filter((r) => r.is_completed);
+	const projectOptions = Array.from(
+		new Map(
+			(reminders ?? [])
+				.filter((r: any) => r.projects?.id)
+				.map((r: any) => [r.projects.id, { id: r.projects.id, name: r.projects.name }])
+		).values()
+	);
 
 	return (
 		<div className="max-w-6xl mx-auto space-y-6 px-4 py-6 md:px-0">
@@ -141,7 +152,7 @@ export default async function RemindersPage({
 									{TYPE_FILTERS.map((filter) => (
 								<Link
 									key={filter.value}
-									href={`/reminders?type=${filter.value}&date=${dateFilter}`}
+									href={`/reminders?type=${filter.value}&date=${dateFilter}&project=${projectFilter}`}
 									className={cn(
 										"text-xs px-3 py-1.5 rounded-full border transition-colors",
 										typeFilter === filter.value
@@ -180,7 +191,7 @@ export default async function RemindersPage({
 								].map((filter) => (
 									<Link
 										key={filter.value}
-										href={`/reminders?type=${typeFilter}&date=${filter.value}`}
+										href={`/reminders?type=${typeFilter}&date=${filter.value}&project=${projectFilter}`}
 										className={cn(
 											"text-xs px-3 py-1.5 rounded-full border transition-colors",
 											dateFilter === filter.value
@@ -192,6 +203,38 @@ export default async function RemindersPage({
 									</Link>
 								))}
 							</div>
+						</div>
+					</div>
+					<div className="space-y-1.5">
+						<p className="text-[10px] font-bold uppercase text-zinc-500 ml-1">
+							Project
+						</p>
+						<div className="flex flex-wrap gap-2">
+							<Link
+								href={`/reminders?type=${typeFilter}&date=${dateFilter}&project=all`}
+								className={cn(
+									"text-xs px-3 py-1.5 rounded-full border transition-colors",
+									projectFilter === "all"
+										? "bg-zinc-900 text-white border-zinc-900"
+										: "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+								)}
+							>
+								All Projects
+							</Link>
+							{projectOptions.map((p: any) => (
+								<Link
+									key={p.id}
+									href={`/reminders?type=${typeFilter}&date=${dateFilter}&project=${p.id}`}
+									className={cn(
+										"text-xs px-3 py-1.5 rounded-full border transition-colors",
+										projectFilter === p.id
+											? "bg-zinc-900 text-white border-zinc-900"
+											: "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+									)}
+								>
+									{p.name}
+								</Link>
+							))}
 						</div>
 					</div>
 				</CardContent>

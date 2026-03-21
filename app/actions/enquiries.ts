@@ -18,6 +18,7 @@ export type EnquiryRow = {
 	details: string | null;
 	project_id: string | null;
 	project_name: string | null;
+	is_active: boolean;
 	created_at: string;
 };
 
@@ -159,6 +160,7 @@ export async function getEnquiryCustomers(): Promise<EnquiryRow[]> {
 		details: e.details,
 		project_id: e.project_id,
 		project_name: e.projects?.name ?? null,
+		is_active: !!e.is_active,
 		created_at: e.created_at,
 	})) as EnquiryRow[];
 }

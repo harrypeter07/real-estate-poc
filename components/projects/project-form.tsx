@@ -54,7 +54,6 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			name: initialData?.name ?? "",
 			location: initialData?.location ?? "",
 			total_plots_count: initialData?.total_plots_count ?? 0,
-			layout_expense: initialData?.layout_expense ?? 0,
 			min_plot_rate: initialData?.min_plot_rate ?? 0,
 			starting_plot_number: initialData?.starting_plot_number ?? 1,
 			description: initialData?.description ?? "",
@@ -90,7 +89,6 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			name: `${randomName} Phase ${randomNum}`,
 			location: `${randomLoc}, Nagpur`,
 			total_plots_count: Math.floor(Math.random() * 150) + 20,
-			layout_expense: Math.floor(Math.random() * 500000) + 50000,
 			min_plot_rate: Math.floor(Math.random() * 500) + 200,
 			starting_plot_number: 1,
 			description: `Premium land project located in the fast-growing ${randomLoc} area of Nagpur. Excellent connectivity and future appreciation potential.`,
@@ -201,33 +199,6 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 											<Input
 												type="number"
 												placeholder="e.g. 50"
-												{...field}
-												onChange={(e) => {
-													const raw = e.target.value;
-													const sanitized = raw.replace(/^0+(?=\d)/, "");
-													field.onChange(
-														sanitized === ""
-															? 0
-															: parseInt(sanitized) || 0
-													);
-												}}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="layout_expense"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Layout Expense</FormLabel>
-										<FormControl>
-											<Input
-												type="number"
-												placeholder="e.g. 50000"
 												{...field}
 												onChange={(e) => {
 													const raw = e.target.value;

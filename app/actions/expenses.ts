@@ -33,6 +33,7 @@ export async function createExpense(
 		amount: parsed.data.amount,
 		expense_date: parsed.data.expense_date,
 		category: parsed.data.category,
+		project_id: parsed.data.project_id || null,
 		receipt_note: parsed.data.receipt_note || null,
 		receipt_path: parsed.data.receipt_path || null,
 	});
@@ -51,7 +52,7 @@ export async function getExpenses() {
 
 	const { data, error } = await supabase
 		.from("office_expenses")
-		.select("*")
+		.select("*, projects(id, name)")
 		.order("expense_date", { ascending: false });
 
 	if (error) throw new Error(error.message);

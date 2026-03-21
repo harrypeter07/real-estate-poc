@@ -13,6 +13,30 @@ export type ActionResponse = {
 	error?: string;
 };
 
+async function recalcLayoutExpenseForProject(supabase: any, projectId: string) {
+	const { data: plots } = await supabase
+		.from("plots")
+		.select("size_sqft")
+		.eq("project_id", projectId);
+	const { data: project } = await supabase
+		.from("projects")
+		.select("min_plot_rate")
+		.eq("id", projectId)
+		.single();
+
+	const minRate = Number((project as any)?.min_plot_rate ?? 0);
+	const total = (plots ?? []).reduce(
+		(sum: number, p: any) =>
+			sum + (Number(p.size_sqft ?? 0) > 0 ? Number(p.size_sqft) * minRate : 0),
+		0
+	);
+
+	await supabase
+		.from("projects")
+		.update({ layout_expense: total, updated_at: new Date().toISOString() })
+		.eq("id", projectId);
+}
+
 export async function createProject(
 	values: ProjectFormValues
 ): Promise<ActionResponse> {
@@ -33,7 +57,7 @@ export async function createProject(
 			name: parsed.data.name,
 			location: parsed.data.location,
 			total_plots_count: parsed.data.total_plots_count,
-			layout_expense: parsed.data.layout_expense ?? 0,
+			layout_expense: 0,
 			min_plot_rate: parsed.data.min_plot_rate ?? 0,
 			starting_plot_number: parsed.data.starting_plot_number ?? 1,
 			description: parsed.data.description ?? "",
@@ -71,6 +95,9 @@ export async function createProject(
 			};
 		}
 	}
+	if (projectRow?.id) {
+		await recalcLayoutExpenseForProject(supabase, projectRow.id);
+	}
 
 	revalidatePath("/projects");
 	return { success: true };
@@ -97,7 +124,6 @@ export async function updateProject(
 			name: parsed.data.name,
 			location: parsed.data.location,
 			total_plots_count: parsed.data.total_plots_count,
-			layout_expense: parsed.data.layout_expense ?? 0,
 			min_plot_rate: parsed.data.min_plot_rate ?? 0,
 			starting_plot_number: parsed.data.starting_plot_number ?? 1,
 			description: parsed.data.description ?? "",
@@ -108,6 +134,7 @@ export async function updateProject(
 	if (error) {
 		return { success: false, error: error.message };
 	}
+	await recalcLayoutExpenseForProject(supabase, id);
 
 	revalidatePath("/projects");
 	revalidatePath(`/projects/${id}`);

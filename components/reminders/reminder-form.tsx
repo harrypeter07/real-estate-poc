@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 
 interface ReminderFormProps {
 	customers: any[];
+	projects?: any[];
 	initialData?: any;
 	mode?: "create" | "edit";
 	onSuccess?: () => void;
@@ -47,6 +48,7 @@ interface ReminderFormProps {
 
 export function ReminderForm({
 	customers,
+	projects = [],
 	initialData,
 	mode = "create",
 	onSuccess,
@@ -66,6 +68,7 @@ export function ReminderForm({
 				initialData?.reminder_date || new Date().toISOString().split("T")[0],
 			reminder_time: initialData?.reminder_time || "10:00",
 			customer_id: initialData?.customer_id || null,
+			project_id: initialData?.project_id || null,
 			type: initialData?.type || "other",
 			is_completed: initialData?.is_completed || false,
 		},
@@ -84,7 +87,7 @@ export function ReminderForm({
 			"Birthday Wish - Client",
 		];
 		const types: any[] = [
-			"payment",
+			"crm_followup",
 			"agreement_expiry",
 			"crm_followup",
 			"token_expiry",
@@ -245,9 +248,7 @@ export function ReminderForm({
 												<SelectItem value="birthday_advisor">
 													Birthday (Advisor)
 												</SelectItem>
-												<SelectItem value="payment">
-													Payment Follow-up
-												</SelectItem>
+												<SelectItem value="crm_followup">Payment Follow-up</SelectItem>
 												<SelectItem value="token_expiry">
 													Token Expiry
 												</SelectItem>
@@ -262,6 +263,36 @@ export function ReminderForm({
 												</SelectItem>
 												<SelectItem value="calling">Calling</SelectItem>
 												<SelectItem value="other">Other Task</SelectItem>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="project_id"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Related Project</FormLabel>
+										<Select
+											onValueChange={(value) =>
+												field.onChange(value === "none" ? null : value)
+											}
+											value={field.value || "none"}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select a project (optional)" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												<SelectItem value="none">None</SelectItem>
+												{projects.map((project) => (
+													<SelectItem key={project.id} value={project.id}>
+														{project.name}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 										<FormMessage />

@@ -24,6 +24,12 @@ export default async function AdvisorNewReminderPage() {
 		.eq("is_active", true)
 		.order("created_at", { ascending: false });
 
+	const { data: projects } = await supabase
+		.from("projects")
+		.select("id, name")
+		.eq("is_active", true)
+		.order("name", { ascending: true });
+
 	return (
 		<div className="space-y-6">
 			<PageHeader
@@ -35,6 +41,7 @@ export default async function AdvisorNewReminderPage() {
 			<div className="flex justify-center">
 				<ReminderForm
 					customers={(customers ?? []) as any[]}
+					projects={(projects ?? []) as any[]}
 					redirectTo="/advisor/reminders"
 				/>
 			</div>

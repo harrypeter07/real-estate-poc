@@ -191,6 +191,7 @@ export async function createSale(
 			description: `Follow-up for outstanding payment on plot ${plotRow.plot_number}. Remaining: ₹ ${(finance.sellingPrice - Number(parsed.data.down_payment ?? 0)).toLocaleString("en-IN")}`,
 			reminder_date: followupDate,
 			customer_id: parsed.data.customer_id,
+			project_id: plotRow.project_id,
 			sale_id: sale.id,
 		});
 	}

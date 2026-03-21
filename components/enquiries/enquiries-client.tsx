@@ -31,17 +31,29 @@ export function EnquiriesClient({
 }) {
 	const router = useRouter();
 	const [query, setQuery] = useState("");
+	const [categoryFilter, setCategoryFilter] = useState("all");
+	const [projectFilter, setProjectFilter] = useState("all");
+	const [statusFilter, setStatusFilter] = useState("all");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [tempCustomersOpen, setTempCustomersOpen] = useState(false);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		if (!q) return initialEnquiries;
 		return initialEnquiries.filter((e) => {
+			if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
+			if (projectFilter !== "all" && (e.project_id ?? "none") !== projectFilter) return false;
+			if (statusFilter === "active" && !e.is_active) return false;
+			if (statusFilter === "upgraded" && e.is_active) return false;
+			if (!q) return true;
 			const hay = `${e.name} ${e.phone} ${e.category} ${e.project_name ?? ""}`.toLowerCase();
 			return hay.includes(q);
 		});
-	}, [initialEnquiries, query]);
+	}, [initialEnquiries, query, categoryFilter, projectFilter, statusFilter]);
+
+	const categories = useMemo(
+		() => Array.from(new Set(initialEnquiries.map((e) => e.category))).sort(),
+		[initialEnquiries]
+	);
 
 	return (
 		<div className="space-y-6">
@@ -73,6 +85,40 @@ export function EnquiriesClient({
 					/>
 				</div>
 				<div className="flex items-center gap-2">
+					<select
+						className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+						value={categoryFilter}
+						onChange={(e) => setCategoryFilter(e.target.value)}
+					>
+						<option value="all">All categories</option>
+						{categories.map((c) => (
+							<option key={c} value={c}>
+								{c}
+							</option>
+						))}
+					</select>
+					<select
+						className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+						value={projectFilter}
+						onChange={(e) => setProjectFilter(e.target.value)}
+					>
+						<option value="all">All projects</option>
+						<option value="none">No project</option>
+						{projects.map((p) => (
+							<option key={p.id} value={p.id}>
+								{p.name}
+							</option>
+						))}
+					</select>
+					<select
+						className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+						value={statusFilter}
+						onChange={(e) => setStatusFilter(e.target.value)}
+					>
+						<option value="all">All status</option>
+						<option value="active">Active</option>
+						<option value="upgraded">Upgraded/Closed</option>
+					</select>
 					<Button
 						variant="outline"
 						size="sm"

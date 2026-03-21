@@ -1,9 +1,10 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { ReminderForm } from "@/components/reminders/reminder-form";
 import { getCustomers } from "@/app/actions/customers";
+import { getProjects } from "@/app/actions/project-actions";
 
 export default async function NewReminderPage() {
-  const customers = await getCustomers();
+  const [customers, projects] = await Promise.all([getCustomers(), getProjects()]);
 
   return (
     <div className="space-y-6">
@@ -13,7 +14,7 @@ export default async function NewReminderPage() {
         showBackButton
       />
       <div className="flex justify-center">
-        <ReminderForm customers={customers} />
+        <ReminderForm customers={customers} projects={projects as any[]} />
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ const TYPE_FILTERS = [
 	{ label: "All", value: "all" },
 	{ label: "Token Expiry", value: "token_expiry" },
 	{ label: "Agreement", value: "agreement_expiry" },
-	{ label: "Installment", value: "installment_due" },
+	{ label: "Payment Follow-up", value: "payment_followup" },
 	{ label: "Birthday (Customer)", value: "birthday_customer" },
 	{ label: "Birthday (Advisor)", value: "birthday_advisor" },
 	{ label: "Bank Statement", value: "bank_statement" },
@@ -30,6 +30,8 @@ export default async function RemindersPage({
 }) {
 	const params = await searchParams;
 	const typeFilter = params.type || "all";
+	const normalizedTypeFilter =
+		typeFilter === "payment_followup" ? "installment_due" : typeFilter;
 	const dateFilter = params.date || "all";
 	const projectFilter = params.project || "all";
 
@@ -44,7 +46,7 @@ export default async function RemindersPage({
 
 	const filteredReminders = reminders.filter((r) => {
 		// Type Filter
-		if (typeFilter !== "all" && r.type !== typeFilter) return false;
+		if (normalizedTypeFilter !== "all" && r.type !== normalizedTypeFilter) return false;
 		if (projectFilter !== "all" && String((r as any).project_id ?? "") !== projectFilter) {
 			return false;
 		}

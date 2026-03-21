@@ -248,15 +248,14 @@ export function ReminderForm({
 												<SelectItem value="birthday_advisor">
 													Birthday (Advisor)
 												</SelectItem>
-												<SelectItem value="crm_followup">Payment Follow-up</SelectItem>
+												<SelectItem value="installment_due">
+													Payment Follow-up
+												</SelectItem>
 												<SelectItem value="token_expiry">
 													Token Expiry
 												</SelectItem>
 												<SelectItem value="agreement_expiry">
 													Agreement Expiry
-												</SelectItem>
-												<SelectItem value="installment_due">
-													Installment Due
 												</SelectItem>
 												<SelectItem value="crm_followup">
 													CRM Follow-up

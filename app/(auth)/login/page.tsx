@@ -65,6 +65,7 @@ export default function LoginPage() {
 		>
 			{/* Background image (login screen only) */}
 			<div
+				suppressHydrationWarning
 				aria-hidden
 				className="absolute inset-0 bg-cover bg-center"
 				style={{ backgroundImage: "url('/bg.png')" }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -42,7 +42,8 @@ export function EnquiryCreateModal({
 }) {
 	const router = useRouter();
 	const [saving, setSaving] = useState(false);
-	const [form, setForm] = useState<Omit<EnquiryCustomerFormValues, "is_active"> & { is_active: boolean }>({
+
+	const emptyForm: Omit<EnquiryCustomerFormValues, "is_active"> & { is_active: boolean } = {
 		name: "",
 		phone: "",
 		alternate_phone: "",
@@ -52,7 +53,18 @@ export function EnquiryCreateModal({
 		category: "General",
 		details: "",
 		is_active: true,
+	};
+
+	const [form, setForm] = useState<Omit<EnquiryCustomerFormValues, "is_active"> & { is_active: boolean }>({
+		...emptyForm,
 	});
+
+	// When user clicks "New Enquiry" again, ensure we start with a fresh form.
+	useEffect(() => {
+		if (!open) return;
+		setForm({ ...emptyForm });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open]);
 
 	const projectOptions = useMemo(
 		() =>
@@ -81,6 +93,8 @@ export function EnquiryCreateModal({
 			}
 
 			toast.success(res.reusedEnquiry ? "Enquiry updated" : "Enquiry created");
+			// Clear local form so next open starts empty.
+			setForm({ ...emptyForm });
 			onOpenChange(false);
 			router.refresh();
 		} finally {

@@ -19,7 +19,7 @@ import {
 	SelectValue,
 } from "@/components/ui";
 import type { EnquiryCustomerFormValues } from "@/lib/validations/enquiry";
-import { createEnquiryCustomer } from "@/app/actions/enquiries";
+import { createEnquiryCustomer, getTempCustomersByPhone } from "@/app/actions/enquiries";
 
 const CATEGORY_OPTIONS = [
 	"General",
@@ -59,10 +59,24 @@ export function EnquiryCreateModal({
 		...emptyForm,
 	});
 
+	const [tempCustomers, setTempCustomers] = useState<
+		Array<{
+			id: string;
+			name: string;
+			phone: string;
+			alternate_phone: string | null;
+			address: string | null;
+			birth_date: string | null;
+		}>
+	>([]);
+	const [selectedTempCustomerId, setSelectedTempCustomerId] = useState<string>("none");
+
 	// When user clicks "New Enquiry" again, ensure we start with a fresh form.
 	useEffect(() => {
 		if (!open) return;
 		setForm({ ...emptyForm });
+		setTempCustomers([]);
+		setSelectedTempCustomerId("none");
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open]);
 
@@ -74,6 +88,59 @@ export function EnquiryCreateModal({
 			})),
 		[projects]
 	);
+
+	// When phone becomes 10 digits, load matching temporary customers.
+	useEffect(() => {
+		const phone = form.phone.replace(/\D/g, "");
+		if (phone.length !== 10) {
+			setTempCustomers([]);
+			setSelectedTempCustomerId("none");
+			return;
+		}
+
+		void (async () => {
+			try {
+				const rows = await getTempCustomersByPhone(phone);
+				setTempCustomers(rows);
+
+				if (rows.length > 0) {
+					const first = rows[0];
+					setSelectedTempCustomerId(first.id);
+					setForm((s) => ({
+						...s,
+						// Fill ONLY customer fields.
+						name: first.name ?? s.name,
+						alternate_phone: first.alternate_phone ?? "",
+						address: first.address ?? "",
+						birth_date: (first.birth_date ?? null) as any,
+						phone: first.phone ?? s.phone,
+					}));
+				} else {
+					setSelectedTempCustomerId("none");
+				}
+			} catch {
+				setTempCustomers([]);
+				setSelectedTempCustomerId("none");
+			}
+		})();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [form.phone]);
+
+	// If user manually picks a temp customer, fill customer-related fields only.
+	useEffect(() => {
+		if (selectedTempCustomerId === "none") return;
+		const found = tempCustomers.find((c) => c.id === selectedTempCustomerId);
+		if (!found) return;
+
+		setForm((s) => ({
+			...s,
+			name: found.name ?? s.name,
+			alternate_phone: found.alternate_phone ?? "",
+			address: found.address ?? "",
+			birth_date: (found.birth_date ?? null) as any,
+		}));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedTempCustomerId]);
 
 	async function onSubmit() {
 		setSaving(true);
@@ -92,7 +159,7 @@ export function EnquiryCreateModal({
 				return;
 			}
 
-			toast.success(res.reusedEnquiry ? "Enquiry updated" : "Enquiry created");
+			toast.success("Enquiry created");
 			// Clear local form so next open starts empty.
 			setForm({ ...emptyForm });
 			onOpenChange(false);
@@ -147,6 +214,29 @@ export function EnquiryCreateModal({
 									}))
 								}
 							/>
+
+							{tempCustomers.length > 0 && (
+								<div className="space-y-2 pt-1">
+									<div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+										Match temp customer
+									</div>
+									<Select
+										value={selectedTempCustomerId}
+										onValueChange={(v) => setSelectedTempCustomerId(v)}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select customer" />
+										</SelectTrigger>
+										<SelectContent>
+											{tempCustomers.map((c) => (
+												<SelectItem key={c.id} value={c.id}>
+													{c.name} ({c.phone})
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							)}
 						</div>
 						<div className="space-y-2">
 							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">

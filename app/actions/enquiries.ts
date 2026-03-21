@@ -214,7 +214,9 @@ export async function createEnquiryCustomer(
 	let customerId: string;
 	if (existingCustomer?.id) {
 		customerId = existingCustomer.id;
-		const shouldSetTempLink = !existingCustomer.enquiry_temp_id;
+		// If this is still a temporary customer, always link it to the latest enquiry
+		// for that phone. Permanent customers keep their existing linkage (if any).
+		const shouldSetTempLink = existingCustomer.is_active === false;
 		const { error: custUpdErr } = await supabase
 			.from("customers")
 			.update({

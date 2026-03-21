@@ -18,7 +18,7 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import type { EnquiryRow } from "@/app/actions/enquiries";
 import { EnquiryCreateModal } from "@/components/enquiries/enquiry-create-modal";
-import { EnquiryUpgradeModal } from "@/components/enquiries/enquiry-upgrade-modal";
+import { EnquiryTempCustomersModal } from "@/components/enquiries/enquiry-temp-customers-modal";
 import { Calendar, Building2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -32,8 +32,7 @@ export function EnquiriesClient({
 	const router = useRouter();
 	const [query, setQuery] = useState("");
 	const [createOpen, setCreateOpen] = useState(false);
-	const [upgradeOpen, setUpgradeOpen] = useState(false);
-	const [selectedEnquiry, setSelectedEnquiry] = useState<EnquiryRow | null>(null);
+	const [tempCustomersOpen, setTempCustomersOpen] = useState(false);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -50,9 +49,18 @@ export function EnquiriesClient({
 				title="Enquiries"
 				subtitle={`${initialEnquiries.length} temporary leads`}
 				action={
-					<Button size="sm" onClick={() => setCreateOpen(true)}>
-						New Enquiry
-					</Button>
+					<div className="flex gap-2 flex-wrap">
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() => setTempCustomersOpen(true)}
+						>
+							Enquiry Customers
+						</Button>
+						<Button size="sm" onClick={() => setCreateOpen(true)}>
+							New Enquiry
+						</Button>
+					</div>
 				}
 			/>
 
@@ -82,18 +90,17 @@ export function EnquiriesClient({
 				<CardContent className="p-0 overflow-x-auto">
 					<Table>
 						<TableHeader>
-							<TableRow>
-								<TableHead>Customer</TableHead>
-								<TableHead>Enquiry</TableHead>
-								<TableHead>Project</TableHead>
-								<TableHead>Date</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
-							</TableRow>
+								<TableRow>
+									<TableHead>Customer</TableHead>
+									<TableHead>Enquiry</TableHead>
+									<TableHead>Project</TableHead>
+									<TableHead>Date</TableHead>
+								</TableRow>
 						</TableHeader>
 						<TableBody>
 							{filtered.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={5} className="text-center text-zinc-500 py-10">
+									<TableCell colSpan={4} className="text-center text-zinc-500 py-10">
 										No enquiries found.
 									</TableCell>
 								</TableRow>
@@ -131,21 +138,6 @@ export function EnquiriesClient({
 												{String(enq.created_at).slice(0, 10)}
 											</div>
 										</TableCell>
-										<TableCell className="text-right">
-											<div className="flex justify-end gap-2">
-												<Button
-													type="button"
-													size="sm"
-													variant="outline"
-													onClick={() => {
-														setSelectedEnquiry(enq);
-														setUpgradeOpen(true);
-													}}
-												>
-													View Customers
-												</Button>
-											</div>
-										</TableCell>
 									</TableRow>
 								))
 							)}
@@ -159,16 +151,11 @@ export function EnquiriesClient({
 				onOpenChange={setCreateOpen}
 				projects={projects}
 			/>
-			{selectedEnquiry && (
-				<EnquiryUpgradeModal
-					open={upgradeOpen}
-					onOpenChange={(v) => {
-						setUpgradeOpen(v);
-						if (!v) setSelectedEnquiry(null);
-					}}
-					enquiry={selectedEnquiry}
-				/>
-			)}
+
+			<EnquiryTempCustomersModal
+				open={tempCustomersOpen}
+				onOpenChange={setTempCustomersOpen}
+			/>
 		</div>
 	);
 }

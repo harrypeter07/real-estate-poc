@@ -8,6 +8,7 @@ import { calculateFinance } from "@/lib/utils/finance";
 export type ActionResponse = {
 	success: boolean;
 	error?: string;
+	saleId?: string;
 };
 
 export async function createSale(
@@ -37,39 +38,41 @@ export async function createSale(
 
 	const minRate = Number((plotRow as any).projects?.min_plot_rate ?? 0);
 	const plotSize = Number(plotRow.size_sqft ?? 0);
+	const soldByAdmin = parsed.data.sold_by_admin ?? false;
 
-	// Advisor must be assigned to this project (project-wise commission)
-	const { data: assignment } = await supabase
-		.from("advisor_project_commissions")
-		.select("*")
-		.eq("project_id", plotRow.project_id)
-		.eq("advisor_id", parsed.data.advisor_id)
-		.maybeSingle();
+	let faceRate = minRate;
+	if (!soldByAdmin) {
+		// Advisor must be assigned to this project (project-wise commission)
+		const { data: assignment } = await supabase
+			.from("advisor_project_commissions")
+			.select("*")
+			.eq("project_id", plotRow.project_id)
+			.eq("advisor_id", parsed.data.advisor_id ?? "")
+			.maybeSingle();
 
-	if (!assignment) {
-		return {
-			success: false,
-			error:
-				"Advisor is not assigned to this project. Assign advisor in the project dashboard first.",
-		};
-	}
+		if (!assignment) {
+			return {
+				success: false,
+				error:
+					"Advisor is not assigned to this project. Assign advisor in the project dashboard first.",
+			};
+		}
 
-	// Advisor rate must be >= base rate (project minimum)
-	// After schema change, we use a single commission_rate irrespective of sale phase.
-	const faceRate = Number(
-		(assignment as any).commission_rate ??
-			(assignment as any).commission_token ??
-			0
-	);
-	if (minRate > 0 && faceRate > 0 && faceRate < minRate) {
-		return {
-			success: false,
-			error: `Advisor rate (₹ ${faceRate.toLocaleString(
-				"en-IN",
-			)}/sqft) cannot be less than base rate (₹ ${minRate.toLocaleString(
-				"en-IN",
-			)}/sqft). Update the advisor assignment rates for this project.`,
-		};
+		faceRate = Number(
+			(assignment as any).commission_rate ??
+				(assignment as any).commission_token ??
+				0
+		);
+		if (minRate > 0 && faceRate > 0 && faceRate < minRate) {
+			return {
+				success: false,
+				error: `Advisor rate (₹ ${faceRate.toLocaleString(
+					"en-IN",
+				)}/sqft) cannot be less than base rate (₹ ${minRate.toLocaleString(
+					"en-IN",
+				)}/sqft). Update the advisor assignment rates for this project.`,
+			};
+		}
 	}
 
 	const finance = calculateFinance({
@@ -89,15 +92,16 @@ export async function createSale(
 		.insert({
 			plot_id: parsed.data.plot_id,
 			customer_id: parsed.data.customer_id,
-			advisor_id: parsed.data.advisor_id,
+			advisor_id: soldByAdmin ? null : (parsed.data.advisor_id ?? null),
+			sold_by_admin: soldByAdmin,
 			sale_phase: parsed.data.sale_phase,
 			token_date: parsed.data.token_date || null,
 			agreement_date: parsed.data.agreement_date || null,
-			// selling_price is auto-calculated (advisor_rate * size)
 			total_sale_amount: finance.sellingPrice,
 			down_payment: parsed.data.down_payment,
 			monthly_emi: parsed.data.monthly_emi || null,
 			emi_day: parsed.data.emi_day || null,
+			followup_date: parsed.data.followup_date || null,
 			notes: parsed.data.notes || null,
 		})
 		.select()
@@ -156,24 +160,46 @@ export async function createSale(
 		}
 	}
 
-	// 3. Create commission record (profit-share based on payments)
-	// advisor_earning_now = profit_total * min(1, confirmed_received / selling_price)
-	const profitTotal = finance.profit;
+	// 3. Create commission record only when sold by advisor (not admin)
+	if (!soldByAdmin && parsed.data.advisor_id) {
+		const profitTotal = finance.profit;
+		await supabase.from("advisor_commissions").insert({
+			advisor_id: parsed.data.advisor_id,
+			sale_id: sale.id,
+			commission_percentage: 0,
+			total_commission_amount: profitTotal,
+			amount_paid: 0,
+			notes: `Earning based on profit-share for plot ${plotRow.plot_number}`,
+		});
+	}
 
-	await supabase.from("advisor_commissions").insert({
-		advisor_id: parsed.data.advisor_id,
-		sale_id: sale.id,
-		commission_percentage: 0,
-		// stores total profit pool for payout eligibility calculations
-		total_commission_amount: profitTotal,
-		amount_paid: 0,
-		notes: `Earning based on profit-share for plot ${plotRow.plot_number}`,
-	});
+	// 4. Create follow-up reminder when followup_date is provided
+	const followupDate = parsed.data.followup_date?.trim();
+	if (followupDate) {
+		const { data: custRow } = await supabase
+			.from("customers")
+			.select("name, phone")
+			.eq("id", parsed.data.customer_id)
+			.single();
+		const custName = (custRow as any)?.name ?? "Customer";
+		const custPhone = (custRow as any)?.phone ?? null;
+		const projName = (plotRow as any).projects?.name ?? "";
+		await supabase.from("reminders").insert({
+			title: `Payment follow-up - ${custName} (${plotRow.plot_number}${projName ? `, ${projName}` : ""})`,
+			type: "installment_due",
+			phone: custPhone,
+			description: `Follow-up for outstanding payment on plot ${plotRow.plot_number}. Remaining: ₹ ${(finance.sellingPrice - Number(parsed.data.down_payment ?? 0)).toLocaleString("en-IN")}`,
+			reminder_date: followupDate,
+			customer_id: parsed.data.customer_id,
+			sale_id: sale.id,
+		});
+	}
 
 	revalidatePath("/sales");
+	revalidatePath("/reminders");
 	revalidatePath("/commissions");
 	revalidatePath(`/projects`);
-	return { success: true };
+	return { success: true, saleId: sale.id };
 }
 
 export async function getSales() {

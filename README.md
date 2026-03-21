@@ -147,3 +147,19 @@ npm install
 npm run dev
 ```
 
+---
+
+## 9) Recent Features
+
+- **Customer advisor "Not assigned"**: When no advisor selected, shows "Not assigned" on cards.
+- **Admin direct sell**: Sale form "Sold By" → Admin (Direct); uses plot min rate, no commission.
+- **EMI & Follow-up**: Sale form supports EMI months (auto-fills monthly EMI), follow-up date (creates reminder).
+- **EMI Modal**: Payments page "EMI" button → list of EMI sales, next due, Remind via WhatsApp.
+- **Reminders "EMI Pending Today"**: Badge on installment-due reminders when date is today.
+- **Receipt generation**: Post-sale Share Receipt modal; generate HTML receipt, share via WhatsApp.
+- **Share Receipt (payments)**: Payment detail panel has Share Receipt button when receipt exists.
+- **Dashboard / Reports swap**: Dashboard = full analytics; Reports = project selector + project-specific analytics.
+- **Sold by Admin/Advisor**: Reports Top Advisors shows "Admin (Direct)" for admin sales.
+
+See [docs/FEATURES.md](docs/FEATURES.md) for full UI, API, forms, modals, and edge cases.
+

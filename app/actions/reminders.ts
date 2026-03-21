@@ -246,7 +246,8 @@ export async function getReminders() {
 						.select(
 							`
             *,
-            customers(name, phone)
+            customers(name, phone),
+            plot_sales(id, emi_day, monthly_emi, remaining_amount)
           `
 						)
 						.in("customer_id", customerIds)
@@ -256,7 +257,8 @@ export async function getReminders() {
 				.select(
 					`
           *,
-          customers(name, phone)
+          customers(name, phone),
+          plot_sales(id, emi_day, monthly_emi, remaining_amount)
         `
 				)
 				.is("customer_id", null),
@@ -279,7 +281,8 @@ export async function getReminders() {
 		.select(
 			`
       *,
-      customers(name, phone)
+      customers(name, phone),
+      plot_sales(id, emi_day, monthly_emi, remaining_amount)
     `
 		)
 		.order("reminder_date", { ascending: true });

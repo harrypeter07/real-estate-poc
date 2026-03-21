@@ -88,11 +88,15 @@ export function CustomerForm({
   async function onSubmit(values: CustomerFormValues) {
     setLoading(true);
     try {
+      const payload = {
+        ...values,
+        advisor_id: values.advisor_id === "none" ? null : values.advisor_id,
+      };
       let result;
       if (mode === "edit" && initialData?.id) {
-        result = await updateCustomer(initialData.id, values);
+        result = await updateCustomer(initialData.id, payload);
       } else {
-        result = await createCustomer(values);
+        result = await createCustomer(payload);
       }
 
       if (!result.success) {
@@ -192,15 +196,15 @@ export function CustomerForm({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField
+                <FormField
                 control={form.control}
                 name="advisor_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Referred By (Advisor)</FormLabel>
                     <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value || undefined}
+                      onValueChange={(v) => field.onChange(v === "none" ? null : v)} 
+                      value={field.value ?? "none"}
                     >
                       <FormControl>
                         <SelectTrigger>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -29,6 +28,7 @@ import {
 } from "@/components/ui";
 import { saleSchema, type SaleFormValues } from "@/lib/validations/sale";
 import { createSale } from "@/app/actions/sales";
+import { ShareReceiptModal } from "./share-receipt-modal";
 import { formatCurrency, formatCurrencyShort } from "@/lib/utils/formatters";
 import { calculateFinance } from "@/lib/utils/finance";
 
@@ -51,28 +51,31 @@ export function SaleForm({
   initialPlotId,
   advisorAssignments,
 }: SaleFormProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [shareModal, setShareModal] = useState<{ saleId: string; customerPhone?: string | null; customerName?: string | null } | null>(null);
 
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
     defaultValues: {
       plot_id: initialPlotId || "",
       customer_id: "",
-      advisor_id: "",
+      sold_by_admin: false,
+      advisor_id: "" as string | null,
       sale_phase: "token",
       token_date: new Date().toISOString().split('T')[0],
       agreement_date: "",
-      // Keep amount fields visually blank until user/plot sets them.
       total_sale_amount: undefined as any,
       down_payment: undefined as any,
+      emi_months: undefined as any,
       monthly_emi: undefined as any,
       emi_day: 5,
+      followup_date: "",
       notes: "",
     },
   });
 
   const selectedPlotId = form.watch("plot_id");
+  const soldByAdmin = form.watch("sold_by_admin");
   const selectedAdvisorId = form.watch("advisor_id");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
   const downPayment = form.watch("down_payment") ?? 0;
@@ -105,12 +108,13 @@ export function SaleForm({
   }, [advisorAssignments, selectedProjectId]);
 
   const filteredPlots = useMemo(() => {
+    if (soldByAdmin) return plots;
     if (!allowedProjectIdsForAdvisor) return plots;
     return plots.filter((p) => {
       const pid = p.project_id ?? p.projects?.id;
       return pid ? allowedProjectIdsForAdvisor.has(pid) : false;
     });
-  }, [allowedProjectIdsForAdvisor, plots]);
+  }, [allowedProjectIdsForAdvisor, plots, soldByAdmin]);
 
   const filteredAdvisors = useMemo(() => {
     if (!allowedAdvisorIdsForProject) return advisors;
@@ -139,6 +143,19 @@ export function SaleForm({
     }
   }, [allowedAdvisorIdsForProject, form, selectedAdvisorId]);
 
+  useEffect(() => {
+    if (soldByAdmin) form.setValue("advisor_id", null);
+  }, [soldByAdmin, form]);
+
+  // Auto-compute monthly_emi from emi_months when remaining > 0
+  useEffect(() => {
+    const months = Number(emiMonths);
+    if (months >= 1 && remaining > 0) {
+      const computed = Math.ceil(remaining / months);
+      form.setValue("monthly_emi", computed);
+    }
+  }, [emiMonths, remaining, form]);
+
   const plotSize = Number(selectedPlot?.size_sqft ?? 0);
   const projectMinRatePerSqft = Number(
     selectedPlot?.projects?.min_plot_rate ?? 0
@@ -154,17 +171,20 @@ export function SaleForm({
   }, [advisorAssignments, selectedAdvisorId, selectedProjectId]);
 
   const assignedFaceRatePerSqft = (() => {
+    if (soldByAdmin && selectedPlot) return projectMinRatePerSqft;
     if (!advisorAssignment) return 0;
     return Number((advisorAssignment as any).commission_rate ?? 0);
   })();
 
   const advisorRateInvalid =
+    !soldByAdmin &&
     !!selectedPlot &&
     assignedFaceRatePerSqft > 0 &&
     projectMinRatePerSqft > 0 &&
     assignedFaceRatePerSqft < projectMinRatePerSqft;
 
   const receivedNow = Number(downPayment ?? 0);
+  const emiMonths = form.watch("emi_months");
   const finance = useMemo(() => {
     const safeZero = {
       baseTotal: 0,
@@ -180,33 +200,35 @@ export function SaleForm({
 
     if (plotSize <= 0) return safeZero;
     if (projectMinRatePerSqft <= 0) return safeZero;
-    if (assignedFaceRatePerSqft <= 0) return safeZero;
-    if (assignedFaceRatePerSqft < projectMinRatePerSqft) return safeZero;
+    const rate = soldByAdmin ? projectMinRatePerSqft : assignedFaceRatePerSqft;
+    if (rate <= 0) return safeZero;
+    if (!soldByAdmin && rate < projectMinRatePerSqft) return safeZero;
     if (receivedNow < 0) return safeZero;
 
     try {
       return calculateFinance({
         plotSizeSqft: plotSize,
         baseRatePerSqft: projectMinRatePerSqft,
-        advisorRatePerSqft: assignedFaceRatePerSqft,
+        advisorRatePerSqft: rate,
         downPayment: receivedNow,
         otherPayments: 0,
       });
     } catch {
       return safeZero;
     }
-  }, [assignedFaceRatePerSqft, plotSize, projectMinRatePerSqft, receivedNow]);
+  }, [assignedFaceRatePerSqft, plotSize, projectMinRatePerSqft, receivedNow, soldByAdmin]);
 
-  // Auto-fill selling price when plot/advisor/phase changes (selling_price = advisor_rate * size)
+  // Auto-fill selling price when plot/advisor/phase changes
   useEffect(() => {
     if (!selectedPlotId) return;
-    if (!selectedAdvisorId) return;
     if (plotSize <= 0) return;
-    if (assignedFaceRatePerSqft <= 0) return;
+    const rate = soldByAdmin ? projectMinRatePerSqft : assignedFaceRatePerSqft;
+    if (rate <= 0) return;
+    if (!soldByAdmin && !selectedAdvisorId) return;
     const selling = calculateFinance({
       plotSizeSqft: plotSize,
       baseRatePerSqft: projectMinRatePerSqft,
-      advisorRatePerSqft: assignedFaceRatePerSqft,
+      advisorRatePerSqft: rate,
       downPayment: 0,
       otherPayments: 0,
     }).sellingPrice;
@@ -218,6 +240,7 @@ export function SaleForm({
     projectMinRatePerSqft,
     selectedAdvisorId,
     selectedPlotId,
+    soldByAdmin,
   ]);
 
   const fillMockData = () => {
@@ -246,13 +269,16 @@ export function SaleForm({
     form.reset({
       plot_id: randomPlot.id,
       customer_id: randomCustomer.id,
+      sold_by_admin: false,
       advisor_id: randomAdvisor.id,
       sale_phase: "token",
       token_date: new Date().toISOString().split('T')[0],
       total_sale_amount: selling || undefined,
       down_payment: selling ? Math.floor(selling * 0.1) : undefined,
-      monthly_emi: selling ? Math.floor(selling * 0.02) : undefined,
+      emi_months: 12,
+      monthly_emi: selling ? Math.floor((selling * 0.9) / 12) : undefined,
       emi_day: 5,
+      followup_date: "",
       notes: "Mock sale generated for testing Nagpur project.",
     });
   };
@@ -267,8 +293,16 @@ export function SaleForm({
       }
 
       toast.success("Sale recorded successfully");
-      router.push("/sales");
-      router.refresh();
+      const customer = customers.find((c) => c.id === values.customer_id);
+      if (result.saleId) {
+        setShareModal({
+          saleId: result.saleId,
+          customerPhone: customer?.phone ?? null,
+          customerName: customer?.name ?? null,
+        });
+      } else {
+        setShareModal(null);
+      }
     } catch (err) {
       toast.error("Something went wrong");
     } finally {
@@ -349,28 +383,55 @@ export function SaleForm({
 
                 <FormField
                   control={form.control}
-                  name="advisor_id"
+                  name="sold_by_admin"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Select Advisor *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Sold By</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(v === "admin")}
+                        value={field.value ? "admin" : "advisor"}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Choose channel partner" />
+                            <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {filteredAdvisors.map((advisor) => (
-                            <SelectItem key={advisor.id} value={advisor.id}>
-                              {advisor.name} ({advisor.code})
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="advisor">Advisor</SelectItem>
+                          <SelectItem value="admin">Admin (Direct)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {!soldByAdmin && (
+                  <FormField
+                    control={form.control}
+                    name="advisor_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Advisor *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose channel partner" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {filteredAdvisors.map((advisor) => (
+                              <SelectItem key={advisor.id} value={advisor.id}>
+                                {advisor.name} ({advisor.code})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
                   Sale Details
@@ -508,10 +569,27 @@ export function SaleForm({
                   </div>
                 </div>
 
+                {remaining > 0 && (
+                  <FormField
+                    control={form.control}
+                    name="followup_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Follow-up Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value ?? ""} placeholder="Next payment follow-up" />
+                        </FormControl>
+                        <p className="text-[11px] text-zinc-500">Reminder will be created for this date</p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 {selectedPlot ? (
                   <div className="rounded-lg bg-zinc-50 p-3 border border-zinc-200 space-y-2">
                     <h4 className="text-xs font-semibold text-zinc-700 uppercase tracking-wide">
-                      Pricing, Profit & Advisor Earnings
+                      {soldByAdmin ? "Pricing (Admin Direct - No Commission)" : "Pricing, Profit & Advisor Earnings"}
                     </h4>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -542,7 +620,7 @@ export function SaleForm({
                       </div>
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                          Advisor Rate / sqft
+                          {soldByAdmin ? "Admin (Min Rate) / sqft" : "Advisor Rate / sqft"}
                         </div>
                         <div className="font-semibold text-zinc-900 text-right">
                           {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
@@ -563,25 +641,29 @@ export function SaleForm({
                         </div>
                       </div>
 
-                      <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                          Total Profit
-                        </div>
-                        <div className="font-semibold text-zinc-900">
-                          {formatCurrency(finance.profit)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                          Advisor Earned (Based on Received)
-                        </div>
-                        <div className="font-semibold text-zinc-900 text-right">
-                          {formatCurrency(finance.advisorEarned)}
-                        </div>
-                        <div className="text-[11px] text-zinc-500 text-right">
-                          Remaining potential: {formatCurrency(finance.remainingPotential)}
-                        </div>
-                      </div>
+                      {!soldByAdmin && (
+                        <>
+                          <div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                              Total Profit
+                            </div>
+                            <div className="font-semibold text-zinc-900">
+                              {formatCurrency(finance.profit)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
+                              Advisor Earned (Based on Received)
+                            </div>
+                            <div className="font-semibold text-zinc-900 text-right">
+                              {formatCurrency(finance.advisorEarned)}
+                            </div>
+                            <div className="text-[11px] text-zinc-500 text-right">
+                              Remaining potential: {formatCurrency(finance.remainingPotential)}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="pt-1">
@@ -601,7 +683,34 @@ export function SaleForm({
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {remaining > 0 && (
+                    <FormField
+                      control={form.control}
+                      name="emi_months"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>EMI Months</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              value={field.value ?? ""}
+                              placeholder="e.g. 12"
+                              min={1}
+                              max={120}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                field.onChange(v === "" ? undefined : Number(v));
+                              }}
+                            />
+                          </FormControl>
+                          <p className="text-[11px] text-zinc-500">Auto-fills monthly EMI</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <FormField
                     control={form.control}
                     name="monthly_emi"
@@ -653,7 +762,7 @@ export function SaleForm({
             </div>
 
             <div className="flex gap-3 pt-3 border-t">
-              <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
               <Button type="submit" disabled={loading || advisorRateInvalid} className="min-w-[120px]">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm Sale
@@ -663,5 +772,15 @@ export function SaleForm({
         </Form>
       </CardContent>
     </Card>
+
+    {shareModal && (
+      <ShareReceiptModal
+        open={!!shareModal}
+        onOpenChange={(o) => !o && setShareModal(null)}
+        saleId={shareModal.saleId}
+        customerPhone={shareModal.customerPhone}
+        customerName={shareModal.customerName}
+      />
+    )}
   );
 }

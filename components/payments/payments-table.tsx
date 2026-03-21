@@ -7,6 +7,7 @@ import {
   CreditCard,
   Home,
   User,
+  Share2,
 } from "lucide-react";
 import {
   Badge,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { ReceiptViewer } from "@/components/shared/receipt-viewer";
+import { getReceiptUrlByPath } from "@/app/actions/receipts";
 
 export function PaymentsTable({ payments }: { payments: any[] }) {
   const [selected, setSelected] = useState<any | null>(null);
@@ -177,9 +179,15 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
               </div>
 
               <div className="space-y-2">
+                {(selected.receipt_path || selected.plot_sales?.receipt_path) && (
+                  <ShareReceiptButton
+                    receiptPath={selected.plot_sales?.receipt_path ?? selected.receipt_path}
+                    customerPhone={selected.customers?.phone}
+                  />
+                )}
                 <ReceiptViewer
-                  receiptPath={selected.receipt_path}
-                  title="Receipt image"
+                  receiptPath={selected.receipt_path ?? selected.plot_sales?.receipt_path}
+                  title="Receipt"
                 />
               </div>
             </div>
@@ -187,6 +195,49 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function ShareReceiptButton({
+  receiptPath,
+  customerPhone,
+}: {
+  receiptPath: string | null | undefined;
+  customerPhone: string | null | undefined;
+}) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="w-full gap-2 text-green-600 border-green-200 hover:bg-green-50"
+      disabled={loading || !receiptPath}
+      onClick={async () => {
+        if (!receiptPath) return;
+        setLoading(true);
+        try {
+          const url = await getReceiptUrlByPath(receiptPath);
+          const phone = customerPhone?.replace(/\D/g, "") ?? "";
+          const withCode = phone.startsWith("91") ? phone : `91${phone}`;
+          const msg = url
+            ? `Hi, please find your receipt: ${url}`
+            : "Hi, please find your receipt.";
+          if (phone) {
+            window.open(
+              `https://wa.me/${withCode}?text=${encodeURIComponent(msg)}`,
+              "_blank"
+            );
+          } else if (url) {
+            await navigator.clipboard.writeText(url);
+          }
+        } finally {
+          setLoading(false);
+        }
+      }}
+    >
+      <Share2 className="h-4 w-4" />
+      {loading ? "Loading…" : "Share Receipt via WhatsApp"}
+    </Button>
   );
 }
 

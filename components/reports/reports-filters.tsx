@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input } from "@/components/ui";
 import { Loader2 } from "lucide-react";
 
-export function ReportsFilters() {
+export function ReportsFilters({ basePath = "/reports" }: { basePath?: string }) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const searchParams = useSearchParams();
@@ -24,7 +24,7 @@ export function ReportsFilters() {
 		if (start) params.set("from", start);
 		if (end) params.set("to", end);
 		startTransition(() => {
-			router.push(`/reports?${params.toString()}`);
+			router.push(`${basePath}?${params.toString()}`);
 		});
 	}
 

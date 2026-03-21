@@ -1,15 +1,11 @@
 import Link from "next/link";
-import {
-	Plus,
-	CreditCard,
-} from "lucide-react";
-import {
-	Button,
-} from "@/components/ui";
+import { Plus, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
 import { getPayments } from "@/app/actions/payments";
 import { PaymentsTable } from "@/components/payments/payments-table";
 import { PaymentsFilters } from "@/components/payments/payments-filters";
+import { PaymentsPageActions } from "@/components/payments/payments-page-actions";
 
 export default async function PaymentsPage({
 	searchParams,
@@ -64,14 +60,7 @@ export default async function PaymentsPage({
 			<PageHeader
 				title="Payments"
 				subtitle={`${filteredPayments.length} transactions processed`}
-				action={
-					<Link href="/payments/new">
-						<Button size="sm">
-							<Plus className="h-4 w-4 mr-2" />
-							Record Payment
-						</Button>
-					</Link>
-				}
+				action={<PaymentsPageActions />}
 			/>
 
 			<PaymentsFilters />

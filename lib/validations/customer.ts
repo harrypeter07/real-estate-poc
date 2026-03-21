@@ -14,7 +14,10 @@ export const customerSchema = z.object({
     }),
   address: z.string().optional().default(""),
   birth_date: z.string().optional().nullable(),
-  advisor_id: z.string().uuid("Invalid advisor selected").optional().nullable(),
+  advisor_id: z.preprocess(
+    (v) => (v === "none" || v === "" ? null : v),
+    z.string().uuid("Invalid advisor selected").optional().nullable()
+  ),
   route: z.string().optional().default(""),
   notes: z.string().optional().default(""),
   is_active: z.boolean().default(true),

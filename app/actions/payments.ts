@@ -91,8 +91,9 @@ export async function getPayments() {
 		.select(
 			`
       *,
-      customers(name),
+      customers(name, phone),
       plot_sales(
+        receipt_path,
         plots(plot_number, projects(name))
       )
     `

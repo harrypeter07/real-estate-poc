@@ -55,17 +55,15 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 						<span>{customer.phone}</span>
 					</div>
 
-					{customer.advisors && (
-						<div className="pt-2 border-t flex items-center justify-between">
-							<div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-								<UserCheck className="h-3.5 w-3.5" />
-								<span>Advisor</span>
-							</div>
-							<span className="text-xs font-medium text-zinc-700">
-								{customer.advisors.name}
-							</span>
+					<div className="pt-2 border-t flex items-center justify-between">
+						<div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+							<UserCheck className="h-3.5 w-3.5" />
+							<span>Advisor</span>
 						</div>
-					)}
+						<span className="text-xs font-medium text-zinc-700">
+							{customer.advisors?.name ?? "Not assigned"}
+						</span>
+					</div>
 
 					<div className="pt-2 border-t flex items-center justify-between">
 						<span className="text-xs font-medium text-zinc-500">Added by</span>

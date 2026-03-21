@@ -110,17 +110,19 @@ export async function getReportStats(filters?: ReportFilters) {
 		revenueByPhase[phase] = (revenueByPhase[phase] ?? 0) + Number((s as any).total_sale_amount ?? 0);
 	}
 
-	// 8. Top advisors by sales value
+	// 8. Top advisors by sales value (includes "Admin (Direct)" for sold_by_admin)
 	const advisorSales: Record<string, number> = {};
 	const { data: salesWithAdvisor } = await supabase
 		.from("plot_sales")
-		.select("advisor_id, total_sale_amount, created_at, advisors(name)")
+		.select("advisor_id, sold_by_admin, total_sale_amount, created_at, advisors(name)")
 		.eq("is_cancelled", false);
 
 	const filteredWithAdvisor = (salesWithAdvisor ?? []).filter((s: any) => inRange(s.created_at ?? "", start, end));
 	for (const s of filteredWithAdvisor) {
-		const aid = (s as any).advisor_id;
-		const name = (s as any).advisors?.name ?? aid ?? "Unknown";
+		const name =
+			(s as any).sold_by_admin
+				? "Admin (Direct)"
+				: (s as any).advisors?.name ?? (s as any).advisor_id ?? "Unknown";
 		advisorSales[name] = (advisorSales[name] ?? 0) + Number((s as any).total_sale_amount ?? 0);
 	}
 
@@ -229,6 +231,69 @@ export async function getReportStats(filters?: ReportFilters) {
 		salesByMonth: Object.entries(salesByMonth)
 			.map(([month, v]) => ({ month, ...v }))
 			.sort((a, b) => a.month.localeCompare(b.month)),
+	};
+}
+
+export async function getProjectAnalytics(projectId: string) {
+	const supabase = await createClient();
+	if (!supabase) return null;
+
+	const { data: project, error: projErr } = await supabase
+		.from("projects")
+		.select("id, name, location, layout_expense")
+		.eq("id", projectId)
+		.single();
+
+	if (projErr || !project) return null;
+
+	const { data: plots } = await supabase
+		.from("plots")
+		.select("id, plot_number, status, size_sqft, rate_per_sqft")
+		.eq("project_id", projectId);
+
+	const plotIds = (plots ?? []).map((p: any) => p.id);
+	const total = plots?.length ?? 0;
+	const sold = (plots ?? []).filter(
+		(p: any) => p.status === "sold" || p.status === "agreement" || p.status === "token"
+	).length;
+	const available = (plots ?? []).filter((p: any) => p.status === "available").length;
+
+	const { data: sales } = await supabase
+		.from("plot_sales")
+		.select("id, total_sale_amount, amount_paid, remaining_amount, sold_by_admin, advisors(name)")
+		.in("plot_id", plotIds)
+		.eq("is_cancelled", false);
+
+	const totalRevenue = (sales ?? []).reduce((sum: number, s: any) => sum + Number(s.amount_paid ?? 0), 0);
+	const totalSalesValue = (sales ?? []).reduce((sum: number, s: any) => sum + Number(s.total_sale_amount ?? 0), 0);
+	const outstanding = (sales ?? []).reduce((sum: number, s: any) => sum + Number(s.remaining_amount ?? 0), 0);
+
+	const advisorSales: Record<string, number> = {};
+	for (const s of sales ?? []) {
+		const name = (s as any).sold_by_admin ? "Admin (Direct)" : (s as any).advisors?.name ?? "Unknown";
+		advisorSales[name] = (advisorSales[name] ?? 0) + Number((s as any).total_sale_amount ?? 0);
+	}
+	const advisorsInProject = Object.entries(advisorSales)
+		.map(([name, value]) => ({ name, value }))
+		.sort((a, b) => b.value - a.value);
+
+	const topPlots = (plots ?? [])
+		.filter((p: any) => p.status !== "available")
+		.map((p: any) => ({
+			plot_number: p.plot_number,
+			status: p.status,
+			value: Number(p.size_sqft ?? 0) * Number(p.rate_per_sqft ?? 0),
+		}))
+		.sort((a: any, b: any) => b.value - a.value)
+		.slice(0, 10);
+
+	return {
+		project: project as any,
+		plots: { total, sold, available },
+		revenue: { total: totalRevenue, salesValue: totalSalesValue, outstanding },
+		layoutExpense: Number((project as any).layout_expense ?? 0),
+		advisors: advisorsInProject,
+		topPlots,
 	};
 }
 

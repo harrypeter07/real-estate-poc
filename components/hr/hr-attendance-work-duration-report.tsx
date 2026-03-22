@@ -231,7 +231,7 @@ export function WorkDurationPivotGrids({
 			: "";
 
 	return (
-		<div className="space-y-6">
+		<div className="max-w-full min-w-0 space-y-6">
 			{rangeLabel ? (
 				<p className="text-xs font-medium text-muted-foreground">
 					Period: <span className="text-foreground">{rangeLabel}</span> · empty days show 00:00

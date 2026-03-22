@@ -19,7 +19,9 @@ import {
 	SelectValue,
 } from "@/components/ui";
 import type { EnquiryCustomerFormValues } from "@/lib/validations/enquiry";
+import { ENQUIRY_PLAN_OPTIONS } from "@/lib/validations/enquiry";
 import { createEnquiryCustomer, getTempCustomersByPhone } from "@/app/actions/enquiries";
+import { cn } from "@/lib/utils";
 
 const CATEGORY_OPTIONS = [
 	"General",
@@ -55,6 +57,9 @@ export function EnquiryCreateModal({
 		category: "General",
 		details: "",
 		is_active: true,
+		follow_up_date: null,
+		interested_plan: null,
+		enquiry_status: "new",
 	};
 
 	const [form, setForm] = useState<Omit<EnquiryCustomerFormValues, "is_active"> & { is_active: boolean }>({
@@ -173,10 +178,12 @@ export function EnquiryCreateModal({
 			const res = await createEnquiryCustomer({
 				...form,
 				birth_date: form.birth_date || null,
-				// allow blank project
 				project_id: form.project_id || null,
 				alternate_phone: form.alternate_phone || "",
 				details: form.details || "",
+				follow_up_date: form.follow_up_date || null,
+				interested_plan: form.interested_plan || null,
+				enquiry_status: form.enquiry_status ?? "new",
 			} as any);
 
 			if (!res.success) {
@@ -248,6 +255,9 @@ export function EnquiryCreateModal({
 									category,
 									details,
 									is_active: true,
+									follow_up_date: null,
+									interested_plan: "Quarterly",
+									enquiry_status: "new",
 								});
 							}}
 						>
@@ -419,6 +429,77 @@ export function EnquiryCreateModal({
 							onChange={(e) => setForm((s) => ({ ...s, details: e.target.value }))}
 							placeholder="What are they looking for? Any notes / follow-up info."
 						/>
+					</div>
+
+					<div className="space-y-2">
+						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+							Follow-up date
+						</div>
+						<Input
+							type="date"
+							value={form.follow_up_date ?? ""}
+							onChange={(e) =>
+								setForm((s) => ({ ...s, follow_up_date: e.target.value || null }))
+							}
+						/>
+						<p className="text-[11px] text-zinc-500">Must be on or after visit date (if applicable).</p>
+					</div>
+
+					<div className="space-y-2">
+						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+							Interested plan
+						</div>
+						<div className="flex flex-wrap gap-2">
+							{ENQUIRY_PLAN_OPTIONS.map((plan) => (
+								<button
+									key={plan}
+									type="button"
+									onClick={() => setForm((s) => ({ ...s, interested_plan: plan }))}
+									className={cn(
+										"rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+										form.interested_plan === plan
+											? "border-blue-600 bg-blue-600 text-white"
+											: "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
+									)}
+								>
+									{plan}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className="space-y-2">
+						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Status</div>
+						<div className="flex flex-wrap gap-2">
+							{(
+								[
+									["new", "New"],
+									["contacted", "Contacted"],
+									["follow_up", "Follow-Up"],
+									["joined", "Joined"],
+									["not_interested", "Not Interested"],
+								] as const
+							).map(([value, label]) => (
+								<button
+									key={value}
+									type="button"
+									onClick={() =>
+										setForm((s) => ({
+											...s,
+											enquiry_status: value,
+										}))
+									}
+									className={cn(
+										"rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+										form.enquiry_status === value
+											? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+											: "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
+									)}
+								>
+									{label}
+								</button>
+							))}
+						</div>
 					</div>
 
 					<div className="flex justify-end gap-2 pt-2">

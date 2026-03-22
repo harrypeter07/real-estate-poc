@@ -18,6 +18,7 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import type { EnquiryRow } from "@/app/actions/enquiries";
 import { EnquiryCreateModal } from "@/components/enquiries/enquiry-create-modal";
+import { EnquiryEditModal } from "@/components/enquiries/enquiry-edit-modal";
 import { EnquiryTempCustomersModal } from "@/components/enquiries/enquiry-temp-customers-modal";
 import { Calendar, Building2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ export function EnquiriesClient({
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [tempCustomersOpen, setTempCustomersOpen] = useState(false);
+	const [editEnquiry, setEditEnquiry] = useState<EnquiryRow | null>(null);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -139,6 +141,9 @@ export function EnquiriesClient({
 								<TableRow>
 									<TableHead>Customer</TableHead>
 									<TableHead>Enquiry</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Plan</TableHead>
+									<TableHead>Follow-up</TableHead>
 									<TableHead>Project</TableHead>
 									<TableHead>Date</TableHead>
 								</TableRow>
@@ -146,13 +151,17 @@ export function EnquiriesClient({
 						<TableBody>
 							{filtered.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={4} className="text-center text-zinc-500 py-10">
+									<TableCell colSpan={7} className="text-center text-zinc-500 py-10">
 										No enquiries found.
 									</TableCell>
 								</TableRow>
 							) : (
 								filtered.map((enq) => (
-									<TableRow key={enq.id} className="hover:bg-zinc-50">
+									<TableRow
+										key={enq.id}
+										className="hover:bg-zinc-50 cursor-pointer"
+										onClick={() => setEditEnquiry(enq)}
+									>
 										<TableCell>
 											<div className="min-w-0">
 												<div className="flex items-center gap-2">
@@ -167,8 +176,19 @@ export function EnquiriesClient({
 												<div className="flex items-center gap-2">
 													<Badge variant="secondary">{enq.category}</Badge>
 												</div>
-												<div className="text-xs text-zinc-600 truncate max-w-[260px]">{enq.details ?? "—"}</div>
+												<div className="text-xs text-zinc-600 truncate max-w-[200px]">{enq.details ?? "—"}</div>
 											</div>
+										</TableCell>
+										<TableCell>
+											<Badge variant="outline" className="font-normal capitalize">
+												{(enq.enquiry_status ?? "new").replace(/_/g, " ")}
+											</Badge>
+										</TableCell>
+										<TableCell className="text-sm text-zinc-700">
+											{enq.interested_plan ?? "—"}
+										</TableCell>
+										<TableCell className="text-sm text-zinc-700 whitespace-nowrap">
+											{enq.follow_up_date ? String(enq.follow_up_date).slice(0, 10) : "—"}
 										</TableCell>
 										<TableCell>
 											<div className="flex items-center gap-2">
@@ -195,6 +215,15 @@ export function EnquiriesClient({
 			<EnquiryCreateModal
 				open={createOpen}
 				onOpenChange={setCreateOpen}
+				projects={projects}
+			/>
+
+			<EnquiryEditModal
+				open={editEnquiry != null}
+				onOpenChange={(o) => {
+					if (!o) setEditEnquiry(null);
+				}}
+				enquiry={editEnquiry}
 				projects={projects}
 			/>
 

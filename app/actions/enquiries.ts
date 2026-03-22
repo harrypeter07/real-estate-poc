@@ -7,6 +7,48 @@ import {
 	type EnquiryCustomerFormValues,
 } from "@/lib/validations/enquiry";
 
+export type ActionResponse = {
+	success: boolean;
+	error?: string;
+};
+
+export async function updateEnquiryCustomer(
+	id: string,
+	values: EnquiryCustomerFormValues
+): Promise<ActionResponse> {
+	const parsed = enquiryCustomerSchema.safeParse(values);
+	if (!parsed.success) {
+		return { success: false, error: parsed.error.issues[0]?.message || "Validation failed" };
+	}
+
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { error } = await supabase
+		.from("enquiry_customers")
+		.update({
+			name: parsed.data.name,
+			phone: parsed.data.phone,
+			alternate_phone: parsed.data.alternate_phone || null,
+			address: parsed.data.address || null,
+			birth_date: parsed.data.birth_date || null,
+			project_id: parsed.data.project_id || null,
+			category: parsed.data.category,
+			details: parsed.data.details || null,
+			is_active: parsed.data.is_active,
+			follow_up_date: parsed.data.follow_up_date || null,
+			interested_plan: parsed.data.interested_plan || null,
+			enquiry_status: parsed.data.enquiry_status ?? "new",
+			updated_at: new Date().toISOString(),
+		})
+		.eq("id", id);
+
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath("/enquiries");
+	return { success: true };
+}
+
 export type EnquiryRow = {
 	id: string;
 	name: string;
@@ -20,6 +62,9 @@ export type EnquiryRow = {
 	project_name: string | null;
 	is_active: boolean;
 	created_at: string;
+	follow_up_date: string | null;
+	interested_plan: string | null;
+	enquiry_status: string;
 };
 
 export type EnquiryCustomerRow = {
@@ -162,6 +207,9 @@ export async function getEnquiryCustomers(): Promise<EnquiryRow[]> {
 		project_name: e.projects?.name ?? null,
 		is_active: !!e.is_active,
 		created_at: e.created_at,
+		follow_up_date: e.follow_up_date ?? null,
+		interested_plan: e.interested_plan ?? null,
+		enquiry_status: e.enquiry_status ?? "new",
 	})) as EnquiryRow[];
 }
 
@@ -192,6 +240,9 @@ export async function createEnquiryCustomer(
 			category: parsed.data.category,
 			details: parsed.data.details || null,
 			is_active: parsed.data.is_active,
+			follow_up_date: parsed.data.follow_up_date || null,
+			interested_plan: parsed.data.interested_plan || null,
+			enquiry_status: parsed.data.enquiry_status ?? "new",
 		})
 		.select("id")
 		.single();
@@ -409,9 +460,3 @@ export async function upgradeTempCustomerToCustomer(opts: {
 
 	return upgradeEnquiryToCustomer({ enquiryId, customerId: customer.id });
 }
-
-export type ActionResponse = {
-	success: boolean;
-	error?: string;
-};
-

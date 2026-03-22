@@ -9,7 +9,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 	Input,
-	Label,
 	Select,
 	SelectContent,
 	SelectItem,
@@ -73,14 +72,14 @@ export function HrEmployeeDialog() {
 					</DialogHeader>
 					<div className="grid gap-3 py-2">
 						<div className="grid gap-1">
-							<Label>Name</Label>
+							<span className="text-sm font-medium">Name</span>
 							<Input
 								value={form.name}
 								onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
 							/>
 						</div>
 						<div className="grid gap-1">
-							<Label>Employee code</Label>
+							<span className="text-sm font-medium">Employee code</span>
 							<Input
 								value={form.employee_code}
 								onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))}
@@ -88,14 +87,14 @@ export function HrEmployeeDialog() {
 							/>
 						</div>
 						<div className="grid gap-1">
-							<Label>Phone</Label>
+							<span className="text-sm font-medium">Phone</span>
 							<Input
 								value={form.phone}
 								onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
 							/>
 						</div>
 						<div className="grid gap-1">
-							<Label>Salary type</Label>
+							<span className="text-sm font-medium">Salary type</span>
 							<Select
 								value={form.salary_type}
 								onValueChange={(v) => setForm((f) => ({ ...f, salary_type: v }))}
@@ -112,7 +111,7 @@ export function HrEmployeeDialog() {
 						</div>
 						<div className="grid grid-cols-2 gap-2">
 							<div className="grid gap-1">
-								<Label>Salary rate</Label>
+								<span className="text-sm font-medium">Salary rate</span>
 								<Input
 									type="number"
 									value={form.salary_rate}
@@ -120,7 +119,7 @@ export function HrEmployeeDialog() {
 								/>
 							</div>
 							<div className="grid gap-1">
-								<Label>Overtime rate / hr</Label>
+								<span className="text-sm font-medium">Overtime rate / hr</span>
 								<Input
 									type="number"
 									value={form.overtime_rate}
@@ -130,7 +129,7 @@ export function HrEmployeeDialog() {
 						</div>
 						<div className="grid grid-cols-2 gap-2">
 							<div className="grid gap-1">
-								<Label>Required hrs / week</Label>
+								<span className="text-sm font-medium">Required hrs / week</span>
 								<Input
 									type="number"
 									value={form.required_hours_per_week}
@@ -140,7 +139,7 @@ export function HrEmployeeDialog() {
 								/>
 							</div>
 							<div className="grid gap-1">
-								<Label>Grace hours</Label>
+								<span className="text-sm font-medium">Grace hours</span>
 								<Input
 									type="number"
 									value={form.grace_hours}

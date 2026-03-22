@@ -1,5 +1,9 @@
-import * as XLSX from "xlsx";
 import type { ParsedAttendanceRow, HrAttendanceType } from "./types";
+import { readSheetMatrixFromBuffer } from "./excel-matrix";
+import {
+	detectHorizontalAttendanceFormat,
+	parseHorizontalBlockAttendance,
+} from "./excel-parser-horizontal";
 
 function norm(s: unknown): string {
 	return String(s ?? "")
@@ -19,18 +23,11 @@ function mapType(t: string): HrAttendanceType {
  * Normalized sheet: header row then data rows.
  * Expected columns (case-insensitive): Employee Code, Date, In, Out, Duration (min), OT (min), Type
  */
-export function parseAttendanceExcelBuffer(buffer: ArrayBuffer): {
+export function parseVerticalAttendanceTable(matrix: unknown[][]): {
 	rows: ParsedAttendanceRow[];
 	errors: string[];
 } {
 	const errors: string[] = [];
-	const wb = XLSX.read(buffer, { type: "array" });
-	const sheet = wb.Sheets[wb.SheetNames[0]];
-	const matrix = XLSX.utils.sheet_to_json(sheet, {
-		header: 1,
-		defval: "",
-		raw: false,
-	}) as unknown[][];
 
 	if (!matrix.length) {
 		return { rows: [], errors: ["Empty sheet"] };
@@ -43,7 +40,7 @@ export function parseAttendanceExcelBuffer(buffer: ArrayBuffer): {
 		else if (h === "date" || h.includes("work date")) colIndex.date = i;
 		else if (h === "in" || h.includes("in time")) colIndex.in = i;
 		else if (h === "out" || h.includes("out time")) colIndex.out = i;
-		else if (h.includes("duration")) colIndex.duration = i;
+		else if (h.includes("duration") && !h.includes("t duration")) colIndex.duration = i;
 		else if (h === "ot" || h.includes("overtime")) colIndex.ot = i;
 		else if (h === "type") colIndex.type = i;
 	});
@@ -52,7 +49,7 @@ export function parseAttendanceExcelBuffer(buffer: ArrayBuffer): {
 		return {
 			rows: [],
 			errors: [
-				"Could not find required columns. Use: Employee Code, Date, and optionally In, Out, Duration (min), OT (min), Type",
+				"Could not find required columns. Use: Employee Code, Date, and optionally In, Out, Duration (min), OT (min), Type — or use block format with Employee Code: rows.",
 			],
 		};
 	}
@@ -110,13 +107,13 @@ export function parseAttendanceExcelBuffer(buffer: ArrayBuffer): {
 			}
 		}
 
-		const is_valid =
+		const is_valid: boolean =
 			attendance_type === "leave" ||
 			attendance_type === "holiday" ||
-			(inTime && outTime) ||
+			Boolean(inTime && outTime) ||
 			(duration_minutes != null && duration_minutes >= 0);
 
-		rows.push({
+		const row: ParsedAttendanceRow = {
 			employee_code: String(code).trim(),
 			work_date,
 			in_time: inTime,
@@ -125,17 +122,44 @@ export function parseAttendanceExcelBuffer(buffer: ArrayBuffer): {
 			overtime_minutes,
 			attendance_type,
 			is_valid,
-			...(!is_valid ? { error: "Missing in/out or duration for present row" } : {}),
-		});
+		};
+		if (!is_valid) row.error = "Missing in/out or duration for present row";
+		rows.push(row);
 	}
 
 	return { rows, errors };
 }
 
-export function parseAttendanceCsvText(text: string): ReturnType<
-	typeof parseAttendanceExcelBuffer
-> {
-	const wb = XLSX.read(text, { type: "string" });
-	const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-	return parseAttendanceExcelBuffer(buf.buffer as ArrayBuffer);
+export function parseAttendanceExcelBuffer(buffer: ArrayBuffer): {
+	rows: ParsedAttendanceRow[];
+	errors: string[];
+} {
+	const matrix = readSheetMatrixFromBuffer(buffer);
+	return parseVerticalAttendanceTable(matrix);
+}
+
+export type ParseAttendanceFormat = "horizontal" | "vertical";
+
+/**
+ * Tries horizontal (block) format first if the sheet contains "Employee Code:".
+ * Otherwise parses vertical table format.
+ */
+export function parseAttendanceExcelAuto(
+	buffer: ArrayBuffer,
+	options?: { defaultYear?: number }
+): {
+	rows: ParsedAttendanceRow[];
+	errors: string[];
+	format: ParseAttendanceFormat;
+} {
+	const matrix = readSheetMatrixFromBuffer(buffer);
+	const defaultYear = options?.defaultYear ?? new Date().getFullYear();
+
+	if (detectHorizontalAttendanceFormat(matrix)) {
+		const { rows, errors } = parseHorizontalBlockAttendance(matrix, defaultYear);
+		return { rows, errors, format: "horizontal" };
+	}
+
+	const { rows, errors } = parseVerticalAttendanceTable(matrix);
+	return { rows, errors, format: "vertical" };
 }

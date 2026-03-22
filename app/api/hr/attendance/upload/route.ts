@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/hr/auth-route";
-import { parseAttendanceExcelBuffer } from "@/lib/hr/excel-parser";
+import { parseAttendanceExcelAuto } from "@/lib/hr/excel-parser";
 
 export async function POST(req: Request) {
 	const auth = await requireAdmin();
@@ -12,8 +12,16 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: "Missing file" }, { status: 400 });
 	}
 
+	const yearRaw = form.get("defaultYear");
+	const defaultYear =
+		typeof yearRaw === "string" && /^\d{4}$/.test(yearRaw.trim())
+			? parseInt(yearRaw.trim(), 10)
+			: new Date().getFullYear();
+
 	const buf = await file.arrayBuffer();
-	const { rows, errors: parseErrors } = parseAttendanceExcelBuffer(buf);
+	const { rows, errors: parseErrors, format } = parseAttendanceExcelAuto(buf, {
+		defaultYear,
+	});
 
 	const { data: emps, error: e2 } = await auth.supabase.from("hr_employees").select("id, employee_code");
 	if (e2) {
@@ -47,5 +55,11 @@ export async function POST(req: Request) {
 		else inserted++;
 	}
 
-	return NextResponse.json({ inserted, errors: insertErrors, parsed: rows.length });
+	return NextResponse.json({
+		inserted,
+		errors: insertErrors,
+		parsed: rows.length,
+		format,
+		defaultYear,
+	});
 }

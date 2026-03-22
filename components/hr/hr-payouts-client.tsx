@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { Button, Input, Label, Card, CardContent } from "@/components/ui";
+import { Button, Input, Card, CardContent } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -61,7 +61,7 @@ export function HrPayoutsClient({ initialBatches }: { initialBatches: any[] }) {
 			<Card>
 				<CardContent className="p-4 flex flex-wrap items-end gap-3">
 					<div className="grid gap-1">
-						<Label>Month</Label>
+						<span className="text-sm font-medium">Month (YYYY-MM)</span>
 						<Input
 							className="w-40 font-mono"
 							value={month}

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { isAdminUser } from "@/lib/hr/auth-route";
 
 async function requireAdminSupabase() {
 	const supabase = await createClient();
@@ -9,7 +10,7 @@ async function requireAdminSupabase() {
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
-	if (!user || (user.user_metadata as { role?: string })?.role !== "admin") {
+	if (!user || !isAdminUser(user)) {
 		return { error: "Forbidden" as const, supabase: null };
 	}
 	return { supabase, user };

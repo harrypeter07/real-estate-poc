@@ -5,7 +5,8 @@ This is a **Next.js App Router + Supabase** CRM for managing:
 - Customers & advisors
 - Sales/bookings and payment collections
 - Advisor commissions (project-wise)
-- Reminders (CRM follow-ups + birthdays + due reminders)
+- Messaging (CRM follow-ups + birthdays; payment follow-ups use Payments/Sales WhatsApp)
+- HR (admin): employees, attendance upload, payroll payouts
 
 It supports **two roles**:
 - **Admin**: full access
@@ -46,7 +47,8 @@ All existing routes are preserved:
 - `/sales`
 - `/payments`
 - `/commissions`
-- `/reminders`
+- `/messaging` (legacy `/reminders` redirects)
+- `/hr`, `/hr/employees`, `/hr/attendance`, `/hr/payouts` (admin HR; run migration `20260322000000_hr_attendance_payouts.sql`)
 
 ### Advisor standalone portal
 Advisors are constrained to the `/advisor` route group:
@@ -54,7 +56,7 @@ Advisors are constrained to the `/advisor` route group:
 - `/advisor/customers`
 - `/advisor/sales`
 - `/advisor/payments`
-- `/advisor/reminders`
+- `/advisor/messaging` (legacy `/advisor/reminders` redirects here)
 
 Middleware redirects advisors away from admin routes.
 
@@ -71,7 +73,8 @@ Middleware redirects advisors away from admin routes.
 - `payments` � installment collections (kaccha/pakka)
 - `advisor_commissions` � commission ledger per sale
 - `advisor_project_commissions` � **project-wise Face rates** per advisor
-- `reminders` � reminder tasks
+- `reminders` � messaging tasks (excludes legacy `installment_due` rows from listings)
+- `hr_employees`, `hr_attendance`, `hr_payout_batches`, `hr_employee_payouts` � HR module (after migration)
 
 ### Commission configuration model (IMPORTANT)
 Commission is **not stored on the advisor** as face %.
@@ -116,13 +119,18 @@ Commission is written to `advisor_commissions`.
 
 ---
 
-## 6) Reminders
+## 6) Messaging & payments
 
-- `/reminders` shows tasks + includes Birthdays Today section.
-- Templates can be selected from Change Templates modal.
-- WhatsApp message uses the selected template with placeholders.
+- `/messaging` lists non-payment tasks + **Birthdays Today**. Legacy URLs `/reminders` redirect here.
+- **Payment follow-ups** are not stored as reminders: use **Remind** on **Payments** or **Sales** (WhatsApp) when a balance is due (EMI/follow-up/overdue). Configure default text via **Payment messages** on the Payments page.
+- Templates for messaging tasks: **Change Templates** modal.
+- Advisor messaging (`/advisor/messaging`) only shows tasks linked to their customers (or self).
 
-Advisor reminders (`/advisor/reminders`) are filtered to the advisors customers.
+### HR (admin)
+
+- Apply migration `supabase/migrations/20260322000000_hr_attendance_payouts.sql`.
+- Upload Excel with columns: **Employee Code**, **Date**, **In**, **Out**, **Duration (min)**, **OT (min)**, **Type** (`present` / `leave` / `holiday`).
+- API: `/api/hr/employees`, `/api/hr/attendance`, `/api/hr/attendance/upload`, `/api/hr/payouts`, `/api/hr/payouts/generate`, `/api/hr/payouts/pay`.
 
 ---
 
@@ -153,10 +161,11 @@ npm run dev
 
 - **Customer advisor "Not assigned"**: When no advisor selected, shows "Not assigned" on cards.
 - **Admin direct sell**: Sale form "Sold By" → Admin (Direct); uses plot min rate, no commission.
-- **EMI & Follow-up**: Sale form supports EMI months (auto-fills monthly EMI), follow-up date (creates reminder).
+- **EMI & follow-up date**: Sale form supports EMI months (auto-fills monthly EMI) and follow-up date on `plot_sales` (payment nudges use Payments/Sales **Remind**, not messaging tasks).
 - **EMI Modal**: Payments page "EMI" button → list of EMI sales, next due, Remind via WhatsApp.
-- **Reminders "EMI Pending Today"**: Badge on installment-due reminders when date is today.
-- **Receipt generation**: Post-sale Share Receipt modal; generate HTML receipt, share via WhatsApp.
+- **Messaging**: `/messaging` replaces `/reminders` (redirect). No payment-installment tasks in messaging list.
+- **Payment WhatsApp**: **Payment messages** templates on Payments; **Remind** column when payment is due.
+- **Receipt generation**: Post-sale Share Receipt modal; PDF receipt, share via WhatsApp.
 - **Share Receipt (payments)**: Payment detail panel has Share Receipt button when receipt exists.
 - **Dashboard / Reports swap**: Dashboard = full analytics; Reports = project selector + project-specific analytics.
 - **Sold by Admin/Advisor**: Reports Top Advisors shows "Admin (Direct)" for admin sales.

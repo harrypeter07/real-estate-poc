@@ -18,9 +18,11 @@ export function HrAttendanceUpload() {
 		try {
 			const fd = new FormData();
 			fd.append("file", file);
+			fd.append("defaultYear", String(new Date().getFullYear()));
 			const res = await fetch("/api/hr/attendance/upload", {
 				method: "POST",
 				body: fd,
+				credentials: "same-origin",
 			});
 			const data = await res.json();
 			if (!res.ok) {

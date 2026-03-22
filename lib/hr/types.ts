@@ -16,6 +16,8 @@ export type HrEmployeeRow = {
 
 export type ParsedAttendanceRow = {
 	employee_code: string;
+	/** Set by horizontal parser when present in sheet */
+	employee_name?: string;
 	work_date: string; // YYYY-MM-DD
 	in_time: string | null;
 	out_time: string | null;

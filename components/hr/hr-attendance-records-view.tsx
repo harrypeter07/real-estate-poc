@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	type ColumnDef,
 	flexRender,
@@ -9,13 +9,31 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ArrowUpDown, Calendar, LayoutGrid, List } from "lucide-react";
-import { Button, Card, CardContent, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
+import {
+	Button,
+	Card,
+	CardContent,
+	Input,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui";
 import { formatMinutesAsClock } from "@/lib/utils/formatters";
 import {
+	type EmployeeBlockSort,
 	compareEmployeeCode,
 	EmployeeTotalsStrip,
+	normalizeDateKey,
 	WorkDurationPivotGrids,
 } from "@/components/hr/hr-attendance-work-duration-report";
 
@@ -31,6 +49,15 @@ export type AttendanceRecordVM = {
 	is_valid: boolean;
 	error?: string;
 };
+
+function formatLocalYmd(iso: string): string {
+	const t = normalizeDateKey(iso);
+	const y = parseInt(t.slice(0, 4), 10);
+	const m = parseInt(t.slice(5, 7), 10);
+	const d = parseInt(t.slice(8, 10), 10);
+	if (!y || !m || !d) return iso;
+	return format(new Date(y, m - 1, d), "dd MMM yyyy");
+}
 
 function displayTime(v: string | null | undefined): string {
 	if (v == null || v === "") return "—";
@@ -111,13 +138,7 @@ function AttendanceRowListTable({ records }: { records: AttendanceRecordVM[] }) 
 						<ArrowUpDown className="ml-1 h-3 w-3" />
 					</Button>
 				),
-				cell: ({ row }) => {
-					try {
-						return format(parseISO(row.original.work_date), "dd MMM yyyy");
-					} catch {
-						return row.original.work_date;
-					}
-				},
+				cell: ({ row }) => formatLocalYmd(row.original.work_date),
 			},
 			{
 				accessorKey: "in_time",
@@ -248,31 +269,53 @@ export function HrAttendanceRecordsView({
 	const [from, setFrom] = useState("");
 	const [to, setTo] = useState("");
 	const [layout, setLayout] = useState<"report" | "list">("report");
+	const [employeeOnly, setEmployeeOnly] = useState<string>("all");
+	const [employeeSort, setEmployeeSort] = useState<EmployeeBlockSort>("id");
 
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
 		return records.filter((r) => {
 			if (q && !r.employeeName.toLowerCase().includes(q) && !r.employeeCode.toLowerCase().includes(q))
 				return false;
-			if (from && r.work_date < from) return false;
-			if (to && r.work_date > to) return false;
+			const wd = normalizeDateKey(r.work_date);
+			if (from && wd < from) return false;
+			if (to && wd > to) return false;
 			return true;
 		});
 	}, [records, search, from, to]);
 
-	const meta = useMemo(() => {
-		const emp = new Set(filtered.map((r) => r.employeeCode));
-		return { employees: emp.size, rows: filtered.length };
+	const employeeOptions = useMemo(() => {
+		const m = new Map<string, string>();
+		for (const r of filtered) {
+			if (!m.has(r.employeeCode)) m.set(r.employeeCode, r.employeeName);
+		}
+		return [...m.entries()].sort(([a], [b]) => compareEmployeeCode(a, b));
 	}, [filtered]);
+
+	useEffect(() => {
+		if (employeeOnly !== "all" && !filtered.some((r) => r.employeeCode === employeeOnly)) {
+			setEmployeeOnly("all");
+		}
+	}, [filtered, employeeOnly]);
+
+	const viewRows = useMemo(() => {
+		if (employeeOnly === "all") return filtered;
+		return filtered.filter((r) => r.employeeCode === employeeOnly);
+	}, [filtered, employeeOnly]);
+
+	const meta = useMemo(() => {
+		const emp = new Set(viewRows.map((r) => r.employeeCode));
+		return { employees: emp.size, rows: viewRows.length };
+	}, [viewRows]);
 
 	/** Stable default for list + mobile: employee ID ↑, then date ↓ */
 	const listRows = useMemo(() => {
-		return [...filtered].sort((a, b) => {
+		return [...viewRows].sort((a, b) => {
 			const c = compareEmployeeCode(a.employeeCode, b.employeeCode);
 			if (c !== 0) return c;
 			return b.work_date.localeCompare(a.work_date);
 		});
-	}, [filtered]);
+	}, [viewRows]);
 
 	return (
 		<div className="space-y-6">
@@ -307,11 +350,11 @@ export function HrAttendanceRecordsView({
 				{meta.employees === 1 ? "" : "s"} ·{" "}
 				<span className="font-medium text-foreground">{meta.rows}</span> day record
 				{meta.rows === 1 ? "" : "s"}
-				{filtered.length !== records.length ? ` (filtered from ${records.length})` : ""}
+				{viewRows.length !== records.length ? ` (filtered from ${records.length})` : ""}
 			</p>
 
 			{showFilters && (
-				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+				<div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
 					<div className="flex-1 min-w-[12rem]">
 						<label className="mb-1 block text-xs font-medium text-muted-foreground">Search employee</label>
 						<Input
@@ -320,6 +363,37 @@ export function HrAttendanceRecordsView({
 							onChange={(e) => setSearch(e.target.value)}
 						/>
 					</div>
+					<div className="w-full min-w-[10rem] sm:w-48">
+						<label className="mb-1 block text-xs font-medium text-muted-foreground">Employee</label>
+						<Select value={employeeOnly} onValueChange={setEmployeeOnly}>
+							<SelectTrigger className="w-full">
+								<SelectValue placeholder="All employees" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All employees</SelectItem>
+								{employeeOptions.map(([code, name]) => (
+									<SelectItem key={code} value={code}>
+										<span className="font-mono">#{code}</span> {name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+					{layout === "report" && (
+						<div className="w-full min-w-[10rem] sm:w-44">
+							<label className="mb-1 block text-xs font-medium text-muted-foreground">Sort employees</label>
+							<Select value={employeeSort} onValueChange={(v) => setEmployeeSort(v as EmployeeBlockSort)}>
+								<SelectTrigger className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="id">By employee ID</SelectItem>
+									<SelectItem value="name">By name (A–Z)</SelectItem>
+									<SelectItem value="duration">By total duration (high → low)</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 					<div className="w-full sm:w-40">
 						<label className="mb-1 block text-xs font-medium text-muted-foreground">From</label>
 						<Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -333,12 +407,12 @@ export function HrAttendanceRecordsView({
 
 			{layout === "report" ? (
 				<div className="space-y-8">
-					<EmployeeTotalsStrip rows={filtered} />
+					<EmployeeTotalsStrip rows={viewRows} sortOrder={employeeSort} />
 					<div>
 						<p className="mb-4 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-							Monthly-style grid — sorted by employee ID
+							Monthly grid — full month columns (00:00 when empty); use horizontal scroll
 						</p>
-						<WorkDurationPivotGrids rows={filtered} />
+						<WorkDurationPivotGrids rows={viewRows} sortOrder={employeeSort} />
 					</div>
 				</div>
 			) : (
@@ -381,13 +455,7 @@ export function HrAttendanceRecordsView({
 											</div>
 											<div className="flex items-center gap-2 text-muted-foreground text-xs">
 												<Calendar className="h-3.5 w-3.5" />
-												{(() => {
-													try {
-														return format(parseISO(r.work_date), "dd MMM yyyy");
-													} catch {
-														return r.work_date;
-													}
-												})()}
+												{formatLocalYmd(r.work_date)}
 											</div>
 											<div className="grid grid-cols-2 gap-2 text-xs">
 												<div>

@@ -29,18 +29,23 @@ const MONTHS: Record<string, number> = {
 	dec: 11,
 };
 
+/** Build YYYY-MM-DD from calendar parts (no UTC midnight drift). */
+function toIsoDateParts(y: number, monthIndex0: number, day: number): string {
+	return `${y}-${String(monthIndex0 + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 /** Parse DD-MMM, DD-MMM-YYYY, Excel serial date, JS Date */
 export function parseDateCell(cell: unknown, defaultYear: number): string | null {
 	if (cell === "" || cell === null || cell === undefined) return null;
 	if (cell instanceof Date && !Number.isNaN(cell.getTime())) {
-		return cell.toISOString().slice(0, 10);
+		return toIsoDateParts(cell.getFullYear(), cell.getMonth(), cell.getDate());
 	}
 	if (typeof cell === "number") {
-		// Excel serial date (days since 1899-12-30)
+		// Excel serial date (days since 1899-12-30) — use UTC parts so the calendar day matches Excel
 		if (cell > 20000 && cell < 60000) {
 			const epoch = Date.UTC(1899, 11, 30);
-			const d = new Date(epoch + cell * 86400000);
-			return d.toISOString().slice(0, 10);
+			const d = new Date(epoch + Math.floor(cell) * 86400000);
+			return toIsoDateParts(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 		}
 	}
 	const s = String(cell).trim();
@@ -58,11 +63,13 @@ export function parseDateCell(cell: unknown, defaultYear: number): string | null
 			const y = parseInt(m[3], 10);
 			year = m[3].length === 2 ? 2000 + y : y;
 		}
-		const d = new Date(Date.UTC(year, mon, day));
-		return d.toISOString().slice(0, 10);
+		// mon is 0-based month index (Mar = 2); avoid Date.UTC + toISOString (TZ can shift the day)
+		return toIsoDateParts(year, mon, day);
 	}
 	const d2 = new Date(s);
-	if (!Number.isNaN(d2.getTime())) return d2.toISOString().slice(0, 10);
+	if (!Number.isNaN(d2.getTime())) {
+		return toIsoDateParts(d2.getFullYear(), d2.getMonth(), d2.getDate());
+	}
 	return null;
 }
 

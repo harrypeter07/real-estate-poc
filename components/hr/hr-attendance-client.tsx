@@ -21,7 +21,6 @@ export function HrAttendanceClient({ initialRows }: { initialRows: any[] }) {
 		<div className="space-y-8">
 			<PageHeader
 				title="Attendance"
-				subtitle="Upload the Work Duration report as Excel (.xlsx / .xls) or CSV. We read the sheet into a grid and parse it the same way—no manual CSV step required. Preview first, then confirm. Employee codes must exist in HR."
 				action={
 					<div className="flex flex-wrap gap-2">
 						<Button asChild variant="ghost" size="sm">

@@ -1,6 +1,6 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
+import { eachDayOfInterval, endOfMonth, format, startOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui";
 import { formatMinutesAsClock } from "@/lib/utils/formatters";
 /** Same shape as AttendanceRecordVM (avoid circular imports). */
@@ -17,6 +17,8 @@ export type AttendanceReportRow = {
 	error?: string;
 };
 
+export type EmployeeBlockSort = "id" | "name" | "duration";
+
 /** Numeric-aware sort for employee codes (shared with list view). */
 export function compareEmployeeCode(a: string, b: string): number {
 	const na = parseInt(String(a).replace(/\D/g, ""), 10);
@@ -25,6 +27,15 @@ export function compareEmployeeCode(a: string, b: string): number {
 		return na - nb;
 	}
 	return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+}
+
+/** Calendar YYYY-MM-DD from DB/API — avoids UTC drift from ISO strings. */
+export function normalizeDateKey(s: string): string {
+	const t = String(s ?? "")
+		.trim()
+		.slice(0, 10);
+	if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+	return t;
 }
 
 function timeCellExcel(v: string | null | undefined): string {
@@ -37,14 +48,38 @@ function timeCellExcel(v: string | null | undefined): string {
 	return `${hh}:${mm}`;
 }
 
-function dateHeaders(d: string): { day: string; dow: string } {
-	try {
-		const x = parseISO(d);
-		if (Number.isNaN(x.getTime())) return { day: d.slice(0, 10), dow: "" };
-		return { day: format(x, "dd-MMM"), dow: format(x, "EEE") };
-	} catch {
-		return { day: d, dow: "" };
+/** Format headers using local calendar date (not parseISO UTC midnight). */
+function dateHeadersLocal(d: string): { day: string; dow: string; dayOfMonth: number } {
+	const t = normalizeDateKey(d);
+	const y = parseInt(t.slice(0, 4), 10);
+	const m = parseInt(t.slice(5, 7), 10);
+	const day = parseInt(t.slice(8, 10), 10);
+	if (!y || !m || !day) return { day: t, dow: "", dayOfMonth: 0 };
+	const x = new Date(y, m - 1, day);
+	if (Number.isNaN(x.getTime())) return { day: t, dow: "", dayOfMonth: day };
+	return { day: format(x, "dd-MMM"), dow: format(x, "EEE"), dayOfMonth: day };
+}
+
+/** All calendar days from min(row) … max(row), expanded to full month(s). */
+export function fullCalendarDatesFromRows(rows: AttendanceReportRow[]): string[] {
+	const keys = rows.map((r) => normalizeDateKey(r.work_date)).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
+	if (!keys.length) return [];
+	const toLocal = (iso: string) => {
+		const y = parseInt(iso.slice(0, 4), 10);
+		const m = parseInt(iso.slice(5, 7), 10);
+		const d = parseInt(iso.slice(8, 10), 10);
+		return new Date(y, m - 1, d);
+	};
+	let min = toLocal(keys[0]!);
+	let max = toLocal(keys[0]!);
+	for (const k of keys) {
+		const t = toLocal(k);
+		if (t < min) min = t;
+		if (t > max) max = t;
 	}
+	const start = startOfMonth(min);
+	const end = endOfMonth(max);
+	return eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
 }
 
 type EmpBlock = {
@@ -61,14 +96,26 @@ function buildEmployeeBlocks(rows: AttendanceReportRow[]): EmpBlock[] {
 			map.set(code, { code, name: r.employeeName || "—", byDate: new Map() });
 		}
 		const b = map.get(code)!;
-		b.byDate.set(r.work_date, r);
+		b.byDate.set(normalizeDateKey(r.work_date), r);
 		if (r.employeeName && r.employeeName !== "—") b.name = r.employeeName;
 	}
-	return [...map.values()].sort((a, b) => compareEmployeeCode(a.code, b.code));
+	return [...map.values()];
 }
 
-function uniqueSortedDates(rows: AttendanceReportRow[]): string[] {
-	return [...new Set(rows.map((r) => r.work_date).filter(Boolean))].sort();
+function sortEmployeeBlocks(blocks: EmpBlock[], order: EmployeeBlockSort): EmpBlock[] {
+	const copy = [...blocks];
+	if (order === "name") {
+		return copy.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+	}
+	if (order === "duration") {
+		const sumDur = (blk: EmpBlock) => {
+			let d = 0;
+			for (const r of blk.byDate.values()) d += r.duration_minutes ?? 0;
+			return d;
+		};
+		return copy.sort((a, b) => sumDur(b) - sumDur(a));
+	}
+	return copy.sort((a, b) => compareEmployeeCode(a.code, b.code));
 }
 
 function hoursLabel(minutes: number): string {
@@ -79,15 +126,21 @@ function hoursLabel(minutes: number): string {
 	return `${h}h ${m}m`;
 }
 
-/** One card per employee: total duration & OT, sorted by employee ID */
-export function EmployeeTotalsStrip({ rows }: { rows: AttendanceReportRow[] }) {
-	const blocks = buildEmployeeBlocks(rows);
+/** One card per employee: total duration & OT */
+export function EmployeeTotalsStrip({
+	rows,
+	sortOrder = "id",
+}: {
+	rows: AttendanceReportRow[];
+	sortOrder?: EmployeeBlockSort;
+}) {
+	const blocks = sortEmployeeBlocks(buildEmployeeBlocks(rows), sortOrder);
 	if (!blocks.length) return null;
 
 	return (
 		<div className="space-y-2">
 			<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-				Totals by employee (sorted by ID)
+				Totals by employee
 			</p>
 			<div className="flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
 				{blocks.map((b) => {
@@ -102,7 +155,7 @@ export function EmployeeTotalsStrip({ rows }: { rows: AttendanceReportRow[] }) {
 					return (
 						<Card
 							key={b.code}
-							className="min-w-[200px] shrink-0 border-zinc-200/80 bg-gradient-to-br from-zinc-50 to-white shadow-sm dark:from-zinc-900 dark:to-zinc-950 dark:border-zinc-800"
+							className="min-w-[200px] shrink-0 border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white shadow-sm dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-950"
 						>
 							<CardContent className="p-4 space-y-2">
 								<div className="flex items-baseline justify-between gap-2">
@@ -114,7 +167,7 @@ export function EmployeeTotalsStrip({ rows }: { rows: AttendanceReportRow[] }) {
 									) : null}
 								</div>
 								<p className="text-sm font-medium leading-tight line-clamp-2">{b.name}</p>
-								<div className="grid grid-cols-2 gap-2 border-t border-zinc-100 pt-3 text-xs dark:border-zinc-800">
+								<div className="grid grid-cols-2 gap-2 border-t border-zinc-200 pt-3 text-xs dark:border-zinc-800">
 									<div>
 										<p className="text-muted-foreground">Duration</p>
 										<p className="font-semibold tabular-nums">{hoursLabel(dur)}</p>
@@ -137,113 +190,170 @@ export function EmployeeTotalsStrip({ rows }: { rows: AttendanceReportRow[] }) {
 	);
 }
 
-/** Excel-style blocks: dates as columns, In / Out / Duration / OT as rows */
-export function WorkDurationPivotGrids({ rows }: { rows: AttendanceReportRow[] }) {
-	const dates = uniqueSortedDates(rows);
-	const blocks = buildEmployeeBlocks(rows);
+const thSticky =
+	"sticky left-0 z-20 min-w-[6rem] border border-zinc-300 bg-zinc-100 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200";
+const tdSticky =
+	"sticky left-0 z-10 border border-zinc-300 bg-zinc-50 px-2 py-1 font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/90 dark:text-zinc-100";
+const cell = "border border-zinc-300 px-1 py-1 text-center font-mono tabular-nums text-[11px] sm:text-xs dark:border-zinc-600";
+
+/** Excel-style blocks: full month columns, dates as columns, metrics as rows */
+export function WorkDurationPivotGrids({
+	rows,
+	sortOrder = "id",
+}: {
+	rows: AttendanceReportRow[];
+	sortOrder?: EmployeeBlockSort;
+}) {
+	const dates = fullCalendarDatesFromRows(rows);
+	const blocks = sortEmployeeBlocks(buildEmployeeBlocks(rows), sortOrder);
 
 	if (!rows.length) {
 		return (
-			<p className="text-sm text-muted-foreground border border-dashed rounded-lg p-8 text-center">
+			<p className="text-sm text-muted-foreground border border-dashed border-zinc-300 rounded-lg p-8 text-center dark:border-zinc-600">
 				No attendance rows in this view.
 			</p>
 		);
 	}
 
+	const rangeLabel =
+		dates.length > 0
+			? (() => {
+					const a = dates[0]!;
+					const b = dates[dates.length - 1]!;
+					const p = (iso: string) => {
+						const y = parseInt(iso.slice(0, 4), 10);
+						const m = parseInt(iso.slice(5, 7), 10);
+						const d = parseInt(iso.slice(8, 10), 10);
+						return new Date(y, m - 1, d);
+					};
+					return `${format(p(a), "dd-MMM-yyyy")} → ${format(p(b), "dd-MMM-yyyy")}`;
+				})()
+			: "";
+
 	return (
-		<div className="space-y-10">
-			{blocks.map((block) => (
-				<Card
-					key={block.code}
-					className="overflow-hidden border-zinc-200/90 shadow-md dark:border-zinc-800"
-				>
-					<div className="border-b border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 px-4 py-3 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900 dark:border-zinc-800">
-						<div className="flex flex-wrap items-center gap-x-8 gap-y-1 text-sm">
-							<span>
-								<span className="text-muted-foreground">Employee Code:-</span>{" "}
-								<span className="font-mono font-semibold tabular-nums">{block.code}</span>
-							</span>
-							<span>
-								<span className="text-muted-foreground">Employee Name:-</span>{" "}
-								<span className="font-medium">{block.name}</span>
-							</span>
+		<div className="space-y-6">
+			{rangeLabel ? (
+				<p className="text-xs font-medium text-muted-foreground">
+					Period: <span className="text-foreground">{rangeLabel}</span> · empty days show 00:00
+				</p>
+			) : null}
+			<div className="space-y-8">
+				{blocks.map((block) => (
+					<Card
+						key={block.code}
+						className="overflow-hidden border border-zinc-300 shadow-md dark:border-zinc-600"
+					>
+						<div className="border-b border-zinc-300 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-4 py-3 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900 dark:border-zinc-600">
+							<div className="flex flex-wrap items-center gap-x-8 gap-y-1 text-sm">
+								<span>
+									<span className="text-muted-foreground">Employee Code:-</span>{" "}
+									<span className="font-mono font-semibold tabular-nums">{block.code}</span>
+								</span>
+								<span>
+									<span className="text-muted-foreground">Employee Name:-</span>{" "}
+									<span className="font-medium">{block.name}</span>
+								</span>
+							</div>
 						</div>
-					</div>
-					<div className="overflow-x-auto">
-						<table className="w-max min-w-full border-collapse text-[11px] sm:text-xs">
-							<thead>
-								<tr className="border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/90">
-									<th className="sticky left-0 z-20 min-w-[5.5rem] border-r border-zinc-200 bg-zinc-100 px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900">
-										Days
-									</th>
-									{dates.map((d) => {
-										const { day, dow } = dateHeaders(d);
-										return (
-											<th
-												key={d}
-												className="min-w-[3.5rem] border-r border-zinc-100 px-1 py-2 text-center font-normal last:border-r-0 dark:border-zinc-800"
-											>
-												<div className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{day}</div>
-												{dow ? (
-													<div className="text-[10px] font-medium text-muted-foreground">{dow}</div>
-												) : null}
-											</th>
-										);
-									})}
-								</tr>
-							</thead>
-							<tbody>
-								{(
-									[
-										["In Time", "in"] as const,
-										["Out Time", "out"] as const,
-										["Duration", "dur"] as const,
-										["OT", "ot"] as const,
-									] as const
-								).map(([label, kind]) => (
-									<tr
-										key={`${block.code}-${label}`}
-										className="border-b border-zinc-100 odd:bg-white even:bg-zinc-50/40 dark:border-zinc-800 dark:odd:bg-zinc-950 dark:even:bg-zinc-900/25"
-									>
-										<td className="sticky left-0 z-10 border-r border-zinc-200 bg-inherit px-2 py-1.5 font-medium text-zinc-700 dark:border-zinc-800">
-											{label}
-										</td>
+						{/* Constrain width to viewport; scroll inside */}
+						<div className="w-full max-w-full overflow-x-auto bg-white dark:bg-zinc-950">
+							<table className="w-max min-w-full border-collapse border border-zinc-300 text-[11px] sm:text-xs dark:border-zinc-600">
+								<thead>
+									<tr className="bg-slate-100 dark:bg-zinc-900">
+										<th className={thSticky}>Day</th>
 										{dates.map((d) => {
-											const rec = block.byDate.get(d);
-											let display = "00:00";
-											if (rec) {
-												if (kind === "in") display = timeCellExcel(rec.in_time);
-												else if (kind === "out") display = timeCellExcel(rec.out_time);
-												else if (kind === "dur")
-													display =
-														rec.duration_minutes != null && rec.duration_minutes > 0
-															? formatMinutesAsClock(rec.duration_minutes)
-															: "00:00";
-												else if (kind === "ot")
-													display =
-														rec.overtime_minutes > 0
-															? formatMinutesAsClock(rec.overtime_minutes)
-															: "00:00";
-											}
-											const inv = rec && !rec.is_valid;
+											const { dayOfMonth } = dateHeadersLocal(d);
 											return (
-												<td
-													key={d}
-													className={`border-r border-zinc-100 px-1 py-1.5 text-center font-mono tabular-nums last:border-r-0 dark:border-zinc-800 ${
-														inv ? "bg-red-50/80 text-red-900 dark:bg-red-950/30 dark:text-red-200" : ""
-													} ${kind === "ot" && rec && rec.overtime_minutes > 0 ? "text-emerald-700 dark:text-emerald-400 font-semibold" : ""}`}
-												>
-													{display}
-												</td>
+												<th key={`didx-${d}`} className={`${cell} min-w-[3.25rem] bg-slate-100 font-semibold text-zinc-800 dark:bg-zinc-900`}>
+													Day{dayOfMonth || "—"}
+												</th>
 											);
 										})}
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				</Card>
-			))}
+									<tr className="bg-zinc-100 dark:bg-zinc-900">
+										<th className={thSticky}>Date</th>
+										{dates.map((d) => {
+											const { day } = dateHeadersLocal(d);
+											return (
+												<th key={`date-${d}`} className={`${cell} min-w-[3.25rem] bg-zinc-100 font-semibold dark:bg-zinc-900`}>
+													{day}
+												</th>
+											);
+										})}
+									</tr>
+									<tr className="bg-zinc-50 dark:bg-zinc-900/80">
+										<th className={thSticky}>Weekday</th>
+										{dates.map((d) => {
+											const { dow } = dateHeadersLocal(d);
+											return (
+												<th key={`dow-${d}`} className={`${cell} min-w-[3.25rem] text-muted-foreground dark:bg-zinc-900`}>
+													{dow}
+												</th>
+											);
+										})}
+									</tr>
+								</thead>
+								<tbody>
+									{(
+										[
+											["In Time", "in"] as const,
+											["Out Time", "out"] as const,
+											["Duration", "dur"] as const,
+											["OT", "ot"] as const,
+											["T Duration", "tdur"] as const,
+										] as const
+									).map(([label, kind]) => (
+										<tr
+											key={`${block.code}-${label}`}
+											className="odd:bg-white even:bg-slate-50/80 dark:odd:bg-zinc-950 dark:even:bg-zinc-900/40"
+										>
+											<td className={tdSticky}>{label}</td>
+											{dates.map((d) => {
+												const rec = block.byDate.get(d);
+												let display = "00:00";
+												if (rec) {
+													if (kind === "in") display = timeCellExcel(rec.in_time);
+													else if (kind === "out") display = timeCellExcel(rec.out_time);
+													else if (kind === "dur")
+														display =
+															rec.duration_minutes != null && rec.duration_minutes > 0
+																? formatMinutesAsClock(rec.duration_minutes)
+																: "00:00";
+													else if (kind === "ot")
+														display =
+															rec.overtime_minutes > 0
+																? formatMinutesAsClock(rec.overtime_minutes)
+																: "00:00";
+													else if (kind === "tdur")
+														display =
+															rec.duration_minutes != null && rec.duration_minutes > 0
+																? formatMinutesAsClock(rec.duration_minutes)
+																: "00:00";
+												}
+												const inv = rec && !rec.is_valid;
+												return (
+													<td
+														key={d}
+														className={`${cell} ${
+															inv ? "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-100" : ""
+														} ${
+															kind === "ot" && rec && rec.overtime_minutes > 0
+																? "font-semibold text-emerald-800 dark:text-emerald-300"
+																: ""
+														}`}
+													>
+														{display}
+													</td>
+												);
+											})}
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					</Card>
+				))}
+			</div>
 		</div>
 	);
 }

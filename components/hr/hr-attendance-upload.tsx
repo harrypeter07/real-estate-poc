@@ -168,7 +168,7 @@ export function HrAttendanceUpload(props?: {
 						<HrAttendanceRecordsView
 							records={mapPreviewToAttendanceVM(preview.previewRows)}
 							title="Preview (first 500 rows)"
-							showFilters={false}
+							showFilters
 						/>
 					)}
 					<div className="flex flex-wrap gap-2">

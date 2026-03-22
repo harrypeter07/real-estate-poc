@@ -114,11 +114,66 @@ function parseOvertimeMinutes(cell: unknown): number {
 	return v != null ? Math.max(0, v) : 0;
 }
 
+/** Infer year from report title lines like "01-Mar-2026 To 21-Mar-2026". */
+export function inferDefaultYearFromMatrix(matrix: unknown[][], fallback: number): number {
+	const sample = matrix
+		.slice(0, 45)
+		.map((r) => (r ?? []).map((c) => String(c ?? "")).join(" "))
+		.join("\n");
+	const m =
+		/\b(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\s+To\b/i.exec(sample) ??
+		/\bTo\s+(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\b/i.exec(sample);
+	if (m) {
+		const y = parseInt(m[3], 10);
+		if (y >= 1990 && y <= 2100) return y;
+	}
+	return fallback;
+}
+
+function parseDaysHeaderRow(
+	row: unknown[] | undefined,
+	defaultYear: number
+): { ok: boolean; datesByCol: (string | null)[] } {
+	if (!row?.length) return { ok: false, datesByCol: [] };
+	const firstRaw = String(row[0] ?? "").trim();
+	const firstNorm = norm(firstRaw);
+	const looksLikeDaysLabel =
+		firstNorm === "days" ||
+		firstNorm === "day" ||
+		/^days$/i.test(firstRaw) ||
+		(firstNorm.includes("days") && !firstNorm.includes("duration"));
+
+	const datesByCol: (string | null)[] = [];
+	let parsed = 0;
+	for (let c = 0; c < row.length; c++) {
+		const ds = parseDateCell(row[c], defaultYear);
+		datesByCol[c] = ds;
+		if (ds) parsed++;
+	}
+	if (parsed < 2) return { ok: false, datesByCol: [] };
+	if (looksLikeDaysLabel) return { ok: true, datesByCol };
+	// Some exports leave col A empty but put "Days" in B — still allow if enough dates
+	if (!firstNorm && parsed >= 3) return { ok: true, datesByCol };
+	return { ok: false, datesByCol: [] };
+}
+
+function findAllDaysHeaderRowIndices(matrix: unknown[][], defaultYear: number): number[] {
+	const idx: number[] = [];
+	for (let r = 0; r < matrix.length; r++) {
+		if (parseDaysHeaderRow(matrix[r], defaultYear).ok) idx.push(r);
+	}
+	return idx;
+}
+
 export function detectHorizontalAttendanceFormat(matrix: unknown[][]): boolean {
-	const limit = Math.min(matrix.length, 100);
+	const limit = Math.min(matrix.length, 150);
+	const y = new Date().getFullYear();
 	for (let r = 0; r < limit; r++) {
 		const line = (matrix[r] ?? []).map((c) => String(c ?? "")).join(" ");
-		if (/employee\s*code\s*:/i.test(line)) return true;
+		if (/employee\s*code\s*[:-]/i.test(line)) return true;
+	}
+	for (let r = 0; r < limit; r++) {
+		if (parseDaysHeaderRow(matrix[r], y).ok) return true;
 	}
 	return false;
 }
@@ -128,16 +183,16 @@ function parseEmployeeHeaderRow(row: unknown[]): { code: string; name: string } 
 	let name = "";
 	for (let i = 0; i < row.length; i++) {
 		const s = String(row[i] ?? "").trim();
-		const mc = /^employee\s*code\s*:\s*(.+)$/i.exec(s);
+		const mc = /^employee\s*code\s*[:-]+\s*(.+)$/i.exec(s);
 		if (mc) code = mc[1].trim().split(/\s+/)[0] ?? "";
-		const mn = /^employee\s*name\s*:\s*(.+)$/i.exec(s);
+		const mn = /^employee\s*name\s*[:-]+\s*(.+)$/i.exec(s);
 		if (mn) name = mn[1].trim();
 	}
-	if (!code) {
-		const joined = row.map((c) => String(c ?? "")).join(" ");
-		const m = /employee\s*code\s*:\s*([^\s,|]+)/i.exec(joined);
+	if (!code || !name) {
+		const joined = row.map((c) => String(c ?? "")).join(" ").replace(/\s+/g, " ");
+		const m = /employee\s*code\s*[:-]+\s*(\S+)/i.exec(joined);
 		if (m) code = m[1].trim();
-		const m2 = /employee\s*name\s*:\s*([^|]+?)(?:\s{2,}|$)/i.exec(joined);
+		const m2 = /employee\s*name\s*[:-]+\s*(.+?)(?=\s*$|employee\s*code)/i.exec(joined);
 		if (m2) name = m2[1].trim();
 	}
 	return { code, name };
@@ -147,7 +202,7 @@ function findEmployeeBlockStartRows(matrix: unknown[][]): number[] {
 	const starts: number[] = [];
 	for (let r = 0; r < matrix.length; r++) {
 		const line = (matrix[r] ?? []).map((c) => String(c ?? "")).join(" ");
-		if (/employee\s*code\s*:/i.test(line)) starts.push(r);
+		if (/employee\s*code\s*[:-]/i.test(line)) starts.push(r);
 	}
 	return starts;
 }
@@ -192,7 +247,161 @@ function getRowLabel(block: unknown[][], r: number): string {
 	return String(row[0] ?? row[1] ?? "").trim();
 }
 
-export function parseHorizontalBlockAttendance(
+function emitColumnsForEmployee(
+	code: string,
+	_name: string | undefined,
+	datesByCol: (string | null)[],
+	block: unknown[][],
+	inRow: number,
+	outRow: number,
+	durRow: number,
+	otRow: number
+): ParsedAttendanceRow[] {
+	const out: ParsedAttendanceRow[] = [];
+	const maxCol = Math.max(
+		datesByCol.length,
+		inRow >= 0 ? (block[inRow]?.length ?? 0) : 0,
+		outRow >= 0 ? (block[outRow]?.length ?? 0) : 0,
+		durRow >= 0 ? (block[durRow]?.length ?? 0) : 0,
+		otRow >= 0 ? (block[otRow]?.length ?? 0) : 0
+	);
+
+	for (let c = 0; c < maxCol; c++) {
+		const work_date = datesByCol[c];
+		if (!work_date) continue;
+
+		const inRaw = inRow >= 0 ? block[inRow]?.[c] : "";
+		const outRaw = outRow >= 0 ? block[outRow]?.[c] : "";
+		const durRaw = durRow >= 0 ? block[durRow]?.[c] : "";
+		const otRaw = otRow >= 0 ? block[otRow]?.[c] : "";
+
+		let in_time = parseTimeCell(inRaw);
+		let out_time = parseTimeCell(outRaw);
+		let duration_minutes = parseDurationToMinutes(durRaw);
+		let overtime_minutes = parseOvertimeMinutes(otRaw);
+
+		if (in_time === "00:00" && (!out_time || out_time === "00:00")) {
+			in_time = null;
+			out_time = null;
+		} else if (in_time === "00:00") {
+			in_time = null;
+		} else if (out_time === "00:00") {
+			out_time = null;
+		}
+
+		const hasWork =
+			(in_time && in_time !== "00:00") ||
+			(out_time && out_time !== "00:00") ||
+			(duration_minutes != null && duration_minutes > 0) ||
+			overtime_minutes > 0;
+
+		if (!hasWork) continue;
+
+		let attendance_type: HrAttendanceType = "present";
+		const is_valid: boolean =
+			(duration_minutes != null && duration_minutes > 0) ||
+			Boolean(in_time && out_time && in_time !== "00:00" && out_time !== "00:00");
+
+		const row: ParsedAttendanceRow = {
+			employee_code: code,
+			work_date,
+			in_time,
+			out_time,
+			duration_minutes,
+			overtime_minutes,
+			attendance_type,
+			is_valid,
+			...(_name ? { employee_name: _name } : {}),
+		};
+		if (!is_valid) row.error = "Check in/out or duration";
+		out.push(row);
+	}
+	return out;
+}
+
+/**
+ * Work Duration Report style: "Days" row with DD-MMM columns first, then weekday row,
+ * then "Employee Code:- …", then In/Out/Duration/OT rows.
+ */
+function parseDaysFirstHorizontal(
+	matrix: unknown[][],
+	defaultYear: number
+): { rows: ParsedAttendanceRow[]; errors: string[] } {
+	const errors: string[] = [];
+	const out: ParsedAttendanceRow[] = [];
+	const daysRows = findAllDaysHeaderRowIndices(matrix, defaultYear);
+
+	if (daysRows.length === 0) {
+		return { rows: [], errors: [] };
+	}
+
+	for (let i = 0; i < daysRows.length; i++) {
+		const start = daysRows[i];
+		const end = i + 1 < daysRows.length ? daysRows[i + 1] : matrix.length;
+		const { datesByCol } = parseDaysHeaderRow(matrix[start], defaultYear);
+		if (!datesByCol.length) continue;
+
+		let empRow = -1;
+		for (let r = start + 1; r < end; r++) {
+			const line = (matrix[r] ?? []).map((c) => String(c ?? "")).join(" ");
+			if (/employee\s*code/i.test(line)) {
+				empRow = r;
+				break;
+			}
+		}
+		if (empRow < 0) {
+			errors.push(`Block at sheet row ${start + 1}: no Employee Code row below "Days" header`);
+			continue;
+		}
+
+		const { code, name: _name } = parseEmployeeHeaderRow(matrix[empRow] ?? []);
+		if (!code) {
+			errors.push(`Row ${empRow + 1}: could not parse employee code (expected Employee Code:- or Code:)`);
+			continue;
+		}
+
+		const block = matrix.slice(start, end);
+		const relEmp = empRow - start;
+
+		let inRow = -1;
+		let outRow = -1;
+		let durRow = -1;
+		let otRow = -1;
+
+		for (let r = relEmp + 1; r < block.length; r++) {
+			const absR = start + r;
+			if (absR >= end) break;
+			const rowArr = block[r] ?? [];
+			if (parseDaysHeaderRow(rowArr, defaultYear).ok) break;
+			const line = rowArr.map((c) => String(c ?? "")).join(" ");
+			if (r > relEmp + 1 && /employee\s*code/i.test(line)) break;
+
+			const label = getRowLabel(block, r);
+			const kind = matchMetricRow(label);
+			if (kind === null || kind === "ignore") continue;
+			if (kind === "in") inRow = r;
+			else if (kind === "out") outRow = r;
+			else if (kind === "duration") durRow = r;
+			else if (kind === "ot") otRow = r;
+		}
+
+		if (inRow < 0 && outRow < 0 && durRow < 0) {
+			errors.push(
+				`Employee ${code}: no In/Out/Duration rows found below employee row (sheet row ${empRow + 1})`
+			);
+			continue;
+		}
+
+		out.push(
+			...emitColumnsForEmployee(code, _name, datesByCol, block, inRow, outRow, durRow, otRow)
+		);
+	}
+
+	return { rows: out, errors };
+}
+
+/** Legacy: employee header row first, then date row + metrics below it. */
+function parseEmployeeFirstHorizontal(
 	matrix: unknown[][],
 	defaultYear: number
 ): { rows: ParsedAttendanceRow[]; errors: string[] } {
@@ -240,65 +449,33 @@ export function parseHorizontalBlockAttendance(
 			continue;
 		}
 
-		const maxCol = Math.max(
-			datesByCol.length,
-			inRow >= 0 ? (block[inRow]?.length ?? 0) : 0,
-			outRow >= 0 ? (block[outRow]?.length ?? 0) : 0,
-			durRow >= 0 ? (block[durRow]?.length ?? 0) : 0,
-			otRow >= 0 ? (block[otRow]?.length ?? 0) : 0
+		out.push(
+			...emitColumnsForEmployee(code, _name, datesByCol, block, inRow, outRow, durRow, otRow)
 		);
-
-		for (let c = 0; c < maxCol; c++) {
-			const work_date = datesByCol[c];
-			if (!work_date) continue;
-
-			const inRaw = inRow >= 0 ? block[inRow]?.[c] : "";
-			const outRaw = outRow >= 0 ? block[outRow]?.[c] : "";
-			const durRaw = durRow >= 0 ? block[durRow]?.[c] : "";
-			const otRaw = otRow >= 0 ? block[otRow]?.[c] : "";
-
-			let in_time = parseTimeCell(inRaw);
-			let out_time = parseTimeCell(outRaw);
-			let duration_minutes = parseDurationToMinutes(durRaw);
-			let overtime_minutes = parseOvertimeMinutes(otRaw);
-
-			if (in_time === "00:00" && (!out_time || out_time === "00:00")) {
-				in_time = null;
-				out_time = null;
-			} else if (in_time === "00:00") {
-				in_time = null;
-			} else if (out_time === "00:00") {
-				out_time = null;
-			}
-
-			const hasWork =
-				(in_time && in_time !== "00:00") ||
-				(out_time && out_time !== "00:00") ||
-				(duration_minutes != null && duration_minutes > 0) ||
-				overtime_minutes > 0;
-
-			if (!hasWork) continue;
-
-			let attendance_type: HrAttendanceType = "present";
-			const is_valid: boolean =
-				(duration_minutes != null && duration_minutes > 0) ||
-				Boolean(in_time && out_time && in_time !== "00:00" && out_time !== "00:00");
-
-			const row: ParsedAttendanceRow = {
-				employee_code: code,
-				work_date,
-				in_time,
-				out_time,
-				duration_minutes,
-				overtime_minutes,
-				attendance_type,
-				is_valid,
-				...(_name ? { employee_name: _name } : {}),
-			};
-			if (!is_valid) row.error = "Check in/out or duration";
-			out.push(row);
-		}
 	}
 
 	return { rows: out, errors };
+}
+
+export function parseHorizontalBlockAttendance(
+	matrix: unknown[][],
+	defaultYear: number
+): { rows: ParsedAttendanceRow[]; errors: string[] } {
+	const year = inferDefaultYearFromMatrix(matrix, defaultYear);
+	const daysRows = findAllDaysHeaderRowIndices(matrix, year);
+	const empStarts = findEmployeeBlockStartRows(matrix);
+	const firstEmp = empStarts.length ? empStarts[0] : Number.POSITIVE_INFINITY;
+	const firstDay = daysRows.length ? daysRows[0] : Number.POSITIVE_INFINITY;
+	/** Work Duration Report has calendar ("Days" + dates) above the employee row. */
+	const useDaysFirst =
+		daysRows.length > 0 && (firstEmp === Number.POSITIVE_INFINITY || firstDay < firstEmp);
+
+	if (useDaysFirst) {
+		const { rows, errors } = parseDaysFirstHorizontal(matrix, year);
+		if (rows.length > 0 || errors.length > 0) {
+			return { rows, errors };
+		}
+	}
+
+	return parseEmployeeFirstHorizontal(matrix, year);
 }

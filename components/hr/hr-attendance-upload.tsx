@@ -6,7 +6,31 @@ import { Button } from "@/components/ui";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function HrAttendanceUpload() {
+export type HrAttendanceUploadPreviewRow = {
+	employee_code: string;
+	employee_name?: string;
+	work_date: string;
+	in_time: string | null;
+	out_time: string | null;
+	duration_minutes: number | null;
+	overtime_minutes: number;
+	attendance_type: string;
+	is_valid: boolean;
+	error?: string;
+};
+
+export type HrAttendanceUploadResult = {
+	inserted: number;
+	parsed: number;
+	format: string;
+	errors: string[];
+	previewRows: HrAttendanceUploadPreviewRow[];
+};
+
+export function HrAttendanceUpload(props?: {
+	onComplete?: (result: HrAttendanceUploadResult) => void;
+}) {
+	const { onComplete } = props ?? {};
 	const router = useRouter();
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [loading, setLoading] = useState(false);
@@ -29,11 +53,21 @@ export function HrAttendanceUpload() {
 				toast.error(data.error ?? "Upload failed");
 				return;
 			}
+			const result: HrAttendanceUploadResult = {
+				inserted: data.inserted ?? 0,
+				parsed: data.parsed ?? 0,
+				format: data.format ?? "unknown",
+				errors: Array.isArray(data.errors) ? data.errors : [],
+				previewRows: Array.isArray(data.previewRows) ? data.previewRows : [],
+			};
+			onComplete?.(result);
 			toast.success(`Imported ${data.inserted} rows`, {
 				description:
-					data.errors?.length > 0 ? `${data.errors.length} row messages in console` : undefined,
+					result.errors.length > 0
+						? `${result.errors.length} message(s) — see details on this page`
+						: undefined,
 			});
-			if (data.errors?.length) console.warn(data.errors);
+			if (result.errors.length) console.warn(result.errors);
 			router.refresh();
 		} finally {
 			setLoading(false);

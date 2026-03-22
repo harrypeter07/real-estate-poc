@@ -55,11 +55,25 @@ export async function POST(req: Request) {
 		else inserted++;
 	}
 
+	const previewRows = rows.slice(0, 100).map((r) => ({
+		employee_code: r.employee_code,
+		employee_name: r.employee_name,
+		work_date: r.work_date,
+		in_time: r.in_time,
+		out_time: r.out_time,
+		duration_minutes: r.duration_minutes,
+		overtime_minutes: r.overtime_minutes,
+		attendance_type: r.attendance_type,
+		is_valid: r.is_valid,
+		error: r.error,
+	}));
+
 	return NextResponse.json({
 		inserted,
 		errors: insertErrors,
 		parsed: rows.length,
 		format,
 		defaultYear,
+		previewRows,
 	});
 }

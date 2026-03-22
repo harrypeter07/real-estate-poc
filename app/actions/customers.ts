@@ -12,6 +12,13 @@ export type ActionResponse = {
 	error?: string;
 };
 
+function mapCustomerDbError(error: { code?: string; message: string }): string {
+	if (error.code === "23505" && /(phone|customers_phone_unique)/i.test(error.message)) {
+		return "A customer with this phone number already exists.";
+	}
+	return error.message;
+}
+
 function getNextBirthdayDate(birthDate: string): string | null {
 	if (!birthDate) return null;
 	const parsed = new Date(birthDate);
@@ -115,7 +122,7 @@ export async function createCustomer(
 		.single();
 
 	if (error) {
-		return { success: false, error: error.message };
+		return { success: false, error: mapCustomerDbError(error) };
 	}
 
 	if (insertedCustomer?.id) {
@@ -180,7 +187,7 @@ export async function updateCustomer(
 		.single();
 
 	if (error) {
-		return { success: false, error: error.message };
+		return { success: false, error: mapCustomerDbError(error) };
 	}
 
 	if (updatedCustomer?.id) {

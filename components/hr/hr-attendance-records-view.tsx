@@ -256,33 +256,52 @@ function AttendanceRowListTable({ records }: { records: AttendanceRecordVM[] }) 
 	);
 }
 
+export type HrFileReportMeta = {
+	reportPeriodRaw?: string | null;
+	reportPeriodStartIso?: string | null;
+	reportPeriodEndIso?: string | null;
+	generatedOnRaw?: string | null;
+	generatedOnDateIso?: string | null;
+};
+
 export function HrAttendanceRecordsView({
 	records,
 	title,
 	showFilters = true,
+	parsedCalendarYear,
+	fileReport,
 }: {
 	records: AttendanceRecordVM[];
 	title?: string;
 	showFilters?: boolean;
+	/** Shown after import preview — year used when parsing DD-MMM cells */
+	parsedCalendarYear?: number;
+	/** Header lines read from the Work Duration file (CSV/Excel) */
+	fileReport?: HrFileReportMeta | null;
 }) {
 	const [search, setSearch] = useState("");
 	const [from, setFrom] = useState("");
 	const [to, setTo] = useState("");
+	/** When set (YYYY-MM-DD), only that day’s rows (still combined with From/To if set). */
+	const [specificDay, setSpecificDay] = useState("");
 	const [layout, setLayout] = useState<"report" | "list">("report");
 	const [employeeOnly, setEmployeeOnly] = useState<string>("all");
 	const [employeeSort, setEmployeeSort] = useState<EmployeeBlockSort>("id");
 
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
+		const dayKey =
+			specificDay && /^\d{4}-\d{2}-\d{2}$/.test(specificDay) ? specificDay : "";
 		return records.filter((r) => {
 			if (q && !r.employeeName.toLowerCase().includes(q) && !r.employeeCode.toLowerCase().includes(q))
 				return false;
 			const wd = normalizeDateKey(r.work_date);
 			if (from && wd < from) return false;
 			if (to && wd > to) return false;
+			if (dayKey && wd !== dayKey) return false;
 			return true;
 		});
-	}, [records, search, from, to]);
+	}, [records, search, from, to, specificDay]);
 
 	const employeeOptions = useMemo(() => {
 		const m = new Map<string, string>();
@@ -318,10 +337,14 @@ export function HrAttendanceRecordsView({
 	}, [viewRows]);
 
 	return (
-		<div className="w-full min-w-0 max-w-full space-y-6">
-			<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-				{title ? <h3 className="text-base font-semibold tracking-tight">{title}</h3> : null}
-				<div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">
+		<div className="w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
+			<div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+				{title ? (
+					<h3 className="text-base font-semibold tracking-tight w-full min-w-0 sm:w-auto sm:max-w-[min(100%,28rem)]">
+						{title}
+					</h3>
+				) : null}
+				<div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-1 dark:border-zinc-800 dark:bg-zinc-900/50 sm:w-auto">
 					<Button
 						type="button"
 						size="sm"
@@ -352,6 +375,49 @@ export function HrAttendanceRecordsView({
 				{meta.rows === 1 ? "" : "s"}
 				{viewRows.length !== records.length ? ` (filtered from ${records.length})` : ""}
 			</p>
+			{parsedCalendarYear != null ? (
+				<p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-2">
+					Calendar year used for parsing:{" "}
+					<span className="font-semibold text-foreground">{parsedCalendarYear}</span>
+					<span className="opacity-80">
+						{" "}
+						(from the report date range / “Generated on” line in the file, or your device year if missing)
+					</span>
+				</p>
+			) : null}
+			{fileReport &&
+			(fileReport.reportPeriodRaw ||
+				fileReport.generatedOnRaw ||
+				fileReport.reportPeriodStartIso ||
+				fileReport.generatedOnDateIso) ? (
+				<div className="rounded-md border border-sky-200/90 bg-sky-50/60 px-3 py-2 text-xs text-sky-950 dark:border-sky-900/60 dark:bg-sky-950/25 dark:text-sky-100 space-y-1.5">
+					<p className="font-semibold text-[11px] uppercase tracking-wide text-sky-900/90 dark:text-sky-200/90">
+						From your uploaded file
+					</p>
+					{fileReport.reportPeriodRaw ? (
+						<p className="leading-relaxed break-words">
+							<span className="font-medium text-foreground">Attendance date range: </span>
+							{fileReport.reportPeriodRaw}
+						</p>
+					) : fileReport.reportPeriodStartIso && fileReport.reportPeriodEndIso ? (
+						<p className="leading-relaxed">
+							<span className="font-medium text-foreground">Attendance date range: </span>
+							{formatLocalYmd(fileReport.reportPeriodStartIso)} → {formatLocalYmd(fileReport.reportPeriodEndIso)}
+						</p>
+					) : null}
+					{fileReport.generatedOnRaw ? (
+						<p className="leading-relaxed break-words">
+							<span className="font-medium text-foreground">Generated on: </span>
+							{fileReport.generatedOnRaw.replace(/^Generated\s*On:\s*/i, "")}
+						</p>
+					) : fileReport.generatedOnDateIso ? (
+						<p className="leading-relaxed">
+							<span className="font-medium text-foreground">Generated on (date): </span>
+							{formatLocalYmd(fileReport.generatedOnDateIso)}
+						</p>
+					) : null}
+				</div>
+			) : null}
 
 			{showFilters && (
 				<div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
@@ -402,6 +468,31 @@ export function HrAttendanceRecordsView({
 						<label className="mb-1 block text-xs font-medium text-muted-foreground">To</label>
 						<Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
 					</div>
+					<div className="w-full sm:w-40">
+						<label className="mb-1 block text-xs font-medium text-muted-foreground">Specific day</label>
+						<div className="flex gap-1">
+							<Input
+								type="date"
+								value={specificDay}
+								onChange={(e) => setSpecificDay(e.target.value)}
+								className="min-w-0 flex-1"
+							/>
+							{specificDay ? (
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="shrink-0 px-2 text-xs"
+									onClick={() => setSpecificDay("")}
+								>
+									Clear
+								</Button>
+							) : null}
+						</div>
+						<p className="mt-0.5 text-[10px] text-muted-foreground">
+							Optional: show one day only (with From/To if set).
+						</p>
+					</div>
 				</div>
 			)}
 
@@ -410,7 +501,7 @@ export function HrAttendanceRecordsView({
 					<EmployeeTotalsStrip rows={viewRows} sortOrder={employeeSort} />
 					<div>
 						<p className="mb-4 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-							Monthly grid — full month columns (00:00 when empty); use horizontal scroll
+							Date grid — one column per day in the current data range (00:00 when empty); scroll horizontally
 						</p>
 						<WorkDurationPivotGrids rows={viewRows} sortOrder={employeeSort} />
 					</div>

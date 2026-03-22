@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Pencil, Plus, Loader2 } from "lucide-react";
 import {
 	Button,
 	Dialog,
@@ -15,15 +15,30 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui";
-import { createHrEmployee } from "@/app/actions/hr";
+import { createHrEmployee, updateHrEmployee, type HrEmployeeRow } from "@/app/actions/hr";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function HrEmployeeDialog() {
-	const router = useRouter();
-	const [open, setOpen] = useState(false);
-	const [loading, setLoading] = useState(false);
-	const [form, setForm] = useState({
+type CreateProps = {
+	variant?: "create";
+	employee?: undefined;
+	open?: undefined;
+	onOpenChange?: undefined;
+};
+
+type EditProps = {
+	variant: "edit";
+	employee: HrEmployeeRow;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+};
+
+type HrEmployeeDialogProps = (CreateProps | EditProps) & {
+	onSuccess?: () => void;
+};
+
+function defaultForm() {
+	return {
 		name: "",
 		employee_code: "",
 		phone: "",
@@ -32,12 +47,46 @@ export function HrEmployeeDialog() {
 		overtime_rate: "",
 		required_hours_per_week: "48",
 		grace_hours: "0",
-	});
+	};
+}
+
+function formFromEmployee(e: HrEmployeeRow) {
+	return {
+		name: e.name ?? "",
+		employee_code: e.employee_code ?? "",
+		phone: e.phone ?? "",
+		salary_type: e.salary_type ?? "monthly",
+		salary_rate: String(e.salary_rate ?? ""),
+		overtime_rate: String(e.overtime_rate ?? ""),
+		required_hours_per_week: String(e.required_hours_per_week ?? 48),
+		grace_hours: String(e.grace_hours ?? 0),
+	};
+}
+
+export function HrEmployeeDialog(props: HrEmployeeDialogProps) {
+	const { onSuccess } = props;
+	const router = useRouter();
+	const isEdit = props.variant === "edit";
+	const [internalOpen, setInternalOpen] = useState(false);
+	const open = isEdit ? props.open : internalOpen;
+	const setOpen = isEdit ? props.onOpenChange : setInternalOpen;
+
+	const [loading, setLoading] = useState(false);
+	const [form, setForm] = useState(defaultForm);
+
+	useEffect(() => {
+		if (!open) return;
+		if (isEdit && props.variant === "edit") {
+			setForm(formFromEmployee(props.employee));
+			return;
+		}
+		setForm(defaultForm());
+	}, [open, isEdit, isEdit && props.variant === "edit" ? props.employee.id : "create"]);
 
 	const submit = async () => {
 		setLoading(true);
 		try {
-			const res = await createHrEmployee({
+			const payload = {
 				name: form.name,
 				employee_code: form.employee_code,
 				phone: form.phone || undefined,
@@ -46,29 +95,40 @@ export function HrEmployeeDialog() {
 				overtime_rate: Number(form.overtime_rate || 0),
 				required_hours_per_week: Number(form.required_hours_per_week || 48),
 				grace_hours: Number(form.grace_hours || 0),
-			});
+			};
+			const res = isEdit
+				? await updateHrEmployee(props.employee.id, payload)
+				: await createHrEmployee(payload);
 			if (!res.success) {
 				toast.error(res.error ?? "Failed");
 				return;
 			}
-			toast.success("Employee created");
+			toast.success(isEdit ? "Employee updated" : "Employee created");
 			setOpen(false);
-			router.refresh();
+			onSuccess?.();
+			await router.refresh();
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	const title = isEdit ? "Edit employee" : "New employee";
+
 	return (
 		<>
-			<Button size="sm" onClick={() => setOpen(true)} className="gap-2">
-				<Plus className="h-4 w-4" />
-				Add employee
-			</Button>
+			{!isEdit && (
+				<Button size="sm" onClick={() => setOpen(true)} className="gap-2">
+					<Plus className="h-4 w-4" />
+					Add employee
+				</Button>
+			)}
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>New employee</DialogTitle>
+						<DialogTitle className="flex items-center gap-2">
+							{isEdit && <Pencil className="h-4 w-4 opacity-70" />}
+							{title}
+						</DialogTitle>
 					</DialogHeader>
 					<div className="grid gap-3 py-2">
 						<div className="grid gap-1">
@@ -87,10 +147,17 @@ export function HrEmployeeDialog() {
 							/>
 						</div>
 						<div className="grid gap-1">
-							<span className="text-sm font-medium">Phone</span>
+							<span className="text-sm font-medium">Phone (10 digits)</span>
 							<Input
+								inputMode="numeric"
+								autoComplete="tel"
+								maxLength={10}
+								placeholder="9876543210"
 								value={form.phone}
-								onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+								onChange={(e) => {
+									const v = e.target.value.replace(/\D/g, "").slice(0, 10);
+									setForm((f) => ({ ...f, phone: v }));
+								}}
 							/>
 						</div>
 						<div className="grid gap-1">
@@ -148,7 +215,7 @@ export function HrEmployeeDialog() {
 							</div>
 						</div>
 						<Button disabled={loading || !form.name || !form.employee_code} onClick={submit}>
-							{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+							{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : isEdit ? "Update" : "Save"}
 						</Button>
 					</div>
 				</DialogContent>

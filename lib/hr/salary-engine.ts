@@ -1,5 +1,13 @@
 import type { HrEmployeeRow, HrSalaryType } from "./types";
 
+/** Calendar YYYY-MM-DD in local timezone (matches Postgres `date` / attendance `work_date`). */
+export function formatYmdLocal(d: Date): string {
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${y}-${m}-${day}`;
+}
+
 export type WeekBucket = {
 	weekKey: string;
 	start: string;
@@ -24,6 +32,25 @@ function addDays(d: Date, n: number): Date {
 	const x = new Date(d);
 	x.setDate(x.getDate() + n);
 	return x;
+}
+
+/**
+ * Rate used for short-hour deductions (same basis as weekly bucket `deduction`).
+ * Monthly: salary ÷ (required hrs/week × 4.33). Daily: day rate ÷ 8. Hourly: hourly rate.
+ */
+export function computeRegularHourlyEquivalent(
+	salaryType: HrSalaryType,
+	salaryRate: number,
+	requiredHoursPerWeek: number
+): number {
+	if (salaryType === "monthly") {
+		const approxMonthHours = requiredHoursPerWeek * 4.33;
+		return approxMonthHours > 0 ? salaryRate / approxMonthHours : 0;
+	}
+	if (salaryType === "daily") {
+		return salaryRate / 8;
+	}
+	return salaryRate;
 }
 
 function countDaysInPeriod(weekStart: Date, rangeStart: Date, rangeEnd: Date): number {
@@ -58,14 +85,14 @@ export function buildWeeklyBuckets(
 	while (cursor <= end) {
 		const weekStart = new Date(cursor);
 		const weekEnd = addDays(weekStart, 6);
-		const weekKey = weekStart.toISOString().slice(0, 10);
+		const weekKey = formatYmdLocal(weekStart);
 
 		let worked = 0;
 		let ot = 0;
 		for (let i = 0; i < 7; i++) {
 			const day = addDays(weekStart, i);
 			if (day < periodStart || day > periodEnd) continue;
-			const key = day.toISOString().slice(0, 10);
+			const key = formatYmdLocal(day);
 			const t = dailyType[key] ?? "present";
 			if (t === "holiday" || t === "leave") continue;
 			worked += dailyWorkedHours[key] ?? 0;
@@ -78,22 +105,14 @@ export function buildWeeklyBuckets(
 		let short = Math.max(0, required - worked);
 		if (short <= graceHours) short = 0;
 
-		let hourlyEquivalent = 0;
-		if (salaryType === "monthly") {
-			const approxMonthHours = requiredHoursPerWeek * 4.33;
-			hourlyEquivalent = approxMonthHours > 0 ? salaryRate / approxMonthHours : 0;
-		} else if (salaryType === "daily") {
-			hourlyEquivalent = salaryRate / 8;
-		} else {
-			hourlyEquivalent = salaryRate;
-		}
+		const hourlyEquivalent = computeRegularHourlyEquivalent(salaryType, salaryRate, requiredHoursPerWeek);
 
 		const deduction = deductionEnabled ? short * hourlyEquivalent : 0;
 
 		buckets.push({
 			weekKey,
-			start: weekStart.toISOString().slice(0, 10),
-			end: weekEnd.toISOString().slice(0, 10),
+			start: formatYmdLocal(weekStart),
+			end: formatYmdLocal(weekEnd),
 			workedHours: worked,
 			overtimeHours: ot,
 			requiredHours: required,
@@ -105,6 +124,31 @@ export function buildWeeklyBuckets(
 	}
 
 	return buckets;
+}
+
+function sumRequiredHours(buckets: WeekBucket[]): number {
+	return buckets.reduce((s, b) => s + b.requiredHours, 0);
+}
+
+/**
+ * Floor pay from hours worked at the package implied rate (net cannot fall below this + OT).
+ * Monthly: monthly salary × min(1, W ÷ R). Daily: (day rate ÷ 8) × W. Hourly: W × hourly rate.
+ */
+export function computeEarnedMinimumFromWorkedHours(
+	emp: HrEmployeeRow,
+	totalWorkedHours: number,
+	totalRequiredHoursInPeriod: number
+): number {
+	const W = Math.max(0, totalWorkedHours);
+	const R = totalRequiredHoursInPeriod;
+	if (emp.salary_type === "monthly") {
+		if (R <= 0) return 0;
+		return Number(emp.salary_rate) * Math.min(1, W / R);
+	}
+	if (emp.salary_type === "daily") {
+		return W * (Number(emp.salary_rate) / 8);
+	}
+	return W * Number(emp.salary_rate);
 }
 
 export function computePayoutForEmployee(
@@ -121,24 +165,43 @@ export function computePayoutForEmployee(
 	weekly_breakdown: WeekBucket[];
 } {
 	const weekly_breakdown = buckets;
-	const totalDeduction = deductionEnabledSum(weekly_breakdown, emp.deduction_enabled);
+	const R = sumRequiredHours(buckets);
 	const otPay = totalOvertimeHours * Number(emp.overtime_rate ?? 0);
+
+	/**
+	 * Weekly shortfall vs full-time norm:
+	 * - Monthly: applied via pro-rata base (see below), not as a separate clawback that can exceed salary.
+	 * - Hourly: already paid per hour worked; do not apply norm shortfall deductions.
+	 * - Daily: optional shortfall deduction, capped by net floor.
+	 */
+	const rawShortfallDeduction =
+		emp.salary_type === "daily" && emp.deduction_enabled
+			? deductionEnabledSum(weekly_breakdown, true)
+			: 0;
+
+	const earnedMinimum = computeEarnedMinimumFromWorkedHours(emp, totalWorkedHours, R);
 
 	let base = 0;
 	if (emp.salary_type === "monthly") {
-		base = Number(emp.salary_rate);
+		/** Pro-rata against required hours in the month (same as earned-minimum formula). */
+		base = earnedMinimum;
 	} else if (emp.salary_type === "daily") {
 		base = presentDays * Number(emp.salary_rate);
 	} else {
 		base = totalWorkedHours * Number(emp.salary_rate);
 	}
 
-	const finalSalary = Math.max(0, base + otPay - totalDeduction);
+	let finalSalary = base + otPay - rawShortfallDeduction;
+	finalSalary = Math.max(earnedMinimum + otPay, finalSalary);
+	finalSalary = Math.max(0, finalSalary);
+
+	/** Amount actually withheld after floors (matches base + OT − net). */
+	const deductionAmount = Math.max(0, base + otPay - finalSalary);
 
 	return {
 		baseSalary: base,
 		overtimePay: otPay,
-		deductionAmount: totalDeduction,
+		deductionAmount,
 		finalSalary,
 		weekly_breakdown,
 	};

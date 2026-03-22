@@ -11,7 +11,7 @@ export default async function HrPayoutsPage() {
 		<div className="space-y-6">
 			<PageHeader
 				title="Payouts"
-				subtitle="Generate payroll for a calendar month (YYYY-MM)"
+				subtitle="Select a calendar month, calculate from attendance, then review hours, rates, deductions, and weekly breakdown per employee."
 				action={
 					<Button asChild variant="ghost" size="sm">
 						<Link href="/hr">Back</Link>

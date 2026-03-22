@@ -21,24 +21,24 @@ export function PageHeader({
   const router = useRouter();
 
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-6">
-      <div className="flex items-center gap-3">
+    <div className="mb-6 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {showBackButton && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 -ml-2 text-zinc-500"
+            className="h-9 w-9 -ml-2 shrink-0 text-zinc-500"
             onClick={() => router.back()}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
         )}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle && <p className="text-sm text-zinc-500 mt-0.5">{subtitle}</p>}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight break-words">{title}</h1>
+          {subtitle && <p className="mt-0.5 text-sm text-zinc-500">{subtitle}</p>}
         </div>
       </div>
-      {action && <div className="mt-2 sm:mt-0">{action}</div>}
+      {action && <div className="w-full shrink-0 sm:mt-0 sm:w-auto">{action}</div>}
     </div>
   );
 }

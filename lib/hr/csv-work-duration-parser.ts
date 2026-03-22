@@ -5,7 +5,13 @@
  */
 
 import type { ParsedAttendanceRow, HrAttendanceType } from "./types";
-import { inferDefaultYearFromMatrix, parseDateCell } from "./excel-parser-horizontal";
+import {
+	parseDateCell,
+	parseWorkDurationReportMetadata,
+	type WorkDurationReportMetadata,
+} from "./excel-parser-horizontal";
+
+export type { WorkDurationReportMetadata };
 
 export type DateColumn = { colIndex: number; raw: string; work_date: string };
 
@@ -148,11 +154,17 @@ export function parseDurationOrOtMinutes(cell: unknown): number {
 export function parseWorkDurationCsvMatrix(
 	matrix: unknown[][],
 	options?: { defaultYear?: number }
-): { rows: ParsedAttendanceRow[]; errors: string[] } {
+): {
+	rows: ParsedAttendanceRow[];
+	errors: string[];
+	inferredYear: number;
+	reportMetadata: WorkDurationReportMetadata;
+} {
 	const errors: string[] = [];
 	const results: ParsedAttendanceRow[] = [];
 	const defaultYear = options?.defaultYear ?? new Date().getFullYear();
-	const year = inferDefaultYearFromMatrix(matrix, defaultYear);
+	const reportMetadata = parseWorkDurationReportMetadata(matrix, defaultYear);
+	const year = reportMetadata.inferredYear;
 	const globalDates = findGlobalDateRow(matrix, year);
 
 	if (!globalDates) {
@@ -214,5 +226,5 @@ export function parseWorkDurationCsvMatrix(
 		}
 	}
 
-	return { rows: results, errors };
+	return { rows: results, errors, inferredYear: year, reportMetadata };
 }

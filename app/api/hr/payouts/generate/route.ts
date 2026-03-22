@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/hr/auth-route";
-import { buildWeeklyBuckets, computePayoutForEmployee } from "@/lib/hr/salary-engine";
+import { buildWeeklyBuckets, computePayoutForEmployee, formatYmdLocal } from "@/lib/hr/salary-engine";
 import type { HrEmployeeRow } from "@/lib/hr/types";
 
 function monthRange(ym: string): { start: Date; end: Date; label: string } | null {
@@ -9,6 +9,7 @@ function monthRange(ym: string): { start: Date; end: Date; label: string } | nul
 	const y = Number(m[1]);
 	const mo = Number(m[2]) - 1;
 	const start = new Date(y, mo, 1);
+	start.setHours(0, 0, 0, 0);
 	const end = new Date(y, mo + 1, 0, 23, 59, 59, 999);
 	const label = start.toLocaleString("en-IN", { month: "long", year: "numeric" });
 	return { start, end, label };
@@ -65,7 +66,8 @@ export async function POST(req: Request) {
 		await auth.supabase.from("hr_employee_payouts").delete().eq("batch_id", batchId);
 	}
 
-	for (const empRaw of employees ?? []) {
+	const employeesList = employees ?? [];
+	for (const empRaw of employeesList) {
 		const emp: HrEmployeeRow = {
 			id: empRaw.id,
 			name: empRaw.name,
@@ -133,5 +135,12 @@ export async function POST(req: Request) {
 		});
 	}
 
-	return NextResponse.json({ ok: true, batch_id: batchId, month_label: range.label });
+	return NextResponse.json({
+		ok: true,
+		batch_id: batchId,
+		month_label: range.label,
+		period_from: fromStr,
+		period_to: toStr,
+		employees_processed: employeesList.length,
+	});
 }

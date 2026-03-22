@@ -1,6 +1,6 @@
 "use client";
 
-import { eachDayOfInterval, endOfMonth, format, startOfMonth } from "date-fns";
+import { eachDayOfInterval, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui";
 import { formatMinutesAsClock } from "@/lib/utils/formatters";
 /** Same shape as AttendanceRecordVM (avoid circular imports). */
@@ -60,7 +60,7 @@ function dateHeadersLocal(d: string): { day: string; dow: string; dayOfMonth: nu
 	return { day: format(x, "dd-MMM"), dow: format(x, "EEE"), dayOfMonth: day };
 }
 
-/** All calendar days from min(row) … max(row), expanded to full month(s). */
+/** Every calendar day from min(work_date) through max(work_date) inclusive (no full-month padding). */
 export function fullCalendarDatesFromRows(rows: AttendanceReportRow[]): string[] {
 	const keys = rows.map((r) => normalizeDateKey(r.work_date)).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
 	if (!keys.length) return [];
@@ -77,9 +77,7 @@ export function fullCalendarDatesFromRows(rows: AttendanceReportRow[]): string[]
 		if (t < min) min = t;
 		if (t > max) max = t;
 	}
-	const start = startOfMonth(min);
-	const end = endOfMonth(max);
-	return eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
+	return eachDayOfInterval({ start: min, end: max }).map((d) => format(d, "yyyy-MM-dd"));
 }
 
 type EmpBlock = {
@@ -142,7 +140,7 @@ export function EmployeeTotalsStrip({
 			<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
 				Totals by employee
 			</p>
-			<div className="flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
+			<div className="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 [scrollbar-width:thin]">
 				{blocks.map((b) => {
 					let dur = 0;
 					let ot = 0;
@@ -155,27 +153,32 @@ export function EmployeeTotalsStrip({
 					return (
 						<Card
 							key={b.code}
-							className="min-w-[200px] shrink-0 border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white shadow-sm dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-950"
+							className="min-w-[104px] max-w-[140px] shrink-0 border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white shadow-sm dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-950"
 						>
-							<CardContent className="p-4 space-y-2">
-								<div className="flex items-baseline justify-between gap-2">
-									<span className="font-mono text-lg font-bold tabular-nums text-primary">#{b.code}</span>
+							<CardContent className="space-y-1 p-2">
+								<div className="flex items-start justify-between gap-1">
+									<span className="min-w-0 truncate font-mono text-[11px] font-bold tabular-nums text-primary">
+										#{b.code}
+									</span>
 									{inv > 0 ? (
-										<span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-800 dark:bg-red-950 dark:text-red-200">
-											{inv} invalid
+										<span
+											title={`${inv} invalid row(s)`}
+											className="shrink-0 rounded bg-red-100 px-1 py-px text-[8px] font-medium leading-none text-red-800 dark:bg-red-950 dark:text-red-200"
+										>
+											{inv}!
 										</span>
 									) : null}
 								</div>
-								<p className="text-sm font-medium leading-tight line-clamp-2">{b.name}</p>
-								<div className="grid grid-cols-2 gap-2 border-t border-zinc-200 pt-3 text-xs dark:border-zinc-800">
-									<div>
-										<p className="text-muted-foreground">Duration</p>
-										<p className="font-semibold tabular-nums">{hoursLabel(dur)}</p>
+								<p className="line-clamp-2 text-[10px] font-medium leading-snug text-foreground">{b.name}</p>
+								<div className="grid grid-cols-2 gap-1 border-t border-zinc-200 pt-1.5 text-[9px] dark:border-zinc-800">
+									<div className="min-w-0">
+										<p className="truncate text-muted-foreground">Dur</p>
+										<p className="truncate font-semibold tabular-nums text-[10px]">{hoursLabel(dur)}</p>
 									</div>
-									<div>
-										<p className="text-muted-foreground">Overtime</p>
+									<div className="min-w-0">
+										<p className="truncate text-muted-foreground">OT</p>
 										<p
-											className={`font-semibold tabular-nums ${ot > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}
+											className={`truncate font-semibold tabular-nums text-[10px] ${ot > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}
 										>
 											{hoursLabel(ot)}
 										</p>
@@ -200,7 +203,7 @@ const cell =
 const thDate =
 	"min-w-[2.65rem] sm:min-w-[3rem] border border-zinc-300 bg-slate-100 px-0.5 py-1 align-bottom dark:border-zinc-600 dark:bg-zinc-900";
 
-/** Excel-style blocks: full month columns, dates as columns, metrics as rows */
+/** Excel-style blocks: dates as columns (min…max in data), metrics as rows */
 export function WorkDurationPivotGrids({
 	rows,
 	sortOrder = "id",
@@ -235,7 +238,7 @@ export function WorkDurationPivotGrids({
 			: "";
 
 	return (
-		<div className="max-w-full min-w-0 space-y-6">
+		<div className="max-w-full min-w-0 space-y-6 overflow-x-hidden">
 			{rangeLabel ? (
 				<p className="text-xs font-medium text-muted-foreground">
 					Period: <span className="text-foreground">{rangeLabel}</span> · empty days show 00:00

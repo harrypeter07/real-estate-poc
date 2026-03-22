@@ -53,15 +53,28 @@ export function parseDateCell(cell: unknown, defaultYear: number): string | null
 	// YYYY-MM-DD
 	if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-	const m = /^(\d{1,2})[-/]([A-Za-z]{3})[-/]((?:\d{2})|(?:\d{4}))?$/.exec(s);
+	/** DD-MMM or DD-MMM-YY(YY) — year optional (CSV often has only "01-Mar" in column headers). */
+	const m = /^(\d{1,2})[-/]([A-Za-z]{3})(?:[-/]((?:\d{2})|(?:\d{4})))?$/.exec(s);
 	if (m) {
 		const day = parseInt(m[1], 10);
 		const mon = MONTHS[m[2].toLowerCase()];
 		if (mon === undefined) return null;
 		let year = defaultYear;
 		if (m[3]) {
-			const y = parseInt(m[3], 10);
-			year = m[3].length === 2 ? 2000 + y : y;
+			const yRaw = m[3];
+			const y = parseInt(yRaw, 10);
+			if (yRaw.length === 4) {
+				year = y;
+			} else {
+				/** Two-digit year: "01" must not become 2001 when the report is 2026 (Excel often exports YY). */
+				const candidate2000 = 2000 + y;
+				if (Math.abs(candidate2000 - defaultYear) > 15) {
+					if (y >= 40) year = 1900 + y;
+					else year = defaultYear;
+				} else {
+					year = candidate2000;
+				}
+			}
 		}
 		// mon is 0-based month index (Mar = 2); avoid Date.UTC + toISOString (TZ can shift the day)
 		return toIsoDateParts(year, mon, day);
@@ -122,20 +135,120 @@ function parseOvertimeMinutes(cell: unknown): number {
 	return v != null ? Math.max(0, v) : 0;
 }
 
-/** Infer year from report title lines like "01-Mar-2026 To 21-Mar-2026". */
+/**
+ * Infer calendar year from the Work Duration report header (e.g. "01-Mar-2026 To 21-Mar-2026").
+ * Ignores stray years far from the client fallback (e.g. "2001" in a template footer).
+ */
 export function inferDefaultYearFromMatrix(matrix: unknown[][], fallback: number): number {
 	const sample = matrix
-		.slice(0, 45)
+		.slice(0, 220)
 		.map((r) => (r ?? []).map((c) => String(c ?? "")).join(" "))
 		.join("\n");
-	const m =
+
+	/** Full range on one line: 01-Mar-2026 To 21-Mar-2026 (also en dash) */
+	const rangeFull =
+		/\b(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\s*(?:To|to|–|-)\s*(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\b/.exec(
+			sample
+		);
+	if (rangeFull) {
+		const y1 = parseInt(rangeFull[3], 10);
+		const y2 = parseInt(rangeFull[6], 10);
+		if (y1 >= 1990 && y1 <= 2100 && y1 === y2) return y1;
+		if (y1 >= 1990 && y1 <= 2100) return y1;
+		if (y2 >= 1990 && y2 <= 2100) return y2;
+	}
+
+	const legacy =
 		/\b(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\s+To\b/i.exec(sample) ??
 		/\bTo\s+(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\b/i.exec(sample);
-	if (m) {
-		const y = parseInt(m[3], 10);
+	if (legacy) {
+		const y = parseInt(legacy[3], 10);
 		if (y >= 1990 && y <= 2100) return y;
 	}
+
+	const years = [...sample.matchAll(/\b(19|20)\d{2}\b/g)]
+		.map((x) => parseInt(x[0], 10))
+		.filter((y) => y >= 1990 && y <= 2100);
+	if (years.length) {
+		const plausible = years.filter((y) => Math.abs(y - fallback) <= 15);
+		if (plausible.length) return Math.max(...plausible);
+	}
+
 	return fallback;
+}
+
+/** Metadata from Work Duration report header rows (CSV/Excel). */
+export type WorkDurationReportMetadata = {
+	/** Calendar year used for header cells without a year (e.g. "01-Mar"). */
+	inferredYear: number;
+	/** Raw text e.g. "01-Mar-2026 To 21-Mar-2026" */
+	reportPeriodRaw: string | null;
+	reportPeriodStartIso: string | null;
+	reportPeriodEndIso: string | null;
+	/** Full "Generated On: …" line when present */
+	generatedOnRaw: string | null;
+	/** Date part only, YYYY-MM-DD */
+	generatedOnDateIso: string | null;
+};
+
+/**
+ * Reads report period + "Generated On" from the matrix (sparse CSV rows with many empty cells).
+ * Strengthens the calendar year used for DD-MMM-only cells.
+ */
+export function parseWorkDurationReportMetadata(matrix: unknown[][], fallback: number): WorkDurationReportMetadata {
+	const cellBlob = matrix
+		.slice(0, 320)
+		.map((r) => (r ?? []).map((c) => String(c ?? "").trim()).join(" "))
+		.join("\n");
+
+	let reportPeriodRaw: string | null = null;
+	const periodLine =
+		/\b(\d{1,2}[-/][A-Za-z]{3}[-/]\d{4}\s*(?:To|to|–|-)\s*\d{1,2}[-/][A-Za-z]{3}[-/]\d{4})\b/.exec(cellBlob);
+	if (periodLine) reportPeriodRaw = periodLine[1]!.trim();
+
+	let generatedOnRaw: string | null = null;
+	const goLine = /(Generated\s+On:\s*[^\n]+)/i.exec(cellBlob);
+	if (goLine) generatedOnRaw = goLine[1]!.trim().slice(0, 160);
+
+	let reportPeriodStartIso: string | null = null;
+	let reportPeriodEndIso: string | null = null;
+	const rf = /\b(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\s*(?:To|to|–|-)\s*(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})\b/.exec(
+		cellBlob
+	);
+	if (rf) {
+		const d1 = parseInt(rf[1], 10);
+		const d2 = parseInt(rf[4], 10);
+		const y1 = parseInt(rf[3], 10);
+		const y2 = parseInt(rf[6], 10);
+		const m1 = MONTHS[rf[2].toLowerCase()];
+		const m2 = MONTHS[rf[5].toLowerCase()];
+		if (m1 !== undefined && y1 >= 1990 && y1 <= 2100) reportPeriodStartIso = toIsoDateParts(y1, m1, d1);
+		if (m2 !== undefined && y2 >= 1990 && y2 <= 2100) reportPeriodEndIso = toIsoDateParts(y2, m2, d2);
+	}
+
+	let generatedOnDateIso: string | null = null;
+	const gm = /Generated\s*On:\s*(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{4})/i.exec(cellBlob);
+	if (gm) {
+		const d = parseInt(gm[1], 10);
+		const y = parseInt(gm[3], 10);
+		const mi = MONTHS[gm[2].toLowerCase()];
+		if (mi !== undefined && y >= 1990 && y <= 2100) generatedOnDateIso = toIsoDateParts(y, mi, d);
+	}
+
+	let inferredYear = inferDefaultYearFromMatrix(matrix, fallback);
+	const yFromRange = reportPeriodStartIso ? parseInt(reportPeriodStartIso.slice(0, 4), 10) : 0;
+	const yFromGen = generatedOnDateIso ? parseInt(generatedOnDateIso.slice(0, 4), 10) : 0;
+	const candidates = [inferredYear, yFromRange, yFromGen].filter((y) => y >= 1990 && y <= 2100);
+	if (candidates.length) inferredYear = Math.max(...candidates);
+
+	return {
+		inferredYear,
+		reportPeriodRaw,
+		reportPeriodStartIso,
+		reportPeriodEndIso,
+		generatedOnRaw,
+		generatedOnDateIso,
+	};
 }
 
 function parseDaysHeaderRow(
@@ -583,7 +696,7 @@ export function parseHorizontalBlockAttendance(
 	matrix: unknown[][],
 	defaultYear: number
 ): { rows: ParsedAttendanceRow[]; errors: string[] } {
-	const year = inferDefaultYearFromMatrix(matrix, defaultYear);
+	const year = parseWorkDurationReportMetadata(matrix, defaultYear).inferredYear;
 	const daysRows = findAllDaysHeaderRowIndices(matrix, year);
 	const empStarts = findEmployeeBlockStartRows(matrix);
 	const firstEmp = empStarts.length ? empStarts[0] : Number.POSITIVE_INFINITY;

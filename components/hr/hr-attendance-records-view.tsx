@@ -10,9 +10,14 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { format, parseISO } from "date-fns";
-import { ArrowUpDown, Calendar } from "lucide-react";
+import { ArrowUpDown, Calendar, LayoutGrid, List } from "lucide-react";
 import { Button, Card, CardContent, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { formatMinutesAsClock } from "@/lib/utils/formatters";
+import {
+	compareEmployeeCode,
+	EmployeeTotalsStrip,
+	WorkDurationPivotGrids,
+} from "@/components/hr/hr-attendance-work-duration-report";
 
 export type AttendanceRecordVM = {
 	id: string;
@@ -32,14 +37,6 @@ function displayTime(v: string | null | undefined): string {
 	const s = String(v).trim();
 	const m = /^(\d{1,2}:\d{2})/.exec(s);
 	return m ? m[1]! : s.slice(0, 8);
-}
-
-function hoursLabel(minutes: number): string {
-	if (!minutes) return "0h";
-	const h = Math.floor(minutes / 60);
-	const m = minutes % 60;
-	if (m === 0) return `${h}h`;
-	return `${h}h ${m}m`;
 }
 
 export function mapDbRowsToAttendanceVM(rows: any[]): AttendanceRecordVM[] {
@@ -83,91 +80,19 @@ export function mapPreviewToAttendanceVM(
 	}));
 }
 
-function SummaryCards({
-	records,
-}: {
-	records: AttendanceRecordVM[];
-}) {
-	const { employees, totalDur, totalOt, invalidCount } = useMemo(() => {
-		const emp = new Set<string>();
-		let d = 0;
-		let o = 0;
-		let inv = 0;
-		for (const r of records) {
-			emp.add(r.employeeCode);
-			d += r.duration_minutes ?? 0;
-			o += r.overtime_minutes ?? 0;
-			if (!r.is_valid) inv++;
-		}
-		return { employees: emp.size, totalDur: d, totalOt: o, invalidCount: inv };
-	}, [records]);
-
-	return (
-		<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-			<Card>
-				<CardContent className="pt-4 pb-3">
-					<p className="text-xs font-medium text-muted-foreground">Employees (in view)</p>
-					<p className="text-2xl font-semibold tabular-nums">{employees}</p>
-				</CardContent>
-			</Card>
-			<Card>
-				<CardContent className="pt-4 pb-3">
-					<p className="text-xs font-medium text-muted-foreground">Total duration</p>
-					<p className="text-2xl font-semibold tabular-nums">{hoursLabel(totalDur)}</p>
-				</CardContent>
-			</Card>
-			<Card>
-				<CardContent className="pt-4 pb-3">
-					<p className="text-xs font-medium text-muted-foreground">Total overtime</p>
-					<p className="text-2xl font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
-						{hoursLabel(totalOt)}
-					</p>
-				</CardContent>
-			</Card>
-			<Card className={invalidCount > 0 ? "border-red-200 dark:border-red-900" : ""}>
-				<CardContent className="pt-4 pb-3">
-					<p className="text-xs font-medium text-muted-foreground">Invalid rows</p>
-					<p className={`text-2xl font-semibold tabular-nums ${invalidCount ? "text-red-600" : ""}`}>
-						{invalidCount}
-					</p>
-				</CardContent>
-			</Card>
-		</div>
-	);
-}
-
-export function HrAttendanceRecordsView({
-	records,
-	title,
-	showFilters = true,
-}: {
-	records: AttendanceRecordVM[];
-	title?: string;
-	showFilters?: boolean;
-}) {
-	const [search, setSearch] = useState("");
-	const [from, setFrom] = useState("");
-	const [to, setTo] = useState("");
-	const [sorting, setSorting] = useState<SortingState>([{ id: "work_date", desc: true }]);
-
-	const filtered = useMemo(() => {
-		const q = search.trim().toLowerCase();
-		return records.filter((r) => {
-			if (q && !r.employeeName.toLowerCase().includes(q) && !r.employeeCode.toLowerCase().includes(q))
-				return false;
-			if (from && r.work_date < from) return false;
-			if (to && r.work_date > to) return false;
-			return true;
-		});
-	}, [records, search, from, to]);
+function AttendanceRowListTable({ records }: { records: AttendanceRecordVM[] }) {
+	const [sorting, setSorting] = useState<SortingState>([
+		{ id: "employeeCode", desc: false },
+		{ id: "work_date", desc: true },
+	]);
 
 	const columns = useMemo<ColumnDef<AttendanceRecordVM>[]>(
 		() => [
 			{
-				accessorKey: "employeeName",
+				accessorKey: "employeeCode",
 				header: ({ column }) => (
 					<Button variant="ghost" className="-ml-3 h-8" onClick={() => column.toggleSorting()}>
-						Employee
+						Employee ID
 						<ArrowUpDown className="ml-1 h-3 w-3" />
 					</Button>
 				),
@@ -246,7 +171,7 @@ export function HrAttendanceRecordsView({
 	);
 
 	const table = useReactTable({
-		data: filtered,
+		data: records,
 		columns,
 		state: { sorting },
 		onSortingChange: setSorting,
@@ -255,9 +180,135 @@ export function HrAttendanceRecordsView({
 	});
 
 	return (
-		<div className="space-y-4">
-			{title ? <h3 className="text-sm font-semibold">{title}</h3> : null}
-			<SummaryCards records={filtered} />
+		<div className="rounded-md border">
+			<div className="max-h-[min(65vh,640px)] overflow-auto">
+				<Table>
+					<TableHeader>
+						{table.getHeaderGroups().map((hg) => (
+							<TableRow key={hg.id} className="hover:bg-transparent">
+								{hg.headers.map((h) => (
+									<TableHead
+										key={h.id}
+										className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-sm"
+									>
+										{flexRender(h.column.columnDef.header, h.getContext())}
+									</TableHead>
+								))}
+							</TableRow>
+						))}
+					</TableHeader>
+					<TableBody>
+						{table.getRowModel().rows.length ? (
+							table.getRowModel().rows.map((row) => {
+								const ot = row.original.overtime_minutes > 0;
+								const inv = !row.original.is_valid;
+								return (
+									<TableRow
+										key={row.id}
+										className={
+											inv
+												? "bg-red-50/90 dark:bg-red-950/25"
+												: ot
+													? "border-l-4 border-l-emerald-500"
+													: undefined
+										}
+									>
+										{row.getVisibleCells().map((cell) => (
+											<TableCell key={cell.id}>
+												{flexRender(cell.column.columnDef.cell, cell.getContext())}
+											</TableCell>
+										))}
+									</TableRow>
+								);
+							})
+						) : (
+							<TableRow>
+								<TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+									No rows.
+								</TableCell>
+							</TableRow>
+						)}
+					</TableBody>
+				</Table>
+			</div>
+		</div>
+	);
+}
+
+export function HrAttendanceRecordsView({
+	records,
+	title,
+	showFilters = true,
+}: {
+	records: AttendanceRecordVM[];
+	title?: string;
+	showFilters?: boolean;
+}) {
+	const [search, setSearch] = useState("");
+	const [from, setFrom] = useState("");
+	const [to, setTo] = useState("");
+	const [layout, setLayout] = useState<"report" | "list">("report");
+
+	const filtered = useMemo(() => {
+		const q = search.trim().toLowerCase();
+		return records.filter((r) => {
+			if (q && !r.employeeName.toLowerCase().includes(q) && !r.employeeCode.toLowerCase().includes(q))
+				return false;
+			if (from && r.work_date < from) return false;
+			if (to && r.work_date > to) return false;
+			return true;
+		});
+	}, [records, search, from, to]);
+
+	const meta = useMemo(() => {
+		const emp = new Set(filtered.map((r) => r.employeeCode));
+		return { employees: emp.size, rows: filtered.length };
+	}, [filtered]);
+
+	/** Stable default for list + mobile: employee ID ↑, then date ↓ */
+	const listRows = useMemo(() => {
+		return [...filtered].sort((a, b) => {
+			const c = compareEmployeeCode(a.employeeCode, b.employeeCode);
+			if (c !== 0) return c;
+			return b.work_date.localeCompare(a.work_date);
+		});
+	}, [filtered]);
+
+	return (
+		<div className="space-y-6">
+			<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+				{title ? <h3 className="text-base font-semibold tracking-tight">{title}</h3> : null}
+				<div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">
+					<Button
+						type="button"
+						size="sm"
+						variant={layout === "report" ? "secondary" : "ghost"}
+						className="h-8 gap-1.5 text-xs"
+						onClick={() => setLayout("report")}
+					>
+						<LayoutGrid className="h-3.5 w-3.5" />
+						Report (dates as columns)
+					</Button>
+					<Button
+						type="button"
+						size="sm"
+						variant={layout === "list" ? "secondary" : "ghost"}
+						className="h-8 gap-1.5 text-xs"
+						onClick={() => setLayout("list")}
+					>
+						<List className="h-3.5 w-3.5" />
+						All rows
+					</Button>
+				</div>
+			</div>
+
+			<p className="text-xs text-muted-foreground">
+				<span className="font-medium text-foreground">{meta.employees}</span> employee
+				{meta.employees === 1 ? "" : "s"} ·{" "}
+				<span className="font-medium text-foreground">{meta.rows}</span> day record
+				{meta.rows === 1 ? "" : "s"}
+				{filtered.length !== records.length ? ` (filtered from ${records.length})` : ""}
+			</p>
 
 			{showFilters && (
 				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -280,138 +331,93 @@ export function HrAttendanceRecordsView({
 				</div>
 			)}
 
-			{/* Desktop */}
-			<div className="hidden md:block rounded-md border">
-				<div className="max-h-[min(70vh,720px)] overflow-auto">
-					<Table>
-						<TableHeader>
-							{table.getHeaderGroups().map((hg) => (
-								<TableRow key={hg.id} className="hover:bg-transparent">
-									{hg.headers.map((h) => (
-										<TableHead
-											key={h.id}
-											className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-sm"
-										>
-											{flexRender(h.column.columnDef.header, h.getContext())}
-										</TableHead>
-									))}
-								</TableRow>
-							))}
-						</TableHeader>
-						<TableBody>
-							{table.getRowModel().rows.length ? (
-								table.getRowModel().rows.map((row) => {
-									const ot = row.original.overtime_minutes > 0;
-									const inv = !row.original.is_valid;
-									return (
-										<TableRow
-											key={row.id}
-											className={
-												inv
-													? "bg-red-50/90 dark:bg-red-950/25"
-													: ot
-														? "border-l-4 border-l-emerald-500"
-														: undefined
-											}
-										>
-											{row.getVisibleCells().map((cell) => (
-												<TableCell key={cell.id}>
-													{flexRender(cell.column.columnDef.cell, cell.getContext())}
-												</TableCell>
-											))}
-										</TableRow>
-									);
-								})
-							) : (
-								<TableRow>
-									<TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-										No rows match filters.
-									</TableCell>
-								</TableRow>
-							)}
-						</TableBody>
-					</Table>
+			{layout === "report" ? (
+				<div className="space-y-8">
+					<EmployeeTotalsStrip rows={filtered} />
+					<div>
+						<p className="mb-4 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+							Monthly-style grid — sorted by employee ID
+						</p>
+						<WorkDurationPivotGrids rows={filtered} />
+					</div>
 				</div>
-			</div>
-
-			{/* Mobile — same sort order as desktop */}
-			<div className="md:hidden space-y-3">
-				{table.getRowModel().rows.length === 0 ? (
-					<p className="text-center text-sm text-muted-foreground py-8">No rows match filters.</p>
-				) : (
-					table.getRowModel().rows.map((tableRow) => {
-						const r = tableRow.original;
-						const inv = !r.is_valid;
-						const ot = r.overtime_minutes > 0;
-						return (
-							<Card
-								key={r.id}
-								className={
-									inv
-										? "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20"
-										: ot
-											? "border-l-4 border-l-emerald-500"
-											: ""
-								}
-							>
-								<CardContent className="p-4 space-y-2 text-sm">
-									<div className="flex items-start justify-between gap-2">
-										<div>
-											<p className="font-semibold">{r.employeeName}</p>
-											<p className="font-mono text-xs text-muted-foreground">{r.employeeCode}</p>
-										</div>
-										<span
-											className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-												r.is_valid
-													? "bg-emerald-100 text-emerald-800"
-													: "bg-red-100 text-red-800"
-											}`}
-										>
-											{r.is_valid ? "Valid" : "Invalid"}
-										</span>
-									</div>
-									<div className="flex items-center gap-2 text-muted-foreground text-xs">
-										<Calendar className="h-3.5 w-3.5" />
-										{(() => {
-											try {
-												return format(parseISO(r.work_date), "dd MMM yyyy");
-											} catch {
-												return r.work_date;
-											}
-										})()}
-									</div>
-									<div className="grid grid-cols-2 gap-2 text-xs">
-										<div>
-											<span className="text-muted-foreground">In</span>
-											<p className="font-mono">{displayTime(r.in_time)}</p>
-										</div>
-										<div>
-											<span className="text-muted-foreground">Out</span>
-											<p className="font-mono">{displayTime(r.out_time)}</p>
-										</div>
-										<div>
-											<span className="text-muted-foreground">Duration</span>
-											<p className="font-mono">{formatMinutesAsClock(r.duration_minutes)}</p>
-										</div>
-										<div>
-											<span className="text-muted-foreground">OT</span>
-											<p className={`font-mono ${ot ? "font-semibold text-emerald-700" : ""}`}>
-												{formatMinutesAsClock(r.overtime_minutes)}
-											</p>
-										</div>
-									</div>
-									{r.error ? <p className="text-xs text-amber-800 dark:text-amber-200">{r.error}</p> : null}
-								</CardContent>
-							</Card>
-						);
-					})
-				)}
-			</div>
-
-			<p className="text-xs text-muted-foreground text-center md:text-left">
-				{filtered.length} row{filtered.length === 1 ? "" : "s"} shown
-				{filtered.length !== records.length ? ` (filtered from ${records.length})` : ""}
-			</p>
+			) : (
+				<div className="space-y-3">
+					<p className="text-xs text-muted-foreground">Flat list — default sort: employee ID ↑, then date ↓</p>
+					<div className="hidden md:block">
+						<AttendanceRowListTable records={listRows} />
+					</div>
+					<div className="md:hidden space-y-3">
+						{listRows.length === 0 ? (
+							<p className="text-center text-sm text-muted-foreground py-8">No rows match filters.</p>
+						) : (
+							listRows.map((r) => {
+								const inv = !r.is_valid;
+								const ot = r.overtime_minutes > 0;
+								return (
+									<Card
+										key={r.id}
+										className={
+											inv
+												? "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20"
+												: ot
+													? "border-l-4 border-l-emerald-500"
+													: ""
+										}
+									>
+										<CardContent className="p-4 space-y-2 text-sm">
+											<div className="flex items-start justify-between gap-2">
+												<div>
+													<p className="font-semibold">{r.employeeName}</p>
+													<p className="font-mono text-xs text-muted-foreground">ID {r.employeeCode}</p>
+												</div>
+												<span
+													className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+														r.is_valid ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+													}`}
+												>
+													{r.is_valid ? "Valid" : "Invalid"}
+												</span>
+											</div>
+											<div className="flex items-center gap-2 text-muted-foreground text-xs">
+												<Calendar className="h-3.5 w-3.5" />
+												{(() => {
+													try {
+														return format(parseISO(r.work_date), "dd MMM yyyy");
+													} catch {
+														return r.work_date;
+													}
+												})()}
+											</div>
+											<div className="grid grid-cols-2 gap-2 text-xs">
+												<div>
+													<span className="text-muted-foreground">In</span>
+													<p className="font-mono">{displayTime(r.in_time)}</p>
+												</div>
+												<div>
+													<span className="text-muted-foreground">Out</span>
+													<p className="font-mono">{displayTime(r.out_time)}</p>
+												</div>
+												<div>
+													<span className="text-muted-foreground">Duration</span>
+													<p className="font-mono">{formatMinutesAsClock(r.duration_minutes)}</p>
+												</div>
+												<div>
+													<span className="text-muted-foreground">OT</span>
+													<p className={`font-mono ${ot ? "font-semibold text-emerald-700" : ""}`}>
+														{formatMinutesAsClock(r.overtime_minutes)}
+													</p>
+												</div>
+											</div>
+											{r.error ? <p className="text-xs text-amber-800 dark:text-amber-200">{r.error}</p> : null}
+										</CardContent>
+									</Card>
+								);
+							})
+						)}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

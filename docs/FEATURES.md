@@ -21,7 +21,7 @@
 | `/messaging/new` | New task form. |
 | `/hr` | HR hub (admin). |
 | `/hr/employees` | Employee master (`hr_employees`). |
-| `/hr/attendance` | Attendance list + Excel upload. |
+| `/hr/attendance` | Attendance: **Excel or CSV** Work Duration upload (preview → confirm), responsive table + filters. |
 | `/hr/payouts` | Generate monthly payouts (YYYY-MM), record partial payments. |
 
 ### Advisor Routes (`/advisor/*`)
@@ -45,7 +45,7 @@
 |--------|------|---------|
 | GET/POST | `/api/hr/employees` | List / create employees |
 | GET | `/api/hr/attendance` | Query `employee_id`, `from`, `to` |
-| POST | `/api/hr/attendance/upload` | Multipart `file` (.xlsx) normalized sheet |
+| POST | `/api/hr/attendance/upload` | Multipart **`.csv`** Work Duration report; `dryRun=1` = parse only, else upsert |
 | GET | `/api/hr/payouts` | List batches with payout rows |
 | POST | `/api/hr/payouts/generate` | Body `{ "month": "YYYY-MM" }` |
 | POST | `/api/hr/payouts/pay` | Body `{ "id": "<payout row>", "paid_amount": number }` |
@@ -73,9 +73,9 @@
 
 ---
 
-## Excel upload format (attendance)
+## Attendance — Work Duration report
 
-First row headers (case-insensitive): **Employee Code**, **Date**, optional **In**, **Out**, **Duration** (minutes), **OT** (minutes), **Type** (`present` / `leave` / `holiday`). Employee codes must exist in `hr_employees`.
+Upload **`.xlsx` / `.xls`** directly, or **`.csv`** (UTF-8) if you prefer. The server converts Excel to the same cell grid as CSV, then parses. Tolerates header noise, repeating employee blocks, dates as columns, In/Out/Duration/OT rows, and `(SE)`-style suffixes on times. **Upload** → preview → **Confirm import**. Employee codes must exist in `hr_employees`.
 
 ---
 

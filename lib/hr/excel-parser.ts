@@ -144,15 +144,17 @@ export type ParseAttendanceFormat = "horizontal" | "vertical";
  * Tries horizontal (block) format first if the sheet contains "Employee Code:".
  * Otherwise parses vertical table format.
  */
-export function parseAttendanceExcelAuto(
-	buffer: ArrayBuffer,
+/**
+ * Same as buffer path but accepts an in-memory matrix (e.g. from JSON import or inspect pipeline).
+ */
+export function parseAttendanceExcelFromMatrix(
+	matrix: unknown[][],
 	options?: { defaultYear?: number }
 ): {
 	rows: ParsedAttendanceRow[];
 	errors: string[];
 	format: ParseAttendanceFormat;
 } {
-	const matrix = readSheetMatrixFromBuffer(buffer);
 	const defaultYear = options?.defaultYear ?? new Date().getFullYear();
 
 	if (detectHorizontalAttendanceFormat(matrix)) {
@@ -162,4 +164,16 @@ export function parseAttendanceExcelAuto(
 
 	const { rows, errors } = parseVerticalAttendanceTable(matrix);
 	return { rows, errors, format: "vertical" };
+}
+
+export function parseAttendanceExcelAuto(
+	buffer: ArrayBuffer,
+	options?: { defaultYear?: number }
+): {
+	rows: ParsedAttendanceRow[];
+	errors: string[];
+	format: ParseAttendanceFormat;
+} {
+	const matrix = readSheetMatrixFromBuffer(buffer);
+	return parseAttendanceExcelFromMatrix(matrix, options);
 }

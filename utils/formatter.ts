@@ -57,6 +57,17 @@ export function formatDate(date: string | Date): string {
 /**
  * Format phone number: "+91 98765 43210"
  */
+/**
+ * Format minutes as "HH:MM" (e.g. 54 → "00:54") to match Excel duration / OT display.
+ */
+export function formatMinutesAsClock(minutes: number | null | undefined): string {
+  if (minutes == null || !Number.isFinite(Number(minutes))) return "—";
+  const n = Math.max(0, Math.round(Number(minutes)));
+  const h = Math.floor(n / 60);
+  const m = n % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export function formatPhone(phone: string): string {
   if (!phone) return "—";
   const cleaned = phone.replace(/\D/g, "");

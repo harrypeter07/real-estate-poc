@@ -1,6 +1,7 @@
 /**
  * Block-based attendance: dates as COLUMNS, metrics as ROWS (In Time, Out Time, Duration, OT).
- * Each block starts with a row containing "Employee Code:" (and optionally "Employee Name:").
+ * Tolerates visual report layouts: indented labels, blank rows, "Days" headers above employees,
+ * and fuzzy metric labels (in/out time, overtime, etc.).
  */
 
 import type { ParsedAttendanceRow, HrAttendanceType } from "./types";
@@ -170,7 +171,7 @@ export function detectHorizontalAttendanceFormat(matrix: unknown[][]): boolean {
 	const y = new Date().getFullYear();
 	for (let r = 0; r < limit; r++) {
 		const line = (matrix[r] ?? []).map((c) => String(c ?? "")).join(" ");
-		if (/employee\s*code\s*[:-]/i.test(line)) return true;
+		if (/employee\s*code\s*[:-]|emp\.?\s*code\s*[:-]/i.test(line)) return true;
 	}
 	for (let r = 0; r < limit; r++) {
 		if (parseDaysHeaderRow(matrix[r], y).ok) return true;
@@ -183,16 +184,26 @@ function parseEmployeeHeaderRow(row: unknown[]): { code: string; name: string } 
 	let name = "";
 	for (let i = 0; i < row.length; i++) {
 		const s = String(row[i] ?? "").trim();
-		const mc = /^employee\s*code\s*[:-]+\s*(.+)$/i.exec(s);
-		if (mc) code = mc[1].trim().split(/\s+/)[0] ?? "";
-		const mn = /^employee\s*name\s*[:-]+\s*(.+)$/i.exec(s);
+		const mc = /^employee\s*code\s*[:.\s-]*\s*(.+)$/i.exec(s);
+		if (mc) {
+			const part = mc[1].trim().replace(/^[:-]+/, "");
+			const token = part.split(/\s+/)[0] ?? "";
+			if (token) code = token;
+		}
+		const mn = /^employee\s*name\s*[:.\s-]*\s*(.+)$/i.exec(s);
 		if (mn) name = mn[1].trim();
 	}
-	if (!code || !name) {
-		const joined = row.map((c) => String(c ?? "")).join(" ").replace(/\s+/g, " ");
-		const m = /employee\s*code\s*[:-]+\s*(\S+)/i.exec(joined);
-		if (m) code = m[1].trim();
-		const m2 = /employee\s*name\s*[:-]+\s*(.+?)(?=\s*$|employee\s*code)/i.exec(joined);
+	const joined = row.map((c) => String(c ?? "")).join(" ").replace(/\s+/g, " ").trim();
+	if (!code) {
+		const m =
+			/employee\s*code\s*[:.\s.-]*\s*([\w./-]+(?:\s+[\w./-]+)?)/i.exec(joined) ??
+			/employee\s*code\s*[:.\s.-]*\s*([^\s|]+)/i.exec(joined);
+		if (m) code = m[1].trim().replace(/^[:-]+/, "");
+	}
+	if (!name) {
+		const m2 =
+			/employee\s*name\s*[:.\s.-]*\s*(.+?)(?=\s+employee\s*code|\s{2,}|$)/i.exec(joined) ??
+			/employee\s*name\s*[:.\s.-]*\s*(.+)/i.exec(joined);
 		if (m2) name = m2[1].trim();
 	}
 	return { code, name };
@@ -202,7 +213,7 @@ function findEmployeeBlockStartRows(matrix: unknown[][]): number[] {
 	const starts: number[] = [];
 	for (let r = 0; r < matrix.length; r++) {
 		const line = (matrix[r] ?? []).map((c) => String(c ?? "")).join(" ");
-		if (/employee\s*code\s*[:-]/i.test(line)) starts.push(r);
+		if (/employee\s*code\s*[:-]|emp\.?\s*code\s*[:-]/i.test(line)) starts.push(r);
 	}
 	return starts;
 }
@@ -230,21 +241,103 @@ function findDateHeaderInBlock(
 	return { dateRow: -1, datesByCol: [] };
 }
 
-function matchMetricRow(label: string): "in" | "out" | "duration" | "ot" | "ignore" | null {
-	const l = norm(label);
-	if (!l) return null;
-	if (l.includes("t duration") || l === "t duration") return "ignore";
-	if (l === "in time" || (l.startsWith("in") && l.includes("time") && !l.includes("out")))
+function isRowEffectivelyEmpty(row: unknown[] | undefined): boolean {
+	if (!row?.length) return true;
+	for (const c of row) {
+		const s = String(c ?? "").trim();
+		if (s) return false;
+	}
+	return true;
+}
+
+/**
+ * Visual reports often indent labels in column 2–5. Scan leading columns for the first label text.
+ */
+function getReportRowLabel(row: unknown[] | undefined, primaryScan = 8): string {
+	if (!row?.length) return "";
+	const limit = Math.min(primaryScan, row.length);
+	for (let c = 0; c < limit; c++) {
+		const s = String(row[c] ?? "").trim();
+		if (s) return s;
+	}
+	for (let c = limit; c < Math.min(row.length, 24); c++) {
+		const s = String(row[c] ?? "").trim();
+		if (s && /[a-zA-Z\u00C0-\u024F]/.test(s)) return s;
+	}
+	return "";
+}
+
+/** Fuzzy metric match for messy report exports (spacing, case, column shifts). */
+export function matchMetricRow(label: string): "in" | "out" | "duration" | "ot" | "ignore" | null {
+	const raw = String(label ?? "").trim();
+	if (!raw) return null;
+	const l = norm(raw);
+	const compact = l.replace(/\s/g, "");
+
+	if (!compact) return null;
+
+	// Total / T-duration rows — skip
+	if (
+		l.includes("t duration") ||
+		compact.startsWith("tduration") ||
+		/^t\s+total/.test(l) ||
+		(l.includes("total") && l.includes("duration"))
+	) {
+		return "ignore";
+	}
+
+	// OUT before IN (avoid substring "in" inside unrelated words)
+	const outPhrase =
+		/\bout[\s_/:\\.-]*time\b/i.test(raw) ||
+		compact.includes("outtime") ||
+		(/\bout\b/.test(l) && /\btime\b/.test(l));
+	if (outPhrase) return "out";
+
+	const inPhrase =
+		/\bin[\s_/:\\.-]*time\b/i.test(raw) ||
+		compact.includes("intime") ||
+		(/\bin\b/.test(l) && /\btime\b/.test(l) && !/\bout\b/.test(l));
+	if (inPhrase) return "in";
+
+	if (l.includes("duration") || compact.includes("duration")) {
+		return "duration";
+	}
+
+	if (
+		l === "ot" ||
+		compact === "ot" ||
+		/\bot\b/.test(l) ||
+		l.includes("overtime") ||
+		compact.includes("overtime") ||
+		/^o\.?t\.?$/.test(compact)
+	) {
+		return "ot";
+	}
+
+	return null;
+}
+
+/** Use label cell(s) first, then fall back to scanning the whole row text. */
+function detectMetricKindForReportRow(row: unknown[] | undefined): "in" | "out" | "duration" | "ot" | "ignore" | null {
+	if (!row?.length) return null;
+	const label = getReportRowLabel(row);
+	let kind = matchMetricRow(label);
+	if (kind) return kind;
+	const joined = row.map((c) => String(c ?? "")).join(" ").trim();
+	kind = matchMetricRow(joined);
+	if (kind) return kind;
+	// Last resort: compact joined (handles "In" "Time" in adjacent cells becoming "in time" when spaced)
+	const compactJoined = norm(joined).replace(/\s/g, "");
+	if (compactJoined.includes("out") && compactJoined.includes("time")) return "out";
+	if (compactJoined.includes("in") && compactJoined.includes("time") && !compactJoined.includes("out"))
 		return "in";
-	if (l === "out time" || (l.includes("out") && l.includes("time"))) return "out";
-	if (l === "duration" || (l.includes("duration") && !l.includes("t duration"))) return "duration";
-	if (l === "ot" || l.includes("overtime") || l === "o t") return "ot";
+	if (compactJoined.includes("duration") && !compactJoined.includes("tduration")) return "duration";
+	if (/\bot\b/i.test(joined) || /overtime/i.test(joined)) return "ot";
 	return null;
 }
 
 function getRowLabel(block: unknown[][], r: number): string {
-	const row = block[r] ?? [];
-	return String(row[0] ?? row[1] ?? "").trim();
+	return getReportRowLabel(block[r]);
 }
 
 function emitColumnsForEmployee(
@@ -344,7 +437,7 @@ function parseDaysFirstHorizontal(
 		let empRow = -1;
 		for (let r = start + 1; r < end; r++) {
 			const line = (matrix[r] ?? []).map((c) => String(c ?? "")).join(" ");
-			if (/employee\s*code/i.test(line)) {
+			if (/employee\s*code|emp\.?\s*code/i.test(line)) {
 				empRow = r;
 				break;
 			}
@@ -368,21 +461,42 @@ function parseDaysFirstHorizontal(
 		let durRow = -1;
 		let otRow = -1;
 
-		for (let r = relEmp + 1; r < block.length; r++) {
-			const absR = start + r;
-			if (absR >= end) break;
+		const maxMetricScan = Math.min(block.length, relEmp + 1 + 25);
+		for (let r = relEmp + 1; r < maxMetricScan; r++) {
 			const rowArr = block[r] ?? [];
-			if (parseDaysHeaderRow(rowArr, defaultYear).ok) break;
-			const line = rowArr.map((c) => String(c ?? "")).join(" ");
-			if (r > relEmp + 1 && /employee\s*code/i.test(line)) break;
+			if (isRowEffectivelyEmpty(rowArr)) continue;
 
-			const label = getRowLabel(block, r);
-			const kind = matchMetricRow(label);
+			const line = rowArr.map((c) => String(c ?? "")).join(" ");
+			if (r > relEmp + 1 && /employee\s*code|emp\.?\s*code/i.test(line)) break;
+
+			// Skip obvious non-metric header rows (weekday names) without dropping the whole block
+			const labelOnly = getReportRowLabel(rowArr);
+			if (labelOnly && /^(sun|mon|tue|wed|thu|fri|sat)\b/i.test(norm(labelOnly))) {
+				const dateLike = (rowArr ?? []).filter((c) => parseDateCell(c, defaultYear)).length;
+				if (dateLike < 2) continue;
+			}
+
+			const kind = detectMetricKindForReportRow(rowArr);
 			if (kind === null || kind === "ignore") continue;
-			if (kind === "in") inRow = r;
-			else if (kind === "out") outRow = r;
-			else if (kind === "duration") durRow = r;
-			else if (kind === "ot") otRow = r;
+			if (kind === "in" && inRow < 0) inRow = r;
+			else if (kind === "out" && outRow < 0) outRow = r;
+			else if (kind === "duration" && durRow < 0) durRow = r;
+			else if (kind === "ot" && otRow < 0) otRow = r;
+		}
+
+		for (let r = maxMetricScan; r < block.length; r++) {
+			if (inRow >= 0 && outRow >= 0 && durRow >= 0) break;
+			const rowArr = block[r] ?? [];
+			if (isRowEffectivelyEmpty(rowArr)) continue;
+			const line = rowArr.map((c) => String(c ?? "")).join(" ");
+			if (/employee\s*code|emp\.?\s*code/i.test(line)) break;
+
+			const kind = detectMetricKindForReportRow(rowArr);
+			if (kind === null || kind === "ignore") continue;
+			if (kind === "in" && inRow < 0) inRow = r;
+			else if (kind === "out" && outRow < 0) outRow = r;
+			else if (kind === "duration" && durRow < 0) durRow = r;
+			else if (kind === "ot" && otRow < 0) otRow = r;
 		}
 
 		if (inRow < 0 && outRow < 0 && durRow < 0) {
@@ -435,13 +549,14 @@ function parseEmployeeFirstHorizontal(
 		let otRow = -1;
 
 		for (let r = dateRow + 1; r < block.length; r++) {
-			const label = getRowLabel(block, r);
-			const kind = matchMetricRow(label);
+			const rowArr = block[r] ?? [];
+			if (isRowEffectivelyEmpty(rowArr)) continue;
+			const kind = detectMetricKindForReportRow(rowArr);
 			if (kind === null || kind === "ignore") continue;
-			if (kind === "in") inRow = r;
-			else if (kind === "out") outRow = r;
-			else if (kind === "duration") durRow = r;
-			else if (kind === "ot") otRow = r;
+			if (kind === "in" && inRow < 0) inRow = r;
+			else if (kind === "out" && outRow < 0) outRow = r;
+			else if (kind === "duration" && durRow < 0) durRow = r;
+			else if (kind === "ot" && otRow < 0) otRow = r;
 		}
 
 		if (inRow < 0 && outRow < 0 && durRow < 0) {

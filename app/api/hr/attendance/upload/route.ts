@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/hr/auth-route";
-import { parseAttendanceExcelAuto } from "@/lib/hr/excel-parser";
+import { matrixFromAttendanceUpload } from "@/lib/hr/attendance-upload-matrix";
+import { parseWorkDurationCsvMatrix } from "@/lib/hr/csv-work-duration-parser";
+import { upsertParsedAttendanceRows } from "@/lib/hr/attendance-import";
 
 export async function POST(req: Request) {
 	const auth = await requireAdmin();
@@ -12,68 +14,87 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: "Missing file" }, { status: 400 });
 	}
 
+	const name = file instanceof File ? file.name.toLowerCase() : "";
+
 	const yearRaw = form.get("defaultYear");
 	const defaultYear =
 		typeof yearRaw === "string" && /^\d{4}$/.test(yearRaw.trim())
 			? parseInt(yearRaw.trim(), 10)
 			: new Date().getFullYear();
 
+	const dryRun =
+		form.get("dryRun") === "true" ||
+		form.get("dryRun") === "1" ||
+		form.get("dryRun") === "yes";
+
 	const buf = await file.arrayBuffer();
-	const { rows, errors: parseErrors, format } = parseAttendanceExcelAuto(buf, {
-		defaultYear,
-	});
 
-	const { data: emps, error: e2 } = await auth.supabase.from("hr_employees").select("id, employee_code");
-	if (e2) {
-		return NextResponse.json({ error: e2.message }, { status: 500 });
-	}
-	const codeToId = new Map((emps ?? []).map((e: any) => [String(e.employee_code).trim(), e.id]));
-
-	const insertErrors: string[] = [...parseErrors];
-	let inserted = 0;
-
-	for (const r of rows) {
-		const eid = codeToId.get(r.employee_code);
-		if (!eid) {
-			insertErrors.push(`Unknown employee code: ${r.employee_code}`);
-			continue;
+	let matrix: unknown[][];
+	let fileKind: "excel" | "csv";
+	try {
+		const out = matrixFromAttendanceUpload(buf, name);
+		matrix = out.matrix;
+		fileKind = out.kind;
+	} catch (e) {
+		if (e instanceof Error && e.message === "UNSUPPORTED_TYPE") {
+			return NextResponse.json(
+				{
+					error:
+						"Unsupported file type. Use .xlsx / .xls (Excel) or .csv (UTF-8) for the Work Duration report.",
+				},
+				{ status: 400 }
+			);
 		}
-		const { error } = await auth.supabase.from("hr_attendance").upsert(
+		return NextResponse.json(
 			{
-				employee_id: eid,
-				work_date: r.work_date,
-				in_time: r.in_time,
-				out_time: r.out_time,
-				duration_minutes: r.duration_minutes,
-				overtime_minutes: r.overtime_minutes,
-				attendance_type: r.attendance_type,
-				is_valid: r.is_valid,
+				error:
+					"Could not read this file. Re-save the Excel workbook, or export as CSV (UTF-8) and try again.",
 			},
-			{ onConflict: "employee_id,work_date" }
+			{ status: 400 }
 		);
-		if (error) insertErrors.push(`${r.employee_code} ${r.work_date}: ${error.message}`);
-		else inserted++;
 	}
 
-	const previewRows = rows.slice(0, 100).map((r) => ({
-		employee_code: r.employee_code,
-		employee_name: r.employee_name,
-		work_date: r.work_date,
-		in_time: r.in_time,
-		out_time: r.out_time,
-		duration_minutes: r.duration_minutes,
-		overtime_minutes: r.overtime_minutes,
-		attendance_type: r.attendance_type,
-		is_valid: r.is_valid,
-		error: r.error,
-	}));
+	const { rows, errors: parseErrors } = parseWorkDurationCsvMatrix(matrix, { defaultYear });
+	const formatLabel = fileKind === "excel" ? "excel-work-duration" : "csv-work-duration";
+
+	if (dryRun) {
+		const previewRows = rows.slice(0, 500).map((r) => ({
+			employee_code: r.employee_code,
+			employee_name: r.employee_name,
+			work_date: r.work_date,
+			in_time: r.in_time,
+			out_time: r.out_time,
+			duration_minutes: r.duration_minutes,
+			overtime_minutes: r.overtime_minutes,
+			attendance_type: r.attendance_type,
+			is_valid: r.is_valid,
+			error: r.error,
+		}));
+		return NextResponse.json({
+			inserted: 0,
+			errors: parseErrors,
+			parsed: rows.length,
+			format: formatLabel,
+			fileKind,
+			defaultYear,
+			previewRows,
+			dryRun: true,
+		});
+	}
+
+	const { inserted, errors: upsertErrors, previewRows } = await upsertParsedAttendanceRows(
+		auth.supabase,
+		rows
+	);
 
 	return NextResponse.json({
 		inserted,
-		errors: insertErrors,
+		errors: [...parseErrors, ...upsertErrors],
 		parsed: rows.length,
-		format,
+		format: formatLabel,
+		fileKind,
 		defaultYear,
 		previewRows,
+		dryRun: false,
 	});
 }

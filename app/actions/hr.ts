@@ -31,7 +31,7 @@ export async function listHrAttendance(filters?: { from?: string; to?: string })
 		.from("hr_attendance")
 		.select("*, hr_employees(name, employee_code)")
 		.order("work_date", { ascending: false })
-		.limit(500);
+		.limit(1500);
 	if (filters?.from) q = q.gte("work_date", filters.from);
 	if (filters?.to) q = q.lte("work_date", filters.to);
 	const { data, error } = await q;

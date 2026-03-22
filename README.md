@@ -129,7 +129,7 @@ Commission is written to `advisor_commissions`.
 ### HR (admin)
 
 - Apply migration `supabase/migrations/20260322000000_hr_attendance_payouts.sql`.
-- Upload Excel with columns: **Employee Code**, **Date**, **In**, **Out**, **Duration (min)**, **OT (min)**, **Type** (`present` / `leave` / `holiday`).
+- Attendance: upload **Work Duration** report as **Excel (.xlsx/.xls)** or **CSV** on `/hr/attendance` (preview, then confirm). Employee codes must exist in `hr_employees`.
 - API: `/api/hr/employees`, `/api/hr/attendance`, `/api/hr/attendance/upload`, `/api/hr/payouts`, `/api/hr/payouts/generate`, `/api/hr/payouts/pay`.
 
 ---

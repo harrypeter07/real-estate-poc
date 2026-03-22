@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui";
 import { ReminderForm } from "@/components/reminders/reminder-form";
 
-export default async function AdvisorNewReminderPage() {
+export default async function AdvisorNewMessagingPage() {
 	const supabase = await createClient();
 	if (!supabase) redirect("/login");
 
@@ -33,7 +32,7 @@ export default async function AdvisorNewReminderPage() {
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				title="New Reminder"
+				title="New task"
 				subtitle="Schedule a follow-up for your own customers"
 				showBackButton
 				action={null}
@@ -42,10 +41,9 @@ export default async function AdvisorNewReminderPage() {
 				<ReminderForm
 					customers={(customers ?? []) as any[]}
 					projects={(projects ?? []) as any[]}
-					redirectTo="/advisor/reminders"
+					redirectTo="/advisor/messaging"
 				/>
 			</div>
 		</div>
 	);
 }
-

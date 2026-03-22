@@ -18,9 +18,7 @@ export default async function PaymentsPage({
 	}>;
 }) {
 	const params = await searchParams;
-	const payments = await getPayments();
 
-	// Extract filter parameters
 	const from = params.from ?? "";
 	const to = params.to ?? "";
 	const status =
@@ -32,28 +30,17 @@ export default async function PaymentsPage({
 			? params.mode
 			: "";
 
-	// Filter payments based on criteria
-	const filteredPayments = payments.filter((payment) => {
-		// Date range filter (timezone-safe)
-		const paymentDateStr = String(payment.payment_date ?? "").slice(0, 10);
-		if (from && (!paymentDateStr || paymentDateStr < from)) return false;
-		if (to && (!paymentDateStr || paymentDateStr > to)) return false;
-
-		// Status filter
-		if (status) {
-			if (status === "confirmed" && !payment.is_confirmed) return false;
-			if (status === "pending" && payment.is_confirmed) return false;
-		}
-
-		// Payment mode filter (case-insensitive)
-		if (mode) {
-			const paymentMode = String(payment.payment_mode ?? "").toLowerCase().trim();
-			const filterMode = mode.toLowerCase().trim();
-			if (paymentMode !== filterMode) return false;
-		}
-
-		return true;
+	const filteredPayments = await getPayments({
+		from: from || undefined,
+		to: to || undefined,
+		status:
+			status === "confirmed" || status === "pending"
+				? status
+				: "",
+		mode: mode || undefined,
 	});
+
+	const hasFilters = Boolean(from || to || status || mode);
 
 	return (
 		<div className="space-y-6">
@@ -70,9 +57,13 @@ export default async function PaymentsPage({
 					<div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 mb-4">
 						<CreditCard className="h-8 w-8 text-zinc-400" />
 					</div>
-					<h3 className="text-lg font-semibold">{payments.length === 0 ? "No payments yet" : "No payments match these filters"}</h3>
+					<h3 className="text-lg font-semibold">
+						{hasFilters ? "No payments match these filters" : "No payments yet"}
+					</h3>
 					<p className="text-sm text-zinc-500 mt-1 mb-4">
-						{payments.length === 0 ? "Record your first payment installment" : "Try adjusting your filter criteria"}
+						{hasFilters
+							? "Try adjusting your filter criteria"
+							: "Record your first payment installment"}
 					</p>
 					<Link href="/payments/new">
 						<Button size="sm">

@@ -77,7 +77,7 @@ export async function createReminder(
 		return { success: false, error: error.message };
 	}
 
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	revalidatePath("/dashboard");
 	return { success: true };
 }
@@ -156,7 +156,7 @@ export async function updateReminder(
 		return { success: false, error: error.message };
 	}
 
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	revalidatePath("/dashboard");
 	return { success: true };
 }
@@ -209,7 +209,7 @@ export async function deleteReminder(id: string): Promise<ActionResponse> {
 		return { success: false, error: error.message };
 	}
 
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	revalidatePath("/dashboard");
 	return { success: true };
 }
@@ -254,6 +254,7 @@ export async function getReminders() {
           `
 						)
 						.in("customer_id", customerIds)
+						.neq("type", "installment_due")
 				: Promise.resolve({ data: [] as any[], error: null }),
 			supabase
 				.from("reminders")
@@ -265,7 +266,8 @@ export async function getReminders() {
           plot_sales(id, emi_day, monthly_emi, remaining_amount)
         `
 				)
-				.is("customer_id", null),
+				.is("customer_id", null)
+				.neq("type", "installment_due"),
 		]);
 
 		const combined = [
@@ -290,6 +292,7 @@ export async function getReminders() {
       plot_sales(id, emi_day, monthly_emi, remaining_amount)
     `
 		)
+		.neq("type", "installment_due")
 		.order("reminder_date", { ascending: true });
 
 	if (error) throw new Error(error.message);
@@ -381,7 +384,7 @@ export async function toggleReminder(id: string, isCompleted: boolean) {
 
 	if (error) return { success: false, error: error.message };
 
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	revalidatePath("/dashboard");
 	return { success: true };
 }

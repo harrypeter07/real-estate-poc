@@ -175,7 +175,7 @@ export default async function ReportsPage({
 								<CardTitle className="text-base font-bold flex items-center gap-2">
 									<Clock className="h-4 w-4" /> Upcoming Reminders
 								</CardTitle>
-								<Link href="/reminders">
+								<Link href="/messaging">
 									<Button variant="ghost" size="sm" className="text-xs">
 										View All <ArrowRight className="h-3 w-3 ml-1" />
 									</Button>

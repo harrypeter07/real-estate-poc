@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { computePaymentDueMeta } from "@/lib/payment-due";
 import { revalidatePath } from "next/cache";
 import { saleSchema, type SaleFormValues } from "@/lib/validations/sale";
 import { calculateFinance } from "@/lib/utils/finance";
@@ -173,34 +174,35 @@ export async function createSale(
 		});
 	}
 
-	// 4. Create follow-up reminder when followup_date is provided
-	const followupDate = parsed.data.followup_date?.trim();
-	if (followupDate) {
-		const { data: custRow } = await supabase
-			.from("customers")
-			.select("name, phone")
-			.eq("id", parsed.data.customer_id)
-			.single();
-		const custName = (custRow as any)?.name ?? "Customer";
-		const custPhone = (custRow as any)?.phone ?? null;
-		const projName = (plotRow as any).projects?.name ?? "";
-		await supabase.from("reminders").insert({
-			title: `Payment follow-up - ${custName} (${plotRow.plot_number}${projName ? `, ${projName}` : ""})`,
-			type: "installment_due",
-			phone: custPhone,
-			description: `Follow-up for outstanding payment on plot ${plotRow.plot_number}. Remaining: ₹ ${(finance.sellingPrice - Number(parsed.data.down_payment ?? 0)).toLocaleString("en-IN")}`,
-			reminder_date: followupDate,
-			customer_id: parsed.data.customer_id,
-			project_id: plotRow.project_id,
-			sale_id: sale.id,
-		});
-	}
+	// Payment follow-ups use Payments / Sales WhatsApp actions (not messaging reminders).
 
 	revalidatePath("/sales");
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	revalidatePath("/commissions");
 	revalidatePath(`/projects`);
 	return { success: true, saleId: sale.id };
+}
+
+async function lastConfirmedPaymentDateBySaleId(
+	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+	saleIds: string[]
+): Promise<Record<string, string>> {
+	if (!saleIds.length) return {};
+	const { data, error } = await supabase
+		.from("payments")
+		.select("sale_id, payment_date")
+		.in("sale_id", saleIds)
+		.eq("is_confirmed", true)
+		.order("payment_date", { ascending: false });
+	if (error) throw new Error(error.message);
+	const map: Record<string, string> = {};
+	for (const row of data ?? []) {
+		const sid = (row as { sale_id: string }).sale_id;
+		if (!map[sid]) {
+			map[sid] = String((row as { payment_date: string }).payment_date).slice(0, 10);
+		}
+	}
+	return map;
 }
 
 export async function getSales() {
@@ -220,7 +222,13 @@ export async function getSales() {
 		.order("created_at", { ascending: false });
 
 	if (error) throw new Error(error.message);
-	return data || [];
+	const rows = data || [];
+	const saleIds = rows.map((s: { id: string }) => s.id);
+	const lastBySale = await lastConfirmedPaymentDateBySaleId(supabase, saleIds);
+	return rows.map((sale: any) => ({
+		...sale,
+		payment_due_meta: computePaymentDueMeta(sale, lastBySale[sale.id]),
+	}));
 }
 
 export async function getSaleById(id: string) {

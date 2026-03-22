@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { computePaymentDueMeta } from "@/lib/payment-due";
 import {
 	paymentSchema,
 	type PaymentFormValues,
@@ -82,26 +83,106 @@ export async function createPayment(
 	return { success: true };
 }
 
-export async function getPayments() {
+export type PaymentsFilter = {
+	from?: string;
+	to?: string;
+	status?: "confirmed" | "pending" | "";
+	mode?: string;
+};
+
+async function lastConfirmedPaymentDateBySale(
+	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+	saleIds: string[]
+): Promise<Record<string, string>> {
+	if (!saleIds.length) return {};
+	const { data, error } = await supabase
+		.from("payments")
+		.select("sale_id, payment_date")
+		.in("sale_id", saleIds)
+		.eq("is_confirmed", true)
+		.order("payment_date", { ascending: false });
+	if (error) throw new Error(error.message);
+	const map: Record<string, string> = {};
+	for (const row of data ?? []) {
+		const sid = (row as { sale_id: string }).sale_id;
+		if (!map[sid]) {
+			map[sid] = String((row as { payment_date: string }).payment_date).slice(0, 10);
+		}
+	}
+	return map;
+}
+
+function enrichPaymentsWithDue(
+	rows: any[],
+	lastBySale: Record<string, string>
+) {
+	return rows.map((p) => {
+		const sale = p.plot_sales as Record<string, unknown> | null | undefined;
+		const saleId = sale?.id as string | undefined;
+		const last = saleId ? lastBySale[saleId] : undefined;
+		const meta = computePaymentDueMeta(
+			{
+				remaining_amount: sale?.remaining_amount,
+				monthly_emi: sale?.monthly_emi,
+				emi_day: sale?.emi_day,
+				token_date: (sale?.token_date as string) ?? null,
+				agreement_date: (sale?.agreement_date as string) ?? null,
+				followup_date: (sale?.followup_date as string) ?? null,
+			},
+			last
+		);
+		return { ...p, payment_due_meta: meta };
+	});
+}
+
+export async function getPayments(filters?: PaymentsFilter) {
 	const supabase = await createClient();
 	if (!supabase) return [];
 
-	const { data, error } = await supabase
+	let q = supabase
 		.from("payments")
 		.select(
 			`
       *,
       customers(name, phone),
       plot_sales(
+        id,
         receipt_path,
+        remaining_amount,
+        monthly_emi,
+        emi_day,
+        token_date,
+        agreement_date,
+        followup_date,
         plots(plot_number, projects(name))
       )
     `
 		)
 		.order("payment_date", { ascending: false });
 
+	const from = filters?.from?.trim();
+	const to = filters?.to?.trim();
+	if (from) q = q.gte("payment_date", from);
+	if (to) q = q.lte("payment_date", to);
+	const status = filters?.status;
+	if (status === "confirmed") q = q.eq("is_confirmed", true);
+	if (status === "pending") q = q.eq("is_confirmed", false);
+	const mode = filters?.mode?.trim();
+	if (mode) q = q.ilike("payment_mode", mode);
+
+	const { data, error } = await q;
+
 	if (error) throw new Error(error.message);
-	return data || [];
+	const rows = data || [];
+	const saleIds = [
+		...new Set(
+			rows
+				.map((p: any) => p.plot_sales?.id)
+				.filter(Boolean) as string[]
+		),
+	];
+	const lastBySale = await lastConfirmedPaymentDateBySale(supabase, saleIds);
+	return enrichPaymentsWithDue(rows, lastBySale);
 }
 
 export async function confirmPayment(id: string) {

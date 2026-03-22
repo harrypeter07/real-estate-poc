@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, ShoppingCart, Calendar, User, MapPin, IndianRupee } from "lucide-react";
+import { Plus, ShoppingCart, Calendar, User, MapPin, IndianRupee, MessageCircle } from "lucide-react";
+import { openWhatsAppPaymentReminder } from "@/lib/payment-whatsapp";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { SaleDetailModal } from "./sale-detail-modal";
@@ -134,6 +135,27 @@ export function SalesList({
 										>
 											View Details
 										</Button>
+										{sale.payment_due_meta?.is_payment_due ? (
+											<Button
+												size="sm"
+												variant="outline"
+												className="w-full gap-1 text-green-700 border-green-200"
+												onClick={() =>
+													openWhatsAppPaymentReminder({
+														phone: sale.customers?.phone,
+														customerName: sale.customers?.name ?? "Customer",
+														plot: String(sale.plots?.plot_number ?? "—"),
+														project: String(sale.plots?.projects?.name ?? "—"),
+														remainingAmount: Number(sale.remaining_amount ?? 0),
+														monthlyEmi: sale.monthly_emi,
+														nextDue: sale.payment_due_meta?.next_emi_due,
+													})
+												}
+											>
+												<MessageCircle className="h-3.5 w-3.5" />
+												Remind payment
+											</Button>
+										) : null}
 										{canCollectPayments ? (
 											<Link href={`/payments/new?saleId=${sale.id}`} className="w-full">
 												<Button size="sm" className="w-full">

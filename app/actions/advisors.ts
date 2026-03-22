@@ -153,6 +153,7 @@ export async function createAdvisor(
 	}
 
 	revalidatePath("/advisors");
+	revalidatePath("/messaging");
 	return { success: true };
 }
 
@@ -213,7 +214,7 @@ export async function updateAdvisor(
 
 	revalidatePath("/advisors");
 	revalidatePath(`/advisors/${id}`);
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	return { success: true };
 }
 

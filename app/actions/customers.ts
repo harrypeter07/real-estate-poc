@@ -123,7 +123,7 @@ export async function createCustomer(
 	}
 
 	revalidatePath(role === "advisor" ? "/advisor/customers" : "/customers");
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	return { success: true };
 }
 
@@ -191,7 +191,7 @@ export async function updateCustomer(
 	revalidatePath(
 		role === "advisor" ? `/advisor/customers/${id}` : `/customers/${id}`
 	);
-	revalidatePath("/reminders");
+	revalidatePath("/messaging");
 	return { success: true };
 }
 

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { getReminders, getPeopleWithBirthdayToday } from "@/app/actions/reminders";
 import { getCustomers } from "@/app/actions/customers";
-import { ReminderItem } from "../../../components/reminders/reminder-item";
+import { ReminderItem } from "@/components/reminders/reminder-item";
 import { TemplatesModal } from "@/components/reminders/templates-modal";
 import { BirthdayCard } from "@/components/reminders/birthday-card";
 import { Plus, Clock, CheckCircle2, Bell, Cake } from "lucide-react";
@@ -13,7 +13,6 @@ const TYPE_FILTERS = [
 	{ label: "All", value: "all" },
 	{ label: "Token Expiry", value: "token_expiry" },
 	{ label: "Agreement", value: "agreement_expiry" },
-	{ label: "Payment Follow-up", value: "payment_followup" },
 	{ label: "Birthday (Customer)", value: "birthday_customer" },
 	{ label: "Birthday (Advisor)", value: "birthday_advisor" },
 	{ label: "Bank Statement", value: "bank_statement" },
@@ -23,15 +22,14 @@ const TYPE_FILTERS = [
 	{ label: "Other", value: "other" },
 ];
 
-export default async function RemindersPage({
+export default async function MessagingPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ type?: string; date?: string; project?: string }>;
 }) {
 	const params = await searchParams;
 	const typeFilter = params.type || "all";
-	const normalizedTypeFilter =
-		typeFilter === "payment_followup" ? "installment_due" : typeFilter;
+	const normalizedTypeFilter = typeFilter;
 	const dateFilter = params.date || "all";
 	const projectFilter = params.project || "all";
 
@@ -45,13 +43,11 @@ export default async function RemindersPage({
 		birthdayPeople.customers.length > 0 || birthdayPeople.advisors.length > 0;
 
 	const filteredReminders = reminders.filter((r) => {
-		// Type Filter
 		if (normalizedTypeFilter !== "all" && r.type !== normalizedTypeFilter) return false;
 		if (projectFilter !== "all" && String((r as any).project_id ?? "") !== projectFilter) {
 			return false;
 		}
 
-		// Date Filter
 		if (dateFilter !== "all") {
 			const reminderDate = new Date(r.reminder_date);
 			reminderDate.setHours(0, 0, 0, 0);
@@ -90,21 +86,20 @@ export default async function RemindersPage({
 	return (
 		<div className="max-w-6xl mx-auto space-y-6 px-4 py-6 md:px-0">
 			<PageHeader
-				title="Reminders"
-				subtitle={`${pendingReminders.length} tasks matching filters`}
+				title="Messaging"
+				subtitle={`${pendingReminders.length} tasks matching filters — payment follow-ups use Payments / Sales`}
 				action={
 					<div className="flex items-center gap-2">
-						<Link href="/reminders/new">
+						<Link href="/messaging/new">
 							<Button size="sm" className="shadow-sm">
 								<Plus className="h-4 w-4 mr-2" />
-								New Reminder
+								New task
 							</Button>
 						</Link>
 					</div>
 				}
 			/>
 
-			{/* Birthday Section - Today */}
 			{hasBirthdays && (
 				<Card className="bg-gradient-to-br from-rose-50 to-amber-50/50 border-rose-100 shadow-sm overflow-hidden">
 					<CardContent className="p-5">
@@ -141,7 +136,6 @@ export default async function RemindersPage({
 				</Card>
 			)}
 
-			{/* Filters Bar */}
 			<Card className="bg-white border-zinc-200 shadow-sm overflow-hidden">
 				<CardContent className="p-4 md:p-6 flex flex-col gap-4">
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -152,24 +146,24 @@ export default async function RemindersPage({
 								</p>
 								<div className="flex flex-wrap gap-2">
 									{TYPE_FILTERS.map((filter) => (
-								<Link
-									key={filter.value}
-									href={`/reminders?type=${filter.value}&date=${dateFilter}&project=${projectFilter}`}
-									className={cn(
-										"text-xs px-3 py-1.5 rounded-full border transition-colors",
-										typeFilter === filter.value
-											? "bg-zinc-900 text-white border-zinc-900"
-											: "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
-									)}
-								>
-									{filter.label}
-									</Link>
+										<Link
+											key={filter.value}
+											href={`/messaging?type=${filter.value}&date=${dateFilter}&project=${projectFilter}`}
+											className={cn(
+												"text-xs px-3 py-1.5 rounded-full border transition-colors",
+												typeFilter === filter.value
+													? "bg-zinc-900 text-white border-zinc-900"
+													: "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+											)}
+										>
+											{filter.label}
+										</Link>
 									))}
 								</div>
 							</div>
 							<div className="flex items-center gap-2 shrink-0">
 								<TemplatesModal />
-								<Link href="/reminders">
+								<Link href="/messaging">
 									<Button
 										variant="ghost"
 										size="sm"
@@ -193,7 +187,7 @@ export default async function RemindersPage({
 								].map((filter) => (
 									<Link
 										key={filter.value}
-										href={`/reminders?type=${typeFilter}&date=${filter.value}&project=${projectFilter}`}
+										href={`/messaging?type=${typeFilter}&date=${filter.value}&project=${projectFilter}`}
 										className={cn(
 											"text-xs px-3 py-1.5 rounded-full border transition-colors",
 											dateFilter === filter.value
@@ -213,7 +207,7 @@ export default async function RemindersPage({
 						</p>
 						<div className="flex flex-wrap gap-2">
 							<Link
-								href={`/reminders?type=${typeFilter}&date=${dateFilter}&project=all`}
+								href={`/messaging?type=${typeFilter}&date=${dateFilter}&project=all`}
 								className={cn(
 									"text-xs px-3 py-1.5 rounded-full border transition-colors",
 									projectFilter === "all"
@@ -226,7 +220,7 @@ export default async function RemindersPage({
 							{projectOptions.map((p: any) => (
 								<Link
 									key={p.id}
-									href={`/reminders?type=${typeFilter}&date=${dateFilter}&project=${p.id}`}
+									href={`/messaging?type=${typeFilter}&date=${dateFilter}&project=${p.id}`}
 									className={cn(
 										"text-xs px-3 py-1.5 rounded-full border transition-colors",
 										projectFilter === p.id
@@ -247,16 +241,13 @@ export default async function RemindersPage({
 					<div className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm mb-6 border border-zinc-100">
 						<Bell className="h-10 w-10 text-zinc-300" />
 					</div>
-					<h3 className="text-xl font-semibold text-zinc-900">
-						No reminders found
-					</h3>
+					<h3 className="text-xl font-semibold text-zinc-900">No tasks found</h3>
 					<p className="text-sm text-zinc-500 mt-2 max-w-xs mx-auto">
-						Try changing your filters or create a new reminder to get started.
+						Try changing your filters or create a new task to get started.
 					</p>
 				</div>
 			) : (
 				<div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-					{/* Pending Section */}
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
@@ -288,7 +279,6 @@ export default async function RemindersPage({
 						</div>
 					</div>
 
-					{/* Completed Section */}
 					{completedReminders.length > 0 && (
 						<div className="space-y-4 pt-6 border-t border-zinc-100">
 							<div className="flex items-center justify-between">

@@ -143,13 +143,6 @@ export function ReminderItem({ reminder, customers = [] }: ReminderItemProps) {
 								</h4>
 							</div>
 							<div className="flex items-center gap-2 flex-wrap">
-								{reminder.type === "installment_due" &&
-									reminder.sale_id &&
-									reminder.reminder_date === new Date().toISOString().slice(0, 10) && (
-									<span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 uppercase tracking-wider">
-										EMI Pending Today
-									</span>
-								)}
 								<div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-50 px-2 py-1 rounded-md border border-zinc-100 whitespace-nowrap w-fit">
 									<Calendar className="h-3.5 w-3.5" />
 									{formatDate(reminder.reminder_date)}

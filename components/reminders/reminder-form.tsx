@@ -53,7 +53,7 @@ export function ReminderForm({
 	mode = "create",
 	onSuccess,
 	onCancel,
-	redirectTo = "/reminders",
+	redirectTo = "/messaging",
 }: ReminderFormProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
@@ -93,7 +93,7 @@ export function ReminderForm({
 			"agreement_expiry",
 			"crm_followup",
 			"token_expiry",
-			"installment_due",
+			"bank_statement",
 			"birthday_customer",
 		];
 		const randomIndex = Math.floor(Math.random() * titles.length);
@@ -286,9 +286,11 @@ export function ReminderForm({
 												<SelectItem value="birthday_advisor">
 													Birthday (Advisor)
 												</SelectItem>
-												<SelectItem value="installment_due">
-													Payment Follow-up
-												</SelectItem>
+												{mode === "edit" && initialData?.type === "installment_due" ? (
+													<SelectItem value="installment_due">
+														Legacy payment (migrate via Payments)
+													</SelectItem>
+												) : null}
 												<SelectItem value="token_expiry">
 													Token Expiry
 												</SelectItem>

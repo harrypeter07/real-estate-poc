@@ -9,6 +9,7 @@ import {
   User,
   Share2,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 import {
   Badge,
@@ -30,6 +31,7 @@ import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { ReceiptViewer } from "@/components/shared/receipt-viewer";
 import { generateReceipt, getReceiptUrlByPath } from "@/app/actions/receipts";
 import { toast } from "sonner";
+import { openWhatsAppPaymentReminder } from "@/lib/payment-whatsapp";
 
 export function PaymentsTable({ payments }: { payments: any[] }) {
   const [selected, setSelected] = useState<any | null>(null);
@@ -82,6 +84,7 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                 <TableHead>Amount</TableHead>
                 <TableHead>Mode</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-[100px] text-right">Remind</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -137,6 +140,39 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                       </Badge>
                     )}
                   </TableCell>
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {payment.payment_due_meta?.is_payment_due ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-green-700 border-green-200 h-8 px-2"
+                        onClick={() =>
+                          openWhatsAppPaymentReminder({
+                            phone: payment.customers?.phone,
+                            customerName: payment.customers?.name ?? "Customer",
+                            plot: String(payment.plot_sales?.plots?.plot_number ?? "—"),
+                            project: String(
+                              payment.plot_sales?.plots?.projects?.name ?? "—"
+                            ),
+                            remainingAmount: Number(
+                              payment.plot_sales?.remaining_amount ?? 0
+                            ),
+                            monthlyEmi: payment.plot_sales?.monthly_emi,
+                            nextDue: payment.payment_due_meta?.next_emi_due,
+                          })
+                        }
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        Remind
+                      </Button>
+                    ) : (
+                      <span className="text-[10px] text-zinc-400">—</span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -184,6 +220,31 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                   <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                     {selected.notes}
                   </div>
+                )}
+                {selected.payment_due_meta?.is_payment_due && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() =>
+                      openWhatsAppPaymentReminder({
+                        phone: selected.customers?.phone,
+                        customerName: selected.customers?.name ?? "Customer",
+                        plot: String(selected.plot_sales?.plots?.plot_number ?? "—"),
+                        project: String(
+                          selected.plot_sales?.plots?.projects?.name ?? "—"
+                        ),
+                        remainingAmount: Number(
+                          selected.plot_sales?.remaining_amount ?? 0
+                        ),
+                        monthlyEmi: selected.plot_sales?.monthly_emi,
+                        nextDue: selected.payment_due_meta?.next_emi_due,
+                      })
+                    }
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Remind for payment (WhatsApp)
+                  </Button>
                 )}
               </div>
 

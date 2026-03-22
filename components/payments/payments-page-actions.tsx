@@ -5,11 +5,13 @@ import { useState } from "react";
 import { Plus, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui";
 import { EmiModal } from "./emi-modal";
+import { PaymentTemplatesModal } from "./payment-templates-modal";
 
 export function PaymentsPageActions() {
 	const [emiOpen, setEmiOpen] = useState(false);
 	return (
-		<div className="flex items-center gap-2">
+		<div className="flex flex-wrap items-center gap-2">
+			<PaymentTemplatesModal />
 			<Button
 				size="sm"
 				variant="outline"

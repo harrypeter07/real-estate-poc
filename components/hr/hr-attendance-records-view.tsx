@@ -318,7 +318,7 @@ export function HrAttendanceRecordsView({
 	}, [viewRows]);
 
 	return (
-		<div className="w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
+		<div className="w-full min-w-0 max-w-full space-y-6">
 			<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
 				{title ? <h3 className="text-base font-semibold tracking-tight">{title}</h3> : null}
 				<div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">

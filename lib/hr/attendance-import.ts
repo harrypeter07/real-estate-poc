@@ -34,10 +34,18 @@ function normalizeAttendanceType(t: string | undefined): HrAttendanceType {
 	return "present";
 }
 
+/** Case-insensitive, collapse spaces — for matching file name vs HR name */
+export function normalizePersonName(s: string | null | undefined): string {
+	return String(s ?? "")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toLowerCase();
+}
+
+export type HrEmployeeRef = { id: string; employee_code: string; name: string };
+
 /** Map many possible Excel code strings to employee UUID (e.g. "1", "01", "001"). */
-function buildEmployeeCodeLookup(
-	emps: Array<{ id: string; employee_code: string }>
-): Map<string, string> {
+export function buildEmployeeCodeLookup(emps: Array<{ id: string; employee_code: string }>): Map<string, string> {
 	const m = new Map<string, string>();
 	for (const e of emps) {
 		const raw = String(e.employee_code ?? "").trim();
@@ -58,7 +66,7 @@ function buildEmployeeCodeLookup(
 	return m;
 }
 
-function resolveEmployeeId(lookup: Map<string, string>, code: string): string | undefined {
+export function resolveEmployeeId(lookup: Map<string, string>, code: string): string | undefined {
 	const raw = String(code ?? "").trim();
 	if (!raw) return undefined;
 	if (lookup.has(raw)) return lookup.get(raw);
@@ -67,6 +75,57 @@ function resolveEmployeeId(lookup: Map<string, string>, code: string): string | 
 	const n = parseInt(digits, 10);
 	if (!Number.isNaN(n) && lookup.has(String(n))) return lookup.get(String(n));
 	return undefined;
+}
+
+/**
+ * Every employee code in the file must exist in HR, and the file name must match HR name (case-insensitive).
+ * Returns blocking errors — save must not proceed if ok is false.
+ */
+export function validateHrEmployeesForAttendance(
+	emps: HrEmployeeRef[],
+	rows: ParsedAttendanceRow[]
+): { ok: boolean; errors: string[] } {
+	const errors: string[] = [];
+	const lookup = buildEmployeeCodeLookup(emps);
+	const byId = new Map(emps.map((e) => [e.id, e]));
+
+	const codesInFile = [...new Set(rows.map((r) => String(r.employee_code ?? "").trim()).filter(Boolean))];
+
+	for (const code of codesInFile) {
+		const eid = resolveEmployeeId(lookup, code);
+		if (!eid) {
+			errors.push(`Unknown employee code (not in HR): ${code}`);
+			continue;
+		}
+		const emp = byId.get(eid);
+		if (!emp) {
+			errors.push(`Unknown employee code: ${code}`);
+			continue;
+		}
+
+		const rowsForCode = rows.filter((r) => String(r.employee_code ?? "").trim() === code);
+		const namesInFile = new Set(rowsForCode.map((r) => normalizePersonName(r.employee_name)).filter(Boolean));
+		if (namesInFile.size > 1) {
+			errors.push(
+				`Employee ${code}: inconsistent names in file (${[...namesInFile].join(" vs ")})`
+			);
+		}
+
+		const fileNameNorm = normalizePersonName(rowsForCode[0]?.employee_name);
+		const hrNameNorm = normalizePersonName(emp.name);
+
+		if (!fileNameNorm) {
+			errors.push(`Employee ${code}: missing name in file (HR has "${emp.name}")`);
+			continue;
+		}
+		if (fileNameNorm !== hrNameNorm) {
+			errors.push(
+				`Employee ${code}: name mismatch — file "${rowsForCode[0]?.employee_name ?? ""}" ≠ HR "${emp.name}" (case-insensitive)`
+			);
+		}
+	}
+
+	return { ok: errors.length === 0, errors };
 }
 
 type UpsertRow = {
@@ -95,7 +154,7 @@ function toUpsertRow(r: ParsedAttendanceRow, employeeId: string): UpsertRow {
 
 const BATCH = 150;
 
-/** Upsert parsed attendance for known employee codes. */
+/** Upsert parsed attendance — call only after validateHrEmployeesForAttendance passes. */
 export async function upsertParsedAttendanceRows(
 	supabase: { from: (t: string) => any },
 	rows: ParsedAttendanceRow[]
@@ -104,7 +163,7 @@ export async function upsertParsedAttendanceRows(
 	errors: string[];
 	previewRows: AttendancePreviewRow[];
 }> {
-	const { data: emps, error: e2 } = await supabase.from("hr_employees").select("id, employee_code");
+	const { data: emps, error: e2 } = await supabase.from("hr_employees").select("id, employee_code, name");
 	if (e2) {
 		return {
 			inserted: 0,
@@ -112,24 +171,22 @@ export async function upsertParsedAttendanceRows(
 			previewRows: buildPreviewRows(rows),
 		};
 	}
-	const lookup = buildEmployeeCodeLookup((emps ?? []) as Array<{ id: string; employee_code: string }>);
+	const list = (emps ?? []) as HrEmployeeRef[];
+	const lookup = buildEmployeeCodeLookup(list);
 
 	const insertErrors: string[] = [];
 	let inserted = 0;
 
 	const prepared: UpsertRow[] = [];
-	const skipped: string[] = [];
 
 	for (const r of rows) {
 		const eid = resolveEmployeeId(lookup, r.employee_code);
 		if (!eid) {
-			skipped.push(`Unknown employee code: ${r.employee_code}`);
+			insertErrors.push(`Unknown employee code: ${r.employee_code}`);
 			continue;
 		}
 		prepared.push(toUpsertRow(r, eid));
 	}
-
-	insertErrors.push(...skipped);
 
 	for (let i = 0; i < prepared.length; i += BATCH) {
 		const chunk = prepared.slice(i, i + BATCH);
@@ -140,7 +197,6 @@ export async function upsertParsedAttendanceRows(
 			inserted += chunk.length;
 			continue;
 		}
-		// Fallback: row-by-row for this chunk (clearer errors, tolerates odd rows)
 		for (const row of chunk) {
 			const { error: rowErr } = await supabase.from("hr_attendance").upsert(row, {
 				onConflict: "employee_id,work_date",

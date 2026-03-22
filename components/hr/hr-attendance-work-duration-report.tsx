@@ -190,11 +190,15 @@ export function EmployeeTotalsStrip({
 	);
 }
 
-const thSticky =
-	"sticky left-0 z-20 min-w-[6rem] border border-zinc-300 bg-zinc-100 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200";
+/** Narrow sticky column — metric labels only (no extra Day/Date/Weekday rows). */
+const thCorner =
+	"sticky left-0 z-30 w-14 min-w-[3.5rem] max-w-[4rem] shrink-0 border border-zinc-300 bg-slate-200 px-1 py-1.5 text-center text-[9px] font-semibold uppercase leading-tight text-zinc-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300";
 const tdSticky =
-	"sticky left-0 z-10 border border-zinc-300 bg-zinc-50 px-2 py-1 font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/90 dark:text-zinc-100";
-const cell = "border border-zinc-300 px-1 py-1 text-center font-mono tabular-nums text-[11px] sm:text-xs dark:border-zinc-600";
+	"sticky left-0 z-20 w-14 min-w-[3.5rem] max-w-[4rem] shrink-0 border border-zinc-300 bg-zinc-50 px-1 py-0.5 text-left text-[10px] font-medium leading-tight text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/95 dark:text-zinc-100";
+const cell =
+	"border border-zinc-300 px-0.5 py-0.5 text-center font-mono tabular-nums text-[10px] sm:text-[11px] dark:border-zinc-600";
+const thDate =
+	"min-w-[2.65rem] sm:min-w-[3rem] border border-zinc-300 bg-slate-100 px-0.5 py-1 align-bottom dark:border-zinc-600 dark:bg-zinc-900";
 
 /** Excel-style blocks: full month columns, dates as columns, metrics as rows */
 export function WorkDurationPivotGrids({
@@ -255,39 +259,24 @@ export function WorkDurationPivotGrids({
 								</span>
 							</div>
 						</div>
-						{/* Constrain width to viewport; scroll inside */}
-						<div className="w-full max-w-full overflow-x-auto bg-white dark:bg-zinc-950">
+						{/* Horizontal scroll: parent must not use overflow-x-hidden */}
+						<div className="w-full min-w-0 overflow-x-auto overflow-y-visible overscroll-x-contain scroll-pt-0 bg-white pb-1 dark:bg-zinc-950 [scrollbar-width:thin]">
 							<table className="w-max min-w-full border-collapse border border-zinc-300 text-[11px] sm:text-xs dark:border-zinc-600">
 								<thead>
 									<tr className="bg-slate-100 dark:bg-zinc-900">
-										<th className={thSticky}>Day</th>
+										<th className={thCorner} scope="col">
+											<span className="sr-only">Metric</span>
+										</th>
 										{dates.map((d) => {
-											const { dayOfMonth } = dateHeadersLocal(d);
+											const { day, dow } = dateHeadersLocal(d);
 											return (
-												<th key={`didx-${d}`} className={`${cell} min-w-[3.25rem] bg-slate-100 font-semibold text-zinc-800 dark:bg-zinc-900`}>
-													Day{dayOfMonth || "—"}
-												</th>
-											);
-										})}
-									</tr>
-									<tr className="bg-zinc-100 dark:bg-zinc-900">
-										<th className={thSticky}>Date</th>
-										{dates.map((d) => {
-											const { day } = dateHeadersLocal(d);
-											return (
-												<th key={`date-${d}`} className={`${cell} min-w-[3.25rem] bg-zinc-100 font-semibold dark:bg-zinc-900`}>
-													{day}
-												</th>
-											);
-										})}
-									</tr>
-									<tr className="bg-zinc-50 dark:bg-zinc-900/80">
-										<th className={thSticky}>Weekday</th>
-										{dates.map((d) => {
-											const { dow } = dateHeadersLocal(d);
-											return (
-												<th key={`dow-${d}`} className={`${cell} min-w-[3.25rem] text-muted-foreground dark:bg-zinc-900`}>
-													{dow}
+												<th key={`hdr-${d}`} className={thDate} scope="col">
+													<div className="flex flex-col items-center justify-end gap-0.5 leading-none">
+														<span className="text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+															{day}
+														</span>
+														<span className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400">{dow}</span>
+													</div>
 												</th>
 											);
 										})}
@@ -296,11 +285,11 @@ export function WorkDurationPivotGrids({
 								<tbody>
 									{(
 										[
-											["In Time", "in"] as const,
-											["Out Time", "out"] as const,
-											["Duration", "dur"] as const,
+											["In", "in"] as const,
+											["Out", "out"] as const,
+											["Dur", "dur"] as const,
 											["OT", "ot"] as const,
-											["T Duration", "tdur"] as const,
+											["T·Dur", "tdur"] as const,
 										] as const
 									).map(([label, kind]) => (
 										<tr

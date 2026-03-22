@@ -18,7 +18,7 @@ export function HrAttendanceClient({ initialRows }: { initialRows: any[] }) {
 	const vm = useMemo(() => mapDbRowsToAttendanceVM(initialRows), [initialRows]);
 
 	return (
-		<div className="mx-auto w-full max-w-full min-w-0 space-y-8 overflow-x-hidden px-4 md:px-0">
+		<div className="mx-auto w-full max-w-full min-w-0 space-y-8 px-4 md:px-0">
 			<PageHeader
 				title="Attendance"
 				action={

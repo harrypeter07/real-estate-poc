@@ -30,6 +30,8 @@ export type HrAttendanceUploadResult = {
 	errors: string[];
 	previewRows: HrAttendanceUploadPreviewRow[];
 	dryRun?: boolean;
+	/** false when employee code/name don’t match HR — import blocked */
+	hrValidationOk?: boolean;
 };
 
 export function HrAttendanceUpload(props?: {
@@ -64,6 +66,7 @@ export function HrAttendanceUpload(props?: {
 			errors: Array.isArray(data.errors) ? data.errors : [],
 			previewRows: Array.isArray(data.previewRows) ? data.previewRows : [],
 			dryRun: Boolean(data.dryRun),
+			hrValidationOk: data.hrValidationOk !== false,
 		};
 	};
 
@@ -113,7 +116,15 @@ export function HrAttendanceUpload(props?: {
 			pendingFileRef.current = null;
 			setPreview(null);
 			onComplete?.(result);
-			toast.success(`Saved ${result.inserted} attendance rows`);
+			if (result.inserted > 0) {
+				toast.success(`Saved ${result.inserted} attendance rows`);
+			} else {
+				const hint =
+					result.errors?.find((e) => /row-level security|RLS/i.test(e)) ??
+					result.errors?.[0] ??
+					"Fix HR validation or database permissions (see messages below).";
+				toast.error("Saved 0 rows", { description: String(hint).slice(0, 280) });
+			}
 			router.refresh();
 		} finally {
 			setLoading(false);
@@ -154,25 +165,39 @@ export function HrAttendanceUpload(props?: {
 							{preview.parsed} parsed row{preview.parsed === 1 ? "" : "s"} — not saved yet
 						</span>
 					</div>
+					{preview.hrValidationOk === false && (
+						<div className="rounded-md border border-red-300 bg-red-50 p-3 text-xs text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100">
+							<p className="font-semibold mb-1">Cannot save — HR employee check failed</p>
+							<p className="mb-2 opacity-90">
+								Every employee code must exist in HR, and the name in the file must match the HR record (case-insensitive).
+							</p>
+						</div>
+					)}
 					{preview.errors.length > 0 && (
-						<div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100 max-h-36 overflow-y-auto">
-							<p className="font-semibold mb-1">Parser messages</p>
+						<div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100 max-h-48 overflow-y-auto">
+							<p className="font-semibold mb-1">Messages (parser + HR validation)</p>
 							<ul className="list-disc pl-4 space-y-0.5">
-								{preview.errors.slice(0, 50).map((err, i) => (
+								{preview.errors.slice(0, 80).map((err, i) => (
 									<li key={i}>{err}</li>
 								))}
 							</ul>
 						</div>
 					)}
 					{preview.previewRows.length > 0 && (
-						<HrAttendanceRecordsView
-							records={mapPreviewToAttendanceVM(preview.previewRows)}
-							title="Preview (first 500 rows)"
-							showFilters
-						/>
+						<div className="min-w-0 max-w-full">
+							<HrAttendanceRecordsView
+								records={mapPreviewToAttendanceVM(preview.previewRows)}
+								title="Preview (first 500 rows)"
+								showFilters
+							/>
+						</div>
 					)}
 					<div className="flex flex-wrap gap-2">
-						<Button size="sm" onClick={confirmImport} disabled={loading || preview.parsed === 0}>
+						<Button
+							size="sm"
+							onClick={confirmImport}
+							disabled={loading || preview.parsed === 0 || preview.hrValidationOk === false}
+						>
 							{loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
 							Confirm import to database
 						</Button>

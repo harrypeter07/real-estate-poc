@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/hr/auth-route";
 import { matrixFromAttendanceUpload } from "@/lib/hr/attendance-upload-matrix";
 import { parseWorkDurationCsvMatrix } from "@/lib/hr/csv-work-duration-parser";
-import { upsertParsedAttendanceRows } from "@/lib/hr/attendance-import";
+import {
+	upsertParsedAttendanceRows,
+	validateHrEmployeesForAttendance,
+	type HrEmployeeRef,
+} from "@/lib/hr/attendance-import";
 
 export async function POST(req: Request) {
 	const auth = await requireAdmin();
@@ -57,28 +61,53 @@ export async function POST(req: Request) {
 	const { rows, errors: parseErrors } = parseWorkDurationCsvMatrix(matrix, { defaultYear });
 	const formatLabel = fileKind === "excel" ? "excel-work-duration" : "csv-work-duration";
 
+	const { data: hrEmps, error: hrErr } = await auth.supabase
+		.from("hr_employees")
+		.select("id, employee_code, name");
+	const hrList = (hrEmps ?? []) as HrEmployeeRef[];
+	const hrValidation = hrErr
+		? { ok: false as const, errors: [hrErr.message] }
+		: validateHrEmployeesForAttendance(hrList, rows);
+	const validationErrors = hrValidation.errors;
+
+	const previewRowsPayload = rows.slice(0, 500).map((r) => ({
+		employee_code: r.employee_code,
+		employee_name: r.employee_name,
+		work_date: r.work_date,
+		in_time: r.in_time,
+		out_time: r.out_time,
+		duration_minutes: r.duration_minutes,
+		overtime_minutes: r.overtime_minutes,
+		attendance_type: r.attendance_type,
+		is_valid: r.is_valid,
+		error: r.error,
+	}));
+
 	if (dryRun) {
-		const previewRows = rows.slice(0, 500).map((r) => ({
-			employee_code: r.employee_code,
-			employee_name: r.employee_name,
-			work_date: r.work_date,
-			in_time: r.in_time,
-			out_time: r.out_time,
-			duration_minutes: r.duration_minutes,
-			overtime_minutes: r.overtime_minutes,
-			attendance_type: r.attendance_type,
-			is_valid: r.is_valid,
-			error: r.error,
-		}));
 		return NextResponse.json({
 			inserted: 0,
-			errors: parseErrors,
+			errors: [...parseErrors, ...validationErrors],
 			parsed: rows.length,
 			format: formatLabel,
 			fileKind,
 			defaultYear,
-			previewRows,
+			previewRows: previewRowsPayload,
 			dryRun: true,
+			hrValidationOk: hrValidation.ok,
+		});
+	}
+
+	if (!hrValidation.ok) {
+		return NextResponse.json({
+			inserted: 0,
+			errors: [...parseErrors, ...validationErrors],
+			parsed: rows.length,
+			format: formatLabel,
+			fileKind,
+			defaultYear,
+			previewRows: previewRowsPayload,
+			dryRun: false,
+			hrValidationOk: false,
 		});
 	}
 
@@ -96,5 +125,6 @@ export async function POST(req: Request) {
 		defaultYear,
 		previewRows,
 		dryRun: false,
+		hrValidationOk: true,
 	});
 }

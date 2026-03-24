@@ -24,6 +24,15 @@ export const saleSchema = z
   .refine((data) => data.sold_by_admin || (data.advisor_id && data.advisor_id.length > 0), {
     message: "Advisor is required when not sold by admin",
     path: ["advisor_id"],
-  });
+  })
+  .refine(
+    (data) =>
+      data.sale_phase === "full_payment" ||
+      Number(data.down_payment ?? 0) <= Number(data.total_sale_amount ?? 0),
+    {
+      message: "Amount cannot be greater than payment amount",
+      path: ["down_payment"],
+    },
+  );
 
 export type SaleFormValues = z.infer<typeof saleSchema>;

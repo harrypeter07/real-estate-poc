@@ -26,6 +26,12 @@ import { formatCurrency } from "@/lib/utils/formatters";
 import { plotSchema, type PlotFormValues } from "@/lib/validations/plot";
 import { createPlot, updatePlot } from "@/app/actions/plots";
 
+/** Treat 0 as empty so numeric fields do not show leading/placeholder zeros. */
+function initialPlotNumeric(n: number | undefined | null) {
+	if (n == null || !Number.isFinite(Number(n)) || Number(n) <= 0) return undefined;
+	return Number(n);
+}
+
 interface PlotFormProps {
 	mode: "create" | "edit";
 	projectId: string;
@@ -49,9 +55,8 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 		resolver: zodResolver(plotSchema) as any,
 		defaultValues: {
 			plot_number: initialData?.plot_number ?? "",
-			// Keep numeric fields visually blank until user fills them
-			size_sqft: (initialData?.size_sqft as any) ?? (undefined as any),
-			rate_per_sqft: (initialData?.rate_per_sqft as any) ?? (undefined as any),
+			size_sqft: initialPlotNumeric(initialData?.size_sqft) as any,
+			rate_per_sqft: initialPlotNumeric(initialData?.rate_per_sqft) as any,
 			facing: initialData?.facing ?? "",
 			notes: initialData?.notes ?? "",
 		},
@@ -211,6 +216,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 										<FormControl>
 											<Input
 												type="number"
+												step="any"
 												placeholder="e.g. 1500"
 												{...field}
 												value={field.value ?? ""}
@@ -222,7 +228,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 														field.onChange(undefined);
 														return;
 													}
-													const n = parseInt(sanitized, 10);
+													const n = parseFloat(sanitized);
 													field.onChange(Number.isFinite(n) ? n : undefined);
 												}}
 											/>
@@ -243,6 +249,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 										<FormControl>
 											<Input
 												type="number"
+												step="any"
 												placeholder="e.g. 1200"
 												{...field}
 												value={field.value ?? ""}
@@ -254,7 +261,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 														field.onChange(undefined);
 														return;
 													}
-													const n = parseInt(sanitized, 10);
+													const n = parseFloat(sanitized);
 													field.onChange(Number.isFinite(n) ? n : undefined);
 												}}
 											/>

@@ -116,8 +116,12 @@ export function PlotLayoutGrid({
 		facing: string;
 		notes: string;
 	}>({
-		size_sqft: selectedPlot?.size_sqft,
-		rate_per_sqft: selectedPlot?.rate_per_sqft,
+		size_sqft:
+			selectedPlot && selectedPlot.size_sqft > 0 ? selectedPlot.size_sqft : undefined,
+		rate_per_sqft:
+			selectedPlot && selectedPlot.rate_per_sqft > 0
+				? selectedPlot.rate_per_sqft
+				: undefined,
 		facing: selectedPlot?.facing ?? "",
 		notes: "",
 	});
@@ -127,8 +131,8 @@ export function PlotLayoutGrid({
 		if (!selectedPlot) return;
 		setEditing(false);
 		setFormState({
-			size_sqft: selectedPlot.size_sqft,
-			rate_per_sqft: selectedPlot.rate_per_sqft,
+			size_sqft: selectedPlot.size_sqft > 0 ? selectedPlot.size_sqft : undefined,
+			rate_per_sqft: selectedPlot.rate_per_sqft > 0 ? selectedPlot.rate_per_sqft : undefined,
 			facing: selectedPlot.facing ?? "",
 			notes: selectedPlot.notes ?? "",
 		});
@@ -266,13 +270,15 @@ export function PlotLayoutGrid({
 											</p>
 											<Input
 												type="number"
+												step="any"
 												value={formState.size_sqft ?? ""}
 												onChange={(e) => {
 													const raw = e.target.value;
 													const sanitized = raw.replace(/^0+(?=\d)/, "");
 													setFormState((s) => ({
 														...s,
-														size_sqft: sanitized === "" ? undefined : Number(sanitized),
+														size_sqft:
+															sanitized === "" ? undefined : Number.parseFloat(sanitized),
 													}));
 												}}
 											/>
@@ -283,13 +289,15 @@ export function PlotLayoutGrid({
 											</p>
 											<Input
 												type="number"
+												step="any"
 												value={formState.rate_per_sqft ?? ""}
 												onChange={(e) => {
 													const raw = e.target.value;
 													const sanitized = raw.replace(/^0+(?=\d)/, "");
 													setFormState((s) => ({
 														...s,
-														rate_per_sqft: sanitized === "" ? undefined : Number(sanitized),
+														rate_per_sqft:
+															sanitized === "" ? undefined : Number.parseFloat(sanitized),
 													}));
 												}}
 											/>

@@ -82,6 +82,8 @@ export function SaleForm({
   const selectedPhase = form.watch("sale_phase");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
   const downPayment = form.watch("down_payment") ?? 0;
+  const isDownPaymentFull =
+    Number(totalSaleAmount) > 0 && Number(downPayment) >= Number(totalSaleAmount);
   const emiMonths = form.watch("emi_months");
   const remaining = totalSaleAmount - downPayment;
   const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
@@ -380,7 +382,12 @@ export function SaleForm({
         setShareModal(null);
       }
     } catch (err) {
-      toast.error("Something went wrong");
+      const msg =
+        err instanceof Error ? err.message : "Something went wrong";
+      toast.error("Error", { description: msg });
+      setSubmitStatus("error");
+      setStatusText(msg);
+      playSubmitTone("error");
     } finally {
       setLoading(false);
     }
@@ -613,8 +620,8 @@ export function SaleForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {selectedPhase === "full_payment"
-                            ? "Amount received (full payment)"
+                          {selectedPhase === "full_payment" || isDownPaymentFull
+                            ? "Full Payment"
                             : "Down Payment"}
                         </FormLabel>
                         <FormControl>

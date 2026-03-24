@@ -82,13 +82,29 @@ export async function createSale(
 	const sellingPriceGuess = plotSize * faceRate;
 	const downForFinance = isFullPayment ? sellingPriceGuess : rawDown;
 
-	const finance = calculateFinance({
-		plotSizeSqft: plotSize,
-		baseRatePerSqft: plotBaseRate,
-		advisorRatePerSqft: faceRate,
-		downPayment: downForFinance,
-		otherPayments: 0,
-	});
+	if (!isFullPayment && rawDown > sellingPriceGuess + 1e-6) {
+		return {
+			success: false,
+			error: "Amount cannot be greater than payment amount",
+		};
+	}
+
+	let finance: ReturnType<typeof calculateFinance>;
+	try {
+		finance = calculateFinance({
+			plotSizeSqft: plotSize,
+			baseRatePerSqft: plotBaseRate,
+			advisorRatePerSqft: faceRate,
+			downPayment: downForFinance,
+			otherPayments: 0,
+		});
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : "";
+		if (msg.includes("downPayment cannot exceed") || msg.includes("received cannot exceed")) {
+			return { success: false, error: "Amount cannot be greater than payment amount" };
+		}
+		return { success: false, error: msg || "Invalid sale amounts" };
+	}
 	if (finance.sellingPrice <= 0) {
 		return { success: false, error: "Invalid selling price. Check advisor rate and plot size." };
 	}

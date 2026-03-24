@@ -18,7 +18,7 @@ export default async function NewSalePage({
 	// Fetch available plots
 	const { data: plots } = await supabase
 		.from("plots")
-		.select("*, projects(id, name, min_plot_rate)")
+		.select("*, projects(id, name)")
 		.eq("status", "available")
 		.order("plot_number", { ascending: true });
 

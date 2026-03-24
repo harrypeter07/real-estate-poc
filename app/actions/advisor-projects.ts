@@ -108,28 +108,12 @@ export async function upsertAdvisorAssignment(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	const { data: proj, error: projErr } = await supabase
-		.from("projects")
-		.select("min_plot_rate")
-		.eq("id", projectId)
-		.single();
-	if (projErr) return { success: false, error: projErr.message };
-	const minPlotRate = Number((proj as any)?.min_plot_rate ?? 0);
-
 	// advisor_project_commissions.* should support large values (₹/sqft)
 	// after widening columns (recommended DECIMAL(12,2)), max is 9,999,999,999.99
 	const MAX = 9_999_999_999.99;
 	const v = Number(input.commission_rate ?? 0);
 	if (!Number.isFinite(v) || v < 0) {
 		return { success: false, error: "Commission rate must be a valid positive number" };
-	}
-	if (minPlotRate > 0 && v > 0 && v < minPlotRate) {
-		return {
-			success: false,
-			error: `Commission rate must be ≥ project minimum ₹ ${minPlotRate.toLocaleString(
-				"en-IN",
-			)}/sqft`,
-		};
 	}
 	if (v > MAX) {
 		return {

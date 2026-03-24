@@ -21,13 +21,11 @@ export function SaleBookingDialog({
   projectName,
   plot,
   projectId,
-  projectMinPlotRate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectName: string;
   projectId: string;
-  projectMinPlotRate: number;
   plot: {
     id: string;
     plot_number: string;
@@ -88,11 +86,10 @@ export function SaleBookingDialog({
         projects: {
           id: projectId,
           name: projectName,
-          min_plot_rate: Number(projectMinPlotRate ?? 0),
         },
       },
     ];
-  }, [plot, projectId, projectName, projectMinPlotRate]);
+  }, [plot, projectId, projectName]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

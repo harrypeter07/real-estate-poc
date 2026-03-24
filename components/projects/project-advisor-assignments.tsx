@@ -31,12 +31,10 @@ export function ProjectAdvisorAssignments({
 	projectId,
 	advisors,
 	assignments,
-	projectMinPlotRate,
 }: {
 	projectId: string;
 	advisors: Advisor[];
 	assignments: AdvisorProjectAssignment[];
-	projectMinPlotRate: number;
 }) {
 	const MAX_RATE = 9_999_999_999.99;
 	const [saving, setSaving] = useState(false);
@@ -65,16 +63,6 @@ export function ProjectAdvisorAssignments({
 				description: `Commission rate must be a valid positive number`,
 			});
 			return;
-		}
-		if (Number(projectMinPlotRate ?? 0) > 0) {
-			if (commissionRate > 0 && commissionRate < Number(projectMinPlotRate ?? 0)) {
-				toast.error("Rate below project minimum", {
-					description: `Commission rate must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
-						"en-IN",
-					)}/sqft`,
-				});
-				return;
-			}
 		}
 		if (commissionRate > MAX_RATE) {
 			toast.error("Rate too large", {
@@ -131,19 +119,6 @@ export function ProjectAdvisorAssignments({
 				description: `Commission rate must be a valid positive number`,
 			});
 			return;
-		}
-		if (Number(projectMinPlotRate ?? 0) > 0) {
-			if (
-				editCommissionRate > 0 &&
-				editCommissionRate < Number(projectMinPlotRate ?? 0)
-			) {
-				toast.error("Rate below project minimum", {
-					description: `Commission rate must be ≥ ₹ ${Number(projectMinPlotRate ?? 0).toLocaleString(
-						"en-IN",
-					)}/sqft`,
-				});
-				return;
-			}
 		}
 		if (editCommissionRate > MAX_RATE) {
 			toast.error("Rate too large", {

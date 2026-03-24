@@ -310,7 +310,7 @@ export async function getAdvisorAnalytics(
       plot_sales(
         total_sale_amount,
         amount_paid,
-        plots(plot_number, size_sqft, projects(min_plot_rate))
+        plots(plot_number, size_sqft, rate_per_sqft)
       )
     `
 		)
@@ -333,8 +333,8 @@ export async function getAdvisorAnalytics(
 		const saleTotal = Number(c.plot_sales?.total_sale_amount ?? 0);
 		const saleReceived = Number(c.plot_sales?.amount_paid ?? 0);
 		const plotSize = Number(c.plot_sales?.plots?.size_sqft ?? 0);
-		const minRate = Number(c.plot_sales?.plots?.projects?.min_plot_rate ?? 0);
-		const profitMax = Math.max(0, saleTotal - plotSize * minRate);
+		const baseRate = Number(c.plot_sales?.plots?.rate_per_sqft ?? 0);
+		const profitMax = Math.max(0, saleTotal - plotSize * baseRate);
 		const ratio = saleTotal > 0 ? Math.min(1, Math.max(0, saleReceived / saleTotal)) : 0;
 		const eligibleNow = profitMax * ratio;
 		const paid = Number(c.amount_paid ?? 0);

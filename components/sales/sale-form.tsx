@@ -79,10 +79,20 @@ export function SaleForm({
   const selectedPlotId = form.watch("plot_id");
   const soldByAdmin = form.watch("sold_by_admin");
   const selectedAdvisorId = form.watch("advisor_id");
+  const selectedPhase = form.watch("sale_phase");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
   const downPayment = form.watch("down_payment") ?? 0;
   const emiMonths = form.watch("emi_months");
   const remaining = totalSaleAmount - downPayment;
+  const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
+  const phaseDateLabel =
+    selectedPhase === "token"
+      ? "Token Date"
+      : selectedPhase === "agreement"
+      ? "Agreement Date"
+      : selectedPhase === "registry"
+      ? "Registry Date"
+      : "Full Payment Date";
 
   const selectedPlot = useMemo(
     () => plots.find((p) => p.id === selectedPlotId) ?? null,
@@ -150,19 +160,47 @@ export function SaleForm({
     if (soldByAdmin) form.setValue("advisor_id", null);
   }, [soldByAdmin, form]);
 
+  // Keep one visible date in sync when switching phase (token ↔ other phases use different form keys).
+  useEffect(() => {
+    const token = form.getValues("token_date");
+    const agr = form.getValues("agreement_date");
+    if (selectedPhase === "token") {
+      if (!token && agr) form.setValue("token_date", agr);
+    } else {
+      if (!agr && token) form.setValue("agreement_date", token);
+    }
+  }, [selectedPhase, form]);
+
   // Auto-compute monthly_emi from emi_months when remaining > 0
   useEffect(() => {
+    if (selectedPhase === "full_payment") {
+      form.setValue("emi_months", null);
+      form.setValue("monthly_emi", null);
+      form.setValue("emi_day", null);
+      return;
+    }
     const months = Number(emiMonths);
     if (months >= 1 && remaining > 0) {
       const computed = Math.ceil(remaining / months);
       form.setValue("monthly_emi", computed);
     }
-  }, [emiMonths, remaining, form]);
+  }, [emiMonths, remaining, form, selectedPhase]);
+
+  // Full payment phase = collect everything now, hide EMI fields.
+  useEffect(() => {
+    if (selectedPhase !== "full_payment") return;
+    const total = Number(form.getValues("total_sale_amount") ?? 0);
+    if (total > 0) {
+      form.setValue("down_payment", total);
+    }
+    form.setValue("emi_months", null);
+    form.setValue("monthly_emi", null);
+    form.setValue("emi_day", null);
+    form.setValue("followup_date", "");
+  }, [selectedPhase, form, totalSaleAmount]);
 
   const plotSize = Number(selectedPlot?.size_sqft ?? 0);
-  const projectMinRatePerSqft = Number(
-    selectedPlot?.projects?.min_plot_rate ?? 0
-  );
+  const plotBaseRatePerSqft = Number(selectedPlot?.rate_per_sqft ?? 0);
 
   const advisorAssignment = useMemo(() => {
     if (!selectedAdvisorId || !selectedProjectId) return null;
@@ -174,7 +212,7 @@ export function SaleForm({
   }, [advisorAssignments, selectedAdvisorId, selectedProjectId]);
 
   const assignedFaceRatePerSqft = (() => {
-    if (soldByAdmin && selectedPlot) return projectMinRatePerSqft;
+    if (soldByAdmin && selectedPlot) return plotBaseRatePerSqft;
     if (!advisorAssignment) return 0;
     return Number((advisorAssignment as any).commission_rate ?? 0);
   })();
@@ -183,8 +221,8 @@ export function SaleForm({
     !soldByAdmin &&
     !!selectedPlot &&
     assignedFaceRatePerSqft > 0 &&
-    projectMinRatePerSqft > 0 &&
-    assignedFaceRatePerSqft < projectMinRatePerSqft;
+    plotBaseRatePerSqft > 0 &&
+    assignedFaceRatePerSqft < plotBaseRatePerSqft;
 
   const receivedNow = Number(downPayment ?? 0);
   const finance = useMemo(() => {
@@ -201,16 +239,16 @@ export function SaleForm({
     } as const;
 
     if (plotSize <= 0) return safeZero;
-    if (projectMinRatePerSqft <= 0) return safeZero;
-    const rate = soldByAdmin ? projectMinRatePerSqft : assignedFaceRatePerSqft;
+    if (plotBaseRatePerSqft <= 0) return safeZero;
+    const rate = soldByAdmin ? plotBaseRatePerSqft : assignedFaceRatePerSqft;
     if (rate <= 0) return safeZero;
-    if (!soldByAdmin && rate < projectMinRatePerSqft) return safeZero;
+    if (!soldByAdmin && rate < plotBaseRatePerSqft) return safeZero;
     if (receivedNow < 0) return safeZero;
 
     try {
       return calculateFinance({
         plotSizeSqft: plotSize,
-        baseRatePerSqft: projectMinRatePerSqft,
+        baseRatePerSqft: plotBaseRatePerSqft,
         advisorRatePerSqft: rate,
         downPayment: receivedNow,
         otherPayments: 0,
@@ -218,18 +256,18 @@ export function SaleForm({
     } catch {
       return safeZero;
     }
-  }, [assignedFaceRatePerSqft, plotSize, projectMinRatePerSqft, receivedNow, soldByAdmin]);
+  }, [assignedFaceRatePerSqft, plotSize, plotBaseRatePerSqft, receivedNow, soldByAdmin]);
 
   // Auto-fill selling price when plot/advisor/phase changes
   useEffect(() => {
     if (!selectedPlotId) return;
     if (plotSize <= 0) return;
-    const rate = soldByAdmin ? projectMinRatePerSqft : assignedFaceRatePerSqft;
+    const rate = soldByAdmin ? plotBaseRatePerSqft : assignedFaceRatePerSqft;
     if (rate <= 0) return;
     if (!soldByAdmin && !selectedAdvisorId) return;
     const selling = calculateFinance({
       plotSizeSqft: plotSize,
-      baseRatePerSqft: projectMinRatePerSqft,
+      baseRatePerSqft: plotBaseRatePerSqft,
       advisorRatePerSqft: rate,
       downPayment: 0,
       otherPayments: 0,
@@ -239,7 +277,7 @@ export function SaleForm({
     assignedFaceRatePerSqft,
     form,
     plotSize,
-    projectMinRatePerSqft,
+    plotBaseRatePerSqft,
     selectedAdvisorId,
     selectedPlotId,
     soldByAdmin,
@@ -262,7 +300,7 @@ export function SaleForm({
     const randomAdvisorRate = Number((randomAssignment as any)?.commission_rate ?? 0);
     const selling = calculateFinance({
       plotSizeSqft: Number(randomPlot.size_sqft ?? 0),
-      baseRatePerSqft: Number(randomPlot.projects?.min_plot_rate ?? 0),
+      baseRatePerSqft: Number(randomPlot.rate_per_sqft ?? 0),
       advisorRatePerSqft: randomAdvisorRate,
       downPayment: 0,
       otherPayments: 0,
@@ -501,14 +539,19 @@ export function SaleForm({
                     )}
                   />
                   <FormField
+                    key={phaseDateFieldName}
                     control={form.control}
-                    name="token_date"
+                    name={phaseDateFieldName as "token_date" | "agreement_date"}
                     render={({ field }) => (
                       <FormItem className="sm:col-span-1 min-w-0">
-                        <FormLabel>Token Date</FormLabel>
+                        <FormLabel>{phaseDateLabel}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />
                         </FormControl>
+                        <p className="text-[11px] text-zinc-500">
+                          Stored on the sale as{" "}
+                          {selectedPhase === "token" ? "token date" : "agreement / phase date"}.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -569,12 +612,17 @@ export function SaleForm({
                     name="down_payment"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Down Payment</FormLabel>
+                        <FormLabel>
+                          {selectedPhase === "full_payment"
+                            ? "Amount received (full payment)"
+                            : "Down Payment"}
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             {...field}
                             value={field.value ?? ""}
+                            disabled={selectedPhase === "full_payment"}
                             onChange={(e) => {
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
@@ -582,6 +630,11 @@ export function SaleForm({
                             }}
                           />
                         </FormControl>
+                        {selectedPhase === "full_payment" ? (
+                          <p className="text-[11px] text-zinc-500">
+                            Matches selling price — no EMI for full payment.
+                          </p>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -595,7 +648,7 @@ export function SaleForm({
                   </div>
                 </div>
 
-                {remaining > 0 && (
+                {remaining > 0 && selectedPhase !== "full_payment" && (
                   <FormField
                     control={form.control}
                     name="followup_date"
@@ -621,10 +674,10 @@ export function SaleForm({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                          Base Rate / sqft
+                          Plot base rate / sqft
                         </div>
                         <div className="font-semibold text-zinc-900">
-                          {formatCurrencyShort(projectMinRatePerSqft)}/sqft
+                          {formatCurrencyShort(plotBaseRatePerSqft)}/sqft
                         </div>
                       </div>
                       <div>
@@ -646,7 +699,7 @@ export function SaleForm({
                       </div>
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                          {soldByAdmin ? "Admin (Min Rate) / sqft" : "Advisor Rate / sqft"}
+                          {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor Rate / sqft"}
                         </div>
                         <div className="font-semibold text-zinc-900 text-right">
                           {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
@@ -710,7 +763,7 @@ export function SaleForm({
                 ) : null}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {remaining > 0 && (
+                  {selectedPhase !== "full_payment" && remaining > 0 && (
                     <FormField
                       control={form.control}
                       name="emi_months"
@@ -737,53 +790,62 @@ export function SaleForm({
                       )}
                     />
                   )}
-                  <FormField
-                    control={form.control}
-                    name="monthly_emi"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monthly EMI</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            value={field.value ?? ""}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(sanitized === "" ? undefined : Number(sanitized));
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="emi_day"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>EMI Day (1-31)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            value={field.value || ""}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(
-                                sanitized === "" ? 0 : Number(sanitized)
-                              );
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {selectedPhase !== "full_payment" && (
+                    <FormField
+                      control={form.control}
+                      name="monthly_emi"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Monthly EMI</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const sanitized = raw.replace(/^0+(?=\d)/, "");
+                                field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  {selectedPhase !== "full_payment" && (
+                    <FormField
+                      control={form.control}
+                      name="emi_day"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>EMI Day (1-31)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const sanitized = raw.replace(/^0+(?=\d)/, "");
+                                field.onChange(
+                                  sanitized === "" ? undefined : Number(sanitized)
+                                );
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
+                {selectedPhase === "full_payment" ? (
+                  <p className="text-[11px] text-zinc-500">
+                    EMI fields are hidden when the sale is recorded as full payment.
+                  </p>
+                ) : null}
               </div>
             </div>
 

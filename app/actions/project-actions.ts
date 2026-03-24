@@ -16,20 +16,14 @@ export type ActionResponse = {
 async function recalcLayoutExpenseForProject(supabase: any, projectId: string) {
 	const { data: plots } = await supabase
 		.from("plots")
-		.select("size_sqft")
+		.select("size_sqft, rate_per_sqft")
 		.eq("project_id", projectId);
-	const { data: project } = await supabase
-		.from("projects")
-		.select("min_plot_rate")
-		.eq("id", projectId)
-		.single();
-
-	const minRate = Number((project as any)?.min_plot_rate ?? 0);
-	const total = (plots ?? []).reduce(
-		(sum: number, p: any) =>
-			sum + (Number(p.size_sqft ?? 0) > 0 ? Number(p.size_sqft) * minRate : 0),
-		0
-	);
+	const total = (plots ?? []).reduce((sum: number, p: any) => {
+		const size = Number(p.size_sqft ?? 0);
+		const rate = Number(p.rate_per_sqft ?? 0);
+		if (size <= 0 || rate <= 0) return sum;
+		return sum + size * rate;
+	}, 0);
 
 	await supabase
 		.from("projects")
@@ -58,7 +52,6 @@ export async function createProject(
 			location: parsed.data.location,
 			total_plots_count: parsed.data.total_plots_count,
 			layout_expense: 0,
-			min_plot_rate: parsed.data.min_plot_rate ?? 0,
 			starting_plot_number: parsed.data.starting_plot_number ?? 1,
 			description: parsed.data.description ?? "",
 		})
@@ -79,7 +72,7 @@ export async function createProject(
 				project_id: projectRow.id,
 				plot_number: plotNumber,
 				size_sqft: 0,
-				rate_per_sqft: parsed.data.min_plot_rate,
+				rate_per_sqft: 0,
 				facing: null,
 			};
 		});
@@ -124,7 +117,6 @@ export async function updateProject(
 			name: parsed.data.name,
 			location: parsed.data.location,
 			total_plots_count: parsed.data.total_plots_count,
-			min_plot_rate: parsed.data.min_plot_rate ?? 0,
 			starting_plot_number: parsed.data.starting_plot_number ?? 1,
 			description: parsed.data.description ?? "",
 			updated_at: new Date().toISOString(),

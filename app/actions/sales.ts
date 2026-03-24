@@ -26,10 +26,10 @@ export async function createSale(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	// Fetch plot + project min rate
+	// Fetch plot details (per-plot rate is the canonical base rate)
 	const { data: plotRow, error: plotFetchError } = await supabase
 		.from("plots")
-		.select("id, project_id, size_sqft, plot_number, projects(min_plot_rate)")
+		.select("id, project_id, size_sqft, rate_per_sqft, plot_number")
 		.eq("id", parsed.data.plot_id)
 		.single();
 
@@ -37,11 +37,11 @@ export async function createSale(
 		return { success: false, error: "Plot not found" };
 	}
 
-	const minRate = Number((plotRow as any).projects?.min_plot_rate ?? 0);
+	const plotBaseRate = Number((plotRow as any).rate_per_sqft ?? 0);
 	const plotSize = Number(plotRow.size_sqft ?? 0);
 	const soldByAdmin = parsed.data.sold_by_admin ?? false;
 
-	let faceRate = minRate;
+	let faceRate = plotBaseRate;
 	if (!soldByAdmin) {
 		// Advisor must be assigned to this project (project-wise commission)
 		const { data: assignment } = await supabase
@@ -64,28 +64,42 @@ export async function createSale(
 				(assignment as any).commission_token ??
 				0
 		);
-		if (minRate > 0 && faceRate > 0 && faceRate < minRate) {
+		if (plotBaseRate > 0 && faceRate > 0 && faceRate < plotBaseRate) {
 			return {
 				success: false,
 				error: `Advisor rate (₹ ${faceRate.toLocaleString(
 					"en-IN",
-				)}/sqft) cannot be less than base rate (₹ ${minRate.toLocaleString(
+				)}/sqft) cannot be less than this plot's base rate (₹ ${plotBaseRate.toLocaleString(
 					"en-IN",
 				)}/sqft). Update the advisor assignment rates for this project.`,
 			};
 		}
 	}
 
+	const isFullPayment = parsed.data.sale_phase === "full_payment";
+	const rawDown = Number(parsed.data.down_payment ?? 0);
+	// Full payment: treat entire selling price as received so profit ratio / commission math is correct.
+	const sellingPriceGuess = plotSize * faceRate;
+	const downForFinance = isFullPayment ? sellingPriceGuess : rawDown;
+
 	const finance = calculateFinance({
 		plotSizeSqft: plotSize,
-		baseRatePerSqft: minRate,
+		baseRatePerSqft: plotBaseRate,
 		advisorRatePerSqft: faceRate,
-		downPayment: Number(parsed.data.down_payment ?? 0),
+		downPayment: downForFinance,
 		otherPayments: 0,
 	});
 	if (finance.sellingPrice <= 0) {
 		return { success: false, error: "Invalid selling price. Check advisor rate and plot size." };
 	}
+
+	const phaseDate = parsed.data.token_date || parsed.data.agreement_date || null;
+	const tokenDateToStore =
+		parsed.data.sale_phase === "token" ? (phaseDate ?? null) : null;
+	const nonTokenDateToStore =
+		parsed.data.sale_phase === "token" ? null : (phaseDate ?? null);
+
+	const downToStore = isFullPayment ? finance.sellingPrice : rawDown;
 
 	// 1. Create the sale record
 	const { data: sale, error: saleError } = await supabase
@@ -96,13 +110,13 @@ export async function createSale(
 			advisor_id: soldByAdmin ? null : (parsed.data.advisor_id ?? null),
 			sold_by_admin: soldByAdmin,
 			sale_phase: parsed.data.sale_phase,
-			token_date: parsed.data.token_date || null,
-			agreement_date: parsed.data.agreement_date || null,
+			token_date: tokenDateToStore,
+			agreement_date: nonTokenDateToStore,
 			total_sale_amount: finance.sellingPrice,
-			down_payment: parsed.data.down_payment,
-			monthly_emi: parsed.data.monthly_emi || null,
-			emi_day: parsed.data.emi_day || null,
-			followup_date: parsed.data.followup_date || null,
+			down_payment: downToStore,
+			monthly_emi: isFullPayment ? null : parsed.data.monthly_emi || null,
+			emi_day: isFullPayment ? null : parsed.data.emi_day || null,
+			followup_date: isFullPayment ? null : parsed.data.followup_date || null,
 			notes: parsed.data.notes || null,
 		})
 		.select()
@@ -137,11 +151,10 @@ export async function createSale(
 	}
 
 	// 3. If down payment is provided, record it as a confirmed payment
-	const downPayment = Number(parsed.data.down_payment ?? 0);
+	const downPayment = downToStore;
 	if (downPayment > 0) {
 		const paymentDate =
-			parsed.data.token_date ||
-			parsed.data.agreement_date ||
+			phaseDate ||
 			new Date().toISOString().slice(0, 10);
 
 		const { error: dpError } = await supabase.from("payments").insert({
@@ -153,7 +166,7 @@ export async function createSale(
 			payment_date: paymentDate,
 			payment_mode: "cash",
 			is_confirmed: true,
-			notes: "Down payment",
+			notes: isFullPayment ? "Full payment" : "Down payment",
 		});
 
 		if (dpError) {

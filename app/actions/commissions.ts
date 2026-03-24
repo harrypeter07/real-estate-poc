@@ -13,7 +13,7 @@ export async function getCommissions() {
       plot_sales(
         total_sale_amount,
         amount_paid,
-        plots(plot_number, size_sqft, projects(name, min_plot_rate))
+        plots(plot_number, size_sqft, rate_per_sqft, projects(name))
       ),
       advisor_commission_payments(
         id,
@@ -32,7 +32,7 @@ export async function getCommissions() {
       plot_sales(
         total_sale_amount,
         amount_paid,
-        plots(plot_number, size_sqft, projects(name, min_plot_rate))
+        plots(plot_number, size_sqft, rate_per_sqft, projects(name))
       ),
       advisor_commission_payments(
         id,

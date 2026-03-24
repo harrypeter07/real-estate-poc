@@ -176,7 +176,6 @@ export default async function ProjectDetailPage({
 							projectName={project.name}
 							projectId={project.id}
 							initialPlotId={plotId}
-							projectMinPlotRate={project.min_plot_rate ?? 0}
 						/>
 					</CardContent>
 				</Card>
@@ -194,13 +193,12 @@ export default async function ProjectDetailPage({
 						projectId={project.id}
 						advisors={advisors}
 						assignments={advisorAssignments}
-						projectMinPlotRate={project.min_plot_rate ?? 0}
 					/>
 				</CardContent>
 			</Card>
 
 			{/* Revenue + Info */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium text-zinc-500">
@@ -211,19 +209,6 @@ export default async function ProjectDetailPage({
 						<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
 						<p className="text-xs text-zinc-400 mt-1">
 							From {recentSales.length} sale(s)
-						</p>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium text-zinc-500">
-							Minimum Plot Rate
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">
-							₹ {Number(project.min_plot_rate ?? 0).toLocaleString("en-IN")}/sqft
 						</p>
 					</CardContent>
 				</Card>

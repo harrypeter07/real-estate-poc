@@ -13,7 +13,7 @@ This system uses **base-rate vs advisor-rate** for advisor earnings.
 
 ### Updated model (current)
 
-- **base_rate_per_sqft**: `projects.min_plot_rate`
+- **base_rate_per_sqft**: `plots.rate_per_sqft` (per plot; canonical base for finance)
 - **advisor_rate_per_sqft**: from `advisor_project_commissions` (based on sale phase)
 - **base_total**: `plots.size_sqft × base_rate_per_sqft`
 - **selling_price**: `plots.size_sqft × advisor_rate_per_sqft`

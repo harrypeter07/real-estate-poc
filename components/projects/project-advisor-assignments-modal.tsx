@@ -18,12 +18,10 @@ export function ProjectAdvisorAssignmentsModal({
 	projectId,
 	advisors,
 	assignments,
-	projectMinPlotRate,
 }: {
 	projectId: string;
 	advisors: Advisor[];
 	assignments: AdvisorProjectAssignment[];
-	projectMinPlotRate: number;
 }) {
 	const [open, setOpen] = useState(false);
 
@@ -59,7 +57,6 @@ export function ProjectAdvisorAssignmentsModal({
 							projectId={projectId}
 							advisors={advisors}
 							assignments={assignments}
-							projectMinPlotRate={projectMinPlotRate}
 						/>
 					</div>
 				</DialogContent>

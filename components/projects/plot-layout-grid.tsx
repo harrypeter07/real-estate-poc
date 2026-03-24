@@ -34,7 +34,6 @@ interface PlotLayoutGridProps {
 	projectName?: string;
 	projectId: string;
 	initialPlotId?: string | null;
-	projectMinPlotRate?: number;
 }
 
 type StatusKey = "available" | "token" | "agreement" | "sold";
@@ -77,7 +76,6 @@ export function PlotLayoutGrid({
 	projectName,
 	projectId,
 	initialPlotId,
-	projectMinPlotRate,
 }: PlotLayoutGridProps) {
 	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(initialPlotId ?? null);
 	const [editing, setEditing] = useState(false);
@@ -164,7 +162,7 @@ export function PlotLayoutGrid({
 					<div
 						className="grid gap-2"
 						style={{
-							gridTemplateColumns: `repeat(auto-fill, minmax(36px, 1fr))`,
+							gridTemplateColumns: `repeat(auto-fill, minmax(54px, 1fr))`,
 						}}
 					>
 						{sortedPlots.map((plot) => {
@@ -178,8 +176,7 @@ export function PlotLayoutGrid({
 									type="button"
 									onClick={() => setSelectedPlotId(plot.id)}
 									className={[
-										// Smaller, more "seat-map" cell shape
-										"relative aspect-square rounded-md border text-xs font-semibold",
+										"relative aspect-square rounded-md border text-xs font-semibold sm:min-h-[58px]",
 										"flex items-center justify-center transition-all",
 										"focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2",
 										cfg.className,
@@ -188,7 +185,7 @@ export function PlotLayoutGrid({
 											: "",
 									].join(" ")}
 								>
-									<span className="text-[11px] sm:text-[13px] font-bold leading-none">
+									<span className="text-[12px] sm:text-[14px] font-bold leading-none">
 										{plot.plot_number}
 									</span>
 									<span className="pointer-events-none absolute top-0.5 left-0 right-0 text-[8px] font-semibold text-zinc-700 hidden sm:block">
@@ -269,14 +266,15 @@ export function PlotLayoutGrid({
 											</p>
 											<Input
 												type="number"
-										value={formState.size_sqft ?? ""}
-										onChange={(e) => {
-											const raw = e.target.value;
-											setFormState((s) => ({
-												...s,
-												size_sqft: raw === "" ? undefined : Number(raw),
-											}));
-										}}
+												value={formState.size_sqft ?? ""}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													setFormState((s) => ({
+														...s,
+														size_sqft: sanitized === "" ? undefined : Number(sanitized),
+													}));
+												}}
 											/>
 										</div>
 										<div>
@@ -288,9 +286,10 @@ export function PlotLayoutGrid({
 												value={formState.rate_per_sqft ?? ""}
 												onChange={(e) => {
 													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
 													setFormState((s) => ({
 														...s,
-														rate_per_sqft: raw === "" ? undefined : Number(raw),
+														rate_per_sqft: sanitized === "" ? undefined : Number(sanitized),
 													}));
 												}}
 											/>
@@ -418,7 +417,6 @@ export function PlotLayoutGrid({
 									onOpenChange={setSellOpen}
 									projectName={projectName}
 									projectId={projectId}
-									projectMinPlotRate={projectMinPlotRate ?? 0}
 									plot={selectedPlot as any}
 								/>
 							)}

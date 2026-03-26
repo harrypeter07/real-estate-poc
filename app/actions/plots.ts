@@ -388,8 +388,8 @@ export async function getPlotsByProject(
       token_date,
       agreement_date,
       monthly_emi,
-      customers!inner(name),
-      advisors!inner(name)
+      customers(name),
+      advisors(name)
     `
 		)
 		.in("plot_id", plotIds)
@@ -457,8 +457,8 @@ export async function getPlotWithPayments(
       token_date,
       agreement_date,
       monthly_emi,
-      customers!inner(name),
-      advisors!inner(name)
+      customers(name),
+      advisors(name)
     `
 		)
 		.eq("plot_id", plotId)

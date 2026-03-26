@@ -453,9 +453,7 @@ export function PlotLayoutGrid({
 								>
 									{editing ? "Cancel Edit" : "Edit"}
 								</Button>
-								{selectedPlot.status === "token" &&
-								selectedPlot.sale &&
-								selectedPlot.sale.remaining_amount > 0 ? (
+								{selectedPlot.status === "token" && selectedPlot.sale ? (
 									<Button
 										size="sm"
 										disabled={saving}

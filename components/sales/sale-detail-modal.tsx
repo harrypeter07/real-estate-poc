@@ -26,6 +26,8 @@ interface SaleDetailModalProps {
 		amount_paid?: number | null;
 		remaining_amount?: number | null;
 		is_cancelled?: boolean | null;
+		revoked_at?: string | null;
+		revoked_by?: string | null;
 		token_date?: string | null;
 		agreement_date?: string | null;
 		sale_phase: string;
@@ -99,6 +101,16 @@ export function SaleDetailModal({
 							<p className="mt-1 text-sm font-medium text-zinc-800">
 								Plot revoked. Existing payments are kept but this plot is no longer active for collection.
 							</p>
+							{sale.revoked_at ? (
+								<p className="mt-2 text-[11px] text-zinc-600">
+									Revoked on {formatDate(sale.revoked_at)}
+								</p>
+							) : null}
+							{sale.revoked_by ? (
+								<p className="text-[11px] text-zinc-600">
+									Revoked by {sale.revoked_by}
+								</p>
+							) : null}
 						</div>
 					) : null}
 					<div>

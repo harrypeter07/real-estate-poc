@@ -49,7 +49,13 @@ export default async function SalesPage({
     if (phase) {
       const salePhase = String(sale.sale_phase ?? "").toLowerCase().trim();
       const filterPhase = phase.toLowerCase().trim();
-      if (salePhase !== filterPhase) return false;
+      if (filterPhase === "revoked") {
+        if (!sale.is_cancelled) return false;
+      } else {
+        // For token / sold views, exclude revoked sales.
+        if (sale.is_cancelled) return false;
+        if (salePhase !== filterPhase) return false;
+      }
     }
 
     // Advisor filter

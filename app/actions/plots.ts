@@ -290,12 +290,37 @@ export async function revokePlotSale(
 
 	const projectId = plotRow.project_id as string;
 
+	// Capture who performed the revoke (best-effort).
+	let revokedBy: string | null = "Unknown";
+	try {
+		const { data: authData } = await supabase.auth.getUser();
+		const user = authData?.user as any | undefined;
+		const email = user?.email ? String(user.email) : null;
+		const role = user?.user_metadata?.role;
+		const advisorId = user?.user_metadata?.advisor_id as string | undefined;
+
+		if (role === "advisor" && advisorId) {
+			const { data: adv } = await supabase
+				.from("advisors")
+				.select("name")
+				.eq("id", advisorId)
+				.maybeSingle();
+			revokedBy = adv?.name ? String(adv.name) : email;
+		} else {
+			revokedBy = email ?? (user?.id ? String(user.id) : null);
+		}
+	} catch {
+		// ignore auth issues; revoked_by will remain null
+	}
+
 	// Mark the active sale as cancelled (do not delete, keep payments).
 	const { error: saleErr } = await supabase
 		.from("plot_sales")
 		.update({
 			is_cancelled: true,
 			notes: "Revoked",
+			revoked_at: new Date().toISOString(),
+			revoked_by: revokedBy,
 			updated_at: new Date().toISOString(),
 		})
 		.eq("plot_id", plotId)

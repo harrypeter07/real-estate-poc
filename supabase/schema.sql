@@ -143,6 +143,8 @@ CREATE TABLE plot_sales (
   amount_paid DECIMAL(12,2) DEFAULT 0,          -- sum updated via trigger
   remaining_amount DECIMAL(12,2),               -- updated via trigger
   is_cancelled BOOLEAN DEFAULT false,
+  revoked_at TIMESTAMPTZ,
+  revoked_by TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),

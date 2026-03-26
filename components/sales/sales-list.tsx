@@ -63,7 +63,19 @@ export function SalesList({
 											<MapPin className="h-3 w-3" /> {sale.plots?.projects?.name}
 										</p>
 										{sale.is_cancelled ? (
-											<p className="text-xs text-zinc-500 mt-2">Plot revoked</p>
+											<div className="mt-2 space-y-0.5">
+												<p className="text-xs text-zinc-500">Plot revoked</p>
+												{sale.revoked_at ? (
+													<p className="text-[11px] text-zinc-500">
+														Revoked on {formatDate(sale.revoked_at)}
+													</p>
+												) : null}
+												{sale.revoked_by ? (
+													<p className="text-[11px] text-zinc-500">
+														By {sale.revoked_by}
+													</p>
+												) : null}
+											</div>
 										) : null}
 										<div className="mt-4 space-y-1">
 											<p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">

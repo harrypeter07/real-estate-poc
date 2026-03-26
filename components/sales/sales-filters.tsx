@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 const phaseOptions = [
 	{ value: "token", label: "Token" },
 	{ value: "full_payment", label: "Payment completed (Sold)" },
+	{ value: "revoked", label: "Revoked" },
 ];
 
 export function SalesFilters({

@@ -51,7 +51,7 @@ export function SaleDetailModal({
 }: SaleDetailModalProps) {
 	const router = useRouter();
 	const phase = sale.is_cancelled
-		? { label: "Revoked", className: "bg-zinc-100 text-zinc-800" }
+		? { label: "Plot revoked", className: "bg-zinc-200 text-zinc-700" }
 		: sale.sale_phase === "token"
 		? phaseConfig["token"]
 		: phaseConfig["full_payment"];
@@ -91,6 +91,16 @@ export function SaleDetailModal({
 				</DialogHeader>
 
 				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+					{sale.is_cancelled ? (
+						<div className="rounded-lg border border-zinc-200 bg-zinc-100/60 p-3">
+							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+								Status
+							</p>
+							<p className="mt-1 text-sm font-medium text-zinc-800">
+								Plot revoked. Existing payments are kept but this plot is no longer active for collection.
+							</p>
+						</div>
+					) : null}
 					<div>
 						<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
 							Amount

@@ -479,6 +479,10 @@ export function PlotLayoutGrid({
 										variant="destructive"
 										disabled={saving}
 										onClick={async () => {
+											const ok = window.confirm(
+												"Revoke this plot sale?\n\nThe sale will be marked as revoked, but existing payments will be kept."
+											);
+											if (!ok) return;
 											setSaving(true);
 											try {
 												// revoke a token/sold sale, keep payments, show it as revoked in sales

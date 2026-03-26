@@ -37,14 +37,17 @@ export function SalesList({
 				{sales.map((sale) => {
 					const phase =
 						sale.is_cancelled
-							? { label: "Revoked", className: "bg-zinc-100 text-zinc-800" }
+							? { label: "Plot revoked", className: "bg-zinc-200 text-zinc-700 border-zinc-300" }
 							: sale.sale_phase === "token"
 							? phaseConfig["token"]
 							: phaseConfig["full_payment"];
 					return (
 						<Card
 							key={sale.id}
-							className="overflow-hidden hover:border-zinc-400 transition-colors cursor-pointer"
+							className={[
+								"overflow-hidden hover:border-zinc-400 transition-colors cursor-pointer",
+								sale.is_cancelled ? "opacity-55 grayscale" : "",
+							].join(" ")}
 							onClick={() => openSaleModal(sale)}
 						>
 							<CardContent className="p-0">
@@ -59,6 +62,9 @@ export function SalesList({
 										<p className="text-sm text-zinc-500 flex items-center gap-1">
 											<MapPin className="h-3 w-3" /> {sale.plots?.projects?.name}
 										</p>
+										{sale.is_cancelled ? (
+											<p className="text-xs text-zinc-500 mt-2">Plot revoked</p>
+										) : null}
 										<div className="mt-4 space-y-1">
 											<p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
 												Amount

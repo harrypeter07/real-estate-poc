@@ -88,13 +88,7 @@ export function SaleForm({
   const remaining = totalSaleAmount - downPayment;
   const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
   const phaseDateLabel =
-    selectedPhase === "token"
-      ? "Token Date"
-      : selectedPhase === "agreement"
-      ? "Agreement Date"
-      : selectedPhase === "registry"
-      ? "Registry Date"
-      : "Full Payment Date";
+    selectedPhase === "token" ? "Token Date" : "Full Payment Date";
 
   const selectedPlot = useMemo(
     () => plots.find((p) => p.id === selectedPlotId) ?? null,
@@ -536,9 +530,7 @@ export function SaleForm({
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="token">Token / Booking</SelectItem>
-                            <SelectItem value="agreement">Agreement</SelectItem>
-                            <SelectItem value="registry">Registry</SelectItem>
-                            <SelectItem value="full_payment">Full Payment</SelectItem>
+                            <SelectItem value="full_payment">Payment completed / Sold</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -557,7 +549,7 @@ export function SaleForm({
                         </FormControl>
                         <p className="text-[11px] text-zinc-500">
                           Stored on the sale as{" "}
-                          {selectedPhase === "token" ? "token date" : "agreement / phase date"}.
+                          {selectedPhase === "token" ? "token date" : "full payment date"}.
                         </p>
                         <FormMessage />
                       </FormItem>

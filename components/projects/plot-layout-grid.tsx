@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, Input, Textarea, Badge } from "@/components/ui";
-import { updatePlot, deletePlot } from "@/app/actions/plots";
+import { updatePlot, deletePlot, revokePlotSale, bulkUpdatePlots } from "@/app/actions/plots";
 import { SaleBookingDialog } from "@/components/sales/sale-booking-dialog";
 
 interface PlotForGrid {
@@ -17,6 +17,7 @@ interface PlotForGrid {
 	facing: string | null;
 	notes?: string | null;
 	sale?: {
+		id: string;
 		customer_name: string;
 		advisor_name: string;
 		total_sale_amount: number;
@@ -36,7 +37,7 @@ interface PlotLayoutGridProps {
 	initialPlotId?: string | null;
 }
 
-type StatusKey = "available" | "token" | "agreement" | "sold";
+type StatusKey = "available" | "token" | "sold";
 
 const STATUS_CONFIG: Record<
 	StatusKey,
@@ -58,12 +59,6 @@ const STATUS_CONFIG: Record<
 			"bg-amber-100 border-amber-400 hover:bg-amber-200 text-amber-900",
 		badgeClassName: "bg-amber-300",
 	},
-	agreement: {
-		label: "Agreement",
-		className:
-			"bg-sky-100 border-sky-400 hover:bg-sky-200 text-sky-900",
-		badgeClassName: "bg-sky-300",
-	},
 	sold: {
 		label: "Sold",
 		className: "bg-rose-100 border-rose-400 hover:bg-rose-200 text-rose-900",
@@ -81,6 +76,21 @@ export function PlotLayoutGrid({
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [sellOpen, setSellOpen] = useState(false);
+	const [multiSelectMode, setMultiSelectMode] = useState(false);
+	const [multiSelectedPlotIds, setMultiSelectedPlotIds] = useState<string[]>([]);
+	const [bulkSaving, setBulkSaving] = useState(false);
+
+	const [bulkFormState, setBulkFormState] = useState<{
+		size_sqft: number | undefined;
+		rate_per_sqft: number | undefined;
+		facing: string;
+		notes: string;
+	}>({
+		size_sqft: undefined,
+		rate_per_sqft: undefined,
+		facing: "",
+		notes: "",
+	});
 	const router = useRouter();
 
 	useEffect(() => {
@@ -139,6 +149,22 @@ export function PlotLayoutGrid({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [selectedPlotId]);
 
+	useEffect(() => {
+		if (!multiSelectMode) return;
+		if (multiSelectedPlotIds.length === 0) return;
+
+		const firstId = multiSelectedPlotIds[0];
+		const first = sortedPlots.find((p) => p.id === firstId);
+		if (!first) return;
+
+		setBulkFormState({
+			size_sqft: first.size_sqft > 0 ? first.size_sqft : undefined,
+			rate_per_sqft: first.rate_per_sqft > 0 ? first.rate_per_sqft : undefined,
+			facing: first.facing ?? "",
+			notes: first.notes ?? "",
+		});
+	}, [multiSelectMode, multiSelectedPlotIds, sortedPlots]);
+
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
@@ -153,38 +179,84 @@ export function PlotLayoutGrid({
 					</p>
 				</div>
 
-				<div className="flex gap-3 text-[11px] text-zinc-600">
+				<div className="flex flex-wrap gap-3 items-center text-[11px] text-zinc-600">
 					<LegendPill colorClass="bg-emerald-300" label="Available" />
 					<LegendPill colorClass="bg-amber-300" label="Token" />
-					<LegendPill colorClass="bg-sky-300" label="Agreement" />
 					<LegendPill colorClass="bg-rose-300" label="Sold" />
+					<Button
+						type="button"
+						size="sm"
+						variant={multiSelectMode ? "default" : "outline"}
+						className="h-8 text-[11px]"
+						onClick={() => {
+							if (multiSelectMode) {
+								setMultiSelectMode(false);
+								setMultiSelectedPlotIds([]);
+								setEditing(false);
+								return;
+							}
+							setMultiSelectMode(true);
+							setMultiSelectedPlotIds([]);
+							setEditing(false);
+						}}
+					>
+						{multiSelectMode ? "Cancel Multi Select" : "Multiple Select"}
+					</Button>
 				</div>
 			</div>
 
 			<div className="flex flex-col lg:flex-row gap-4">
 				<div className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-inner">
 					<div
-						className="grid gap-2"
+						className="grid gap-2 max-h-[70vh] overflow-y-auto pr-2"
 						style={{
 							gridTemplateColumns: `repeat(auto-fill, minmax(54px, 1fr))`,
 						}}
 					>
 						{sortedPlots.map((plot) => {
 							const statusKey: StatusKey =
-								(plot.status as StatusKey) || "available";
+								plot.status === "token"
+									? "token"
+									: plot.status === "sold" || plot.status === "agreement"
+										? "sold"
+										: "available";
 							const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.available;
 
 							return (
 								<button
 									key={plot.id}
 									type="button"
-									onClick={() => setSelectedPlotId(plot.id)}
+									onClick={() => {
+										if (multiSelectMode) {
+											if (plot.status !== "available") {
+												toast.error("Only available plots can be edited");
+												return;
+											}
+											setMultiSelectedPlotIds((prev) =>
+												prev.includes(plot.id)
+													? prev.filter((x) => x !== plot.id)
+													: [...prev, plot.id]
+											);
+											setSelectedPlotId(plot.id);
+											return;
+										}
+										setSelectedPlotId(plot.id);
+									}}
+									title={
+										statusKey === "sold"
+											? "payment completed sold"
+											: statusKey === "token"
+												? "token / booking"
+												: "available"
+									}
 									className={[
 										"relative aspect-square rounded-md border text-xs font-semibold sm:min-h-[58px]",
 										"flex items-center justify-center transition-all",
 										"focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2",
 										cfg.className,
-										selectedPlotId === plot.id
+										(multiSelectMode
+											? multiSelectedPlotIds.includes(plot.id)
+											: selectedPlotId === plot.id)
 											? "ring-2 ring-sky-500 ring-offset-2"
 											: "",
 									].join(" ")}
@@ -219,9 +291,159 @@ export function PlotLayoutGrid({
 								Plot #{selectedPlot.plot_number}
 							</h3>
 
-							<div className="flex flex-wrap gap-2 mb-3">
-								<Badge variant="secondary" className="capitalize">
-									{(selectedPlot.status || "available") as string}
+							{multiSelectMode ? (
+								<div className="space-y-3 mb-3">
+									<div className="flex items-center justify-between gap-3">
+										<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+											Bulk Edit Plots
+										</p>
+										<p className="text-xs font-semibold text-zinc-700">
+											{multiSelectedPlotIds.length} selected
+										</p>
+									</div>
+
+									{multiSelectedPlotIds.length === 0 ? (
+										<p className="text-xs text-zinc-500">
+											Select plot cells on the left to edit.
+										</p>
+									) : (
+										<>
+											<div className="grid grid-cols-2 gap-3">
+												<div>
+													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+														Size (sqft)
+													</p>
+													<Input
+														type="number"
+														step="any"
+														value={bulkFormState.size_sqft ?? ""}
+														onChange={(e) => {
+															const raw = e.target.value;
+															const sanitized = raw.replace(/^0+(?=\\d)/, "");
+															setBulkFormState((s) => ({
+																...s,
+																size_sqft:
+																	sanitized === ""
+																		? undefined
+																		: Number.parseFloat(sanitized),
+															}));
+														}}
+													/>
+												</div>
+												<div>
+													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+														Rate / sqft
+													</p>
+													<Input
+														type="number"
+														step="any"
+														value={bulkFormState.rate_per_sqft ?? ""}
+														onChange={(e) => {
+															const raw = e.target.value;
+															const sanitized = raw.replace(/^0+(?=\\d)/, "");
+															setBulkFormState((s) => ({
+																...s,
+																rate_per_sqft:
+																	sanitized === ""
+																		? undefined
+																		: Number.parseFloat(sanitized),
+															}));
+														}}
+													/>
+												</div>
+											</div>
+
+											<div>
+												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+													Facing
+												</p>
+												<Input
+													value={bulkFormState.facing}
+													onChange={(e) =>
+														setBulkFormState((s) => ({
+															...s,
+															facing: e.target.value,
+														}))
+													}
+												/>
+											</div>
+
+											<div>
+												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+													Notes
+												</p>
+												<Textarea
+													rows={3}
+													value={bulkFormState.notes}
+													onChange={(e) =>
+														setBulkFormState((s) => ({
+															...s,
+															notes: e.target.value,
+														}))
+													}
+												/>
+											</div>
+
+											<div className="flex gap-3 pt-1">
+												<Button
+													type="button"
+													onClick={async () => {
+														setBulkSaving(true);
+														try {
+															const res = await bulkUpdatePlots(
+																multiSelectedPlotIds,
+																projectId,
+																{
+																	size_sqft: bulkFormState.size_sqft,
+																	rate_per_sqft: bulkFormState.rate_per_sqft,
+																	facing: bulkFormState.facing,
+																	notes: bulkFormState.notes,
+																}
+															);
+															if (!res.success) {
+																toast.error("Bulk update failed", {
+																	description: res.error,
+																});
+																return;
+															}
+															toast.success("Plots updated");
+															setMultiSelectMode(false);
+															setMultiSelectedPlotIds([]);
+															router.refresh();
+														} finally {
+															setBulkSaving(false);
+														}
+													}}
+													disabled={bulkSaving}
+												>
+													{bulkSaving ? "Updating..." : "Save All"}
+												</Button>
+											</div>
+										</>
+									)}
+								</div>
+							) : null}
+
+							{multiSelectMode ? null : (
+								<div className="flex flex-wrap gap-2 mb-3">
+								<Badge
+									variant="secondary"
+									className="capitalize"
+									title={
+										selectedPlot.status === "sold" ||
+										selectedPlot.status === "agreement"
+											? "payment completed sold"
+											: selectedPlot.status === "token"
+												? "token / booking"
+												: "available"
+									}
+								>
+									{selectedPlot.status === "token"
+										? "Token"
+										: selectedPlot.status === "sold" ||
+										  selectedPlot.status === "agreement"
+											? "Sold"
+											: "Available"}
 								</Badge>
 								<Button
 									size="sm"
@@ -231,37 +453,80 @@ export function PlotLayoutGrid({
 								>
 									{editing ? "Cancel Edit" : "Edit"}
 								</Button>
-								<Button
-									size="sm"
-									disabled={saving || !canEdit}
-									onClick={() => setSellOpen(true)}
-								>
-									Sell / Book
-								</Button>
-								<Button
-									size="sm"
-									variant="destructive"
-									disabled={saving || !canEdit}
-									onClick={async () => {
-										setSaving(true);
-										try {
-											const res = await deletePlot(selectedPlot.id, projectId);
-											if (!res.success) {
-												toast.error("Delete failed", { description: res.error });
-												return;
-											}
-											toast.success("Plot deleted");
-											router.refresh();
-										} finally {
-											setSaving(false);
+								{selectedPlot.status === "token" &&
+								selectedPlot.sale &&
+								selectedPlot.sale.remaining_amount > 0 ? (
+									<Button
+										size="sm"
+										disabled={saving}
+										onClick={() =>
+											router.push(`/payments/new?saleId=${selectedPlot.sale!.id}`)
 										}
-									}}
-								>
-									Delete
-								</Button>
-							</div>
+									>
+										Update Status / Collect Payment
+									</Button>
+								) : (
+									<Button
+										size="sm"
+										disabled={saving || !canEdit}
+										onClick={() => setSellOpen(true)}
+									>
+										Sell / Book
+									</Button>
+								)}
 
-							{editing ? (
+								{selectedPlot.sale && selectedPlot.status !== "available" ? (
+									<Button
+										size="sm"
+										variant="destructive"
+										disabled={saving}
+										onClick={async () => {
+											setSaving(true);
+											try {
+												// revoke a token/sold sale, keep payments, show it as revoked in sales
+												const res = await revokePlotSale(selectedPlot.id);
+												if (!res.success) {
+													toast.error("Revoke failed", {
+														description: res.error,
+													});
+													return;
+												}
+												toast.success("Plot sale revoked");
+												router.refresh();
+											} finally {
+												setSaving(false);
+											}
+										}}
+									>
+										Revoke
+									</Button>
+								) : (
+									<Button
+										size="sm"
+										variant="destructive"
+										disabled={saving || !canEdit}
+										onClick={async () => {
+											setSaving(true);
+											try {
+												const res = await deletePlot(selectedPlot.id, projectId);
+												if (!res.success) {
+													toast.error("Delete failed", { description: res.error });
+													return;
+												}
+												toast.success("Plot deleted");
+												router.refresh();
+											} finally {
+												setSaving(false);
+											}
+										}}
+									>
+										Delete
+									</Button>
+								)}
+								</div>
+							)}
+
+							{!multiSelectMode && (editing ? (
 								<div className="space-y-3">
 									<div className="grid grid-cols-2 gap-3">
 										<div>
@@ -382,9 +647,9 @@ export function PlotLayoutGrid({
 										</div>
 									)}
 								</div>
-							)}
+							))}
 
-							{selectedPlot.sale && (
+							{!multiSelectMode && selectedPlot.sale && (
 								<div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
 									<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-2">
 										Sale Details
@@ -397,7 +662,15 @@ export function PlotLayoutGrid({
 											{selectedPlot.sale.advisor_name}
 										</ModalField>
 										<ModalField label="Sale Phase">
-											{selectedPlot.sale.sale_phase}
+											<span
+												title={
+													selectedPlot.status === "token"
+														? "token / booking"
+														: "payment completed sold"
+												}
+											>
+												{selectedPlot.status === "token" ? "Token" : "Sold"}
+											</span>
 										</ModalField>
 										<ModalField label="Total Sale Amount">
 											₹{" "}
@@ -419,7 +692,7 @@ export function PlotLayoutGrid({
 								</div>
 							)}
 
-							{projectName && (
+							{!multiSelectMode && projectName && (
 								<SaleBookingDialog
 									open={sellOpen}
 									onOpenChange={setSellOpen}

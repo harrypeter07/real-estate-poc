@@ -312,10 +312,19 @@ CREATE INDEX idx_commission_payments_date ON advisor_commission_payments(paid_da
 CREATE OR REPLACE FUNCTION update_plot_status()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.token_date IS NOT NULL AND NEW.agreement_date IS NULL THEN
+  -- If sale is revoked/cancelled, plot becomes available.
+  IF NEW.is_cancelled IS TRUE THEN
+    UPDATE plots SET status = 'available' WHERE id = NEW.plot_id;
+    RETURN NEW;
+  END IF;
+
+  -- Two-phase workflow:
+  -- - remaining > 0 => token (booking in progress)
+  -- - remaining <= 0 OR sale_phase full_payment => sold
+  IF COALESCE(NEW.remaining_amount, 0) <= 0 OR NEW.sale_phase = 'full_payment' THEN
+    UPDATE plots SET status = 'sold' WHERE id = NEW.plot_id;
+  ELSE
     UPDATE plots SET status = 'token' WHERE id = NEW.plot_id;
-  ELSIF NEW.agreement_date IS NOT NULL THEN
-    UPDATE plots SET status = 'agreement' WHERE id = NEW.plot_id;
   END IF;
   RETURN NEW;
 END;
@@ -333,19 +342,30 @@ CREATE OR REPLACE FUNCTION update_sale_amounts()
 RETURNS TRIGGER AS $$
 BEGIN
   UPDATE plot_sales
-  SET 
+  SET
     amount_paid = (
-      SELECT COALESCE(SUM(amount), 0) 
-      FROM payments 
+      SELECT COALESCE(SUM(amount), 0)
+      FROM payments
       WHERE sale_id = COALESCE(NEW.sale_id, OLD.sale_id)
         AND is_confirmed = true
     ),
     remaining_amount = total_sale_amount - (
-      SELECT COALESCE(SUM(amount), 0) 
-      FROM payments 
+      SELECT COALESCE(SUM(amount), 0)
+      FROM payments
       WHERE sale_id = COALESCE(NEW.sale_id, OLD.sale_id)
         AND is_confirmed = true
-    )
+    ),
+    sale_phase = CASE
+      -- For revoked sales, do not force phase transitions
+      WHEN is_cancelled IS TRUE THEN sale_phase
+      WHEN (total_sale_amount - (
+        SELECT COALESCE(SUM(amount), 0)
+        FROM payments
+        WHERE sale_id = COALESCE(NEW.sale_id, OLD.sale_id)
+          AND is_confirmed = true
+      )) <= 0 THEN 'full_payment'::sale_phase
+      ELSE 'token'::sale_phase
+    END
   WHERE id = COALESCE(NEW.sale_id, OLD.sale_id);
   RETURN NEW;
 END;

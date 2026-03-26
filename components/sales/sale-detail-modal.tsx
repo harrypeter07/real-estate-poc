@@ -25,6 +25,7 @@ interface SaleDetailModalProps {
 		total_sale_amount: number;
 		amount_paid?: number | null;
 		remaining_amount?: number | null;
+		is_cancelled?: boolean | null;
 		token_date?: string | null;
 		agreement_date?: string | null;
 		sale_phase: string;
@@ -39,18 +40,7 @@ interface SaleDetailModalProps {
 
 const phaseConfig: Record<string, { label: string; className: string }> = {
 	token: { label: "Token", className: "bg-yellow-100 text-yellow-800" },
-	agreement: { label: "Agreement", className: "bg-blue-100 text-blue-800" },
-	registry: { label: "Registry", className: "bg-green-100 text-green-800" },
-	full_payment: {
-		label: "Full Payment",
-		className: "bg-purple-100 text-purple-800",
-	},
-	face1: { label: "Token", className: "bg-yellow-100 text-yellow-800" },
-	face2: { label: "Agreement", className: "bg-blue-100 text-blue-800" },
-	face3: { label: "Registry", className: "bg-green-100 text-green-800" },
-	face4: { label: "Full Payment", className: "bg-purple-100 text-purple-800" },
-	face5: { label: "Face 5", className: "bg-zinc-100 text-zinc-800" },
-	face6: { label: "Face 6", className: "bg-zinc-100 text-zinc-800" },
+	full_payment: { label: "Payment completed / Sold", className: "bg-purple-100 text-purple-800" },
 };
 
 export function SaleDetailModal({
@@ -60,11 +50,11 @@ export function SaleDetailModal({
 	canCollectPayments = true,
 }: SaleDetailModalProps) {
 	const router = useRouter();
-	const phase =
-		phaseConfig[sale.sale_phase] ?? {
-			label: sale.sale_phase,
-			className: "bg-zinc-100 text-zinc-800",
-		};
+	const phase = sale.is_cancelled
+		? { label: "Revoked", className: "bg-zinc-100 text-zinc-800" }
+		: sale.sale_phase === "token"
+		? phaseConfig["token"]
+		: phaseConfig["full_payment"];
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,6 +67,7 @@ export function SaleDetailModal({
 							</span>
 							<span
 								className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${phase.className}`}
+							title={phase.label}
 							>
 								{phase.label}
 							</span>
@@ -147,7 +138,7 @@ export function SaleDetailModal({
 						</div>
 						<div>
 							<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
-								Agreement Date
+								Full Payment Date
 							</p>
 							<p className="text-sm flex items-center gap-1">
 								<Calendar className="h-3.5 w-3.5 text-zinc-400" />
@@ -177,7 +168,7 @@ export function SaleDetailModal({
 					</div>
 
 					<div className="flex gap-2 pt-2">
-						{canCollectPayments ? (
+						{canCollectPayments && !sale.is_cancelled ? (
 							<Link href={`/payments/new?saleId=${sale.id}`} className="flex-1">
 								<Button
 									size="sm"

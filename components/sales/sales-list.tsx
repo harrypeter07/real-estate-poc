@@ -10,15 +10,10 @@ import { SaleDetailModal } from "./sale-detail-modal";
 
 const phaseConfig: Record<string, { label: string; className: string }> = {
 	token: { label: "Token", className: "bg-yellow-100 text-yellow-800" },
-	agreement: { label: "Agreement", className: "bg-blue-100 text-blue-800" },
-	registry: { label: "Registry", className: "bg-green-100 text-green-800" },
-	full_payment: { label: "Full Payment", className: "bg-purple-100 text-purple-800" },
-	face1: { label: "Token", className: "bg-yellow-100 text-yellow-800" },
-	face2: { label: "Agreement", className: "bg-blue-100 text-blue-800" },
-	face3: { label: "Registry", className: "bg-green-100 text-green-800" },
-	face4: { label: "Full Payment", className: "bg-purple-100 text-purple-800" },
-	face5: { label: "Face 5", className: "bg-zinc-100 text-zinc-800" },
-	face6: { label: "Face 6", className: "bg-zinc-100 text-zinc-800" },
+	full_payment: {
+		label: "Sold",
+		className: "bg-purple-100 text-purple-800",
+	},
 };
 
 export function SalesList({
@@ -41,10 +36,11 @@ export function SalesList({
 			<div className="grid grid-cols-1 gap-4">
 				{sales.map((sale) => {
 					const phase =
-						phaseConfig[sale.sale_phase] ?? {
-							label: sale.sale_phase,
-							className: "bg-zinc-100 text-zinc-800",
-						};
+						sale.is_cancelled
+							? { label: "Revoked", className: "bg-zinc-100 text-zinc-800" }
+							: sale.sale_phase === "token"
+							? phaseConfig["token"]
+							: phaseConfig["full_payment"];
 					return (
 						<Card
 							key={sale.id}
@@ -55,7 +51,9 @@ export function SalesList({
 								<div className="flex flex-col md:flex-row">
 									<div className="p-4 md:w-1/4 bg-zinc-50 border-b md:border-b-0 md:border-r border-zinc-200">
 										<div className="flex items-center gap-2 mb-1">
-											<Badge className={phase.className}>{phase.label}</Badge>
+										<Badge className={phase.className} title={phase.label}>
+											{phase.label}
+										</Badge>
 											<span className="font-bold text-lg">{sale.plots?.plot_number}</span>
 										</div>
 										<p className="text-sm text-zinc-500 flex items-center gap-1">
@@ -135,7 +133,7 @@ export function SalesList({
 										>
 											View Details
 										</Button>
-										{sale.payment_due_meta?.is_payment_due ? (
+										{!sale.is_cancelled && sale.payment_due_meta?.is_payment_due ? (
 											<Button
 												size="sm"
 												variant="outline"
@@ -156,7 +154,7 @@ export function SalesList({
 												Remind payment
 											</Button>
 										) : null}
-										{canCollectPayments ? (
+										{canCollectPayments && !sale.is_cancelled ? (
 											<Link href={`/payments/new?saleId=${sale.id}`} className="w-full">
 												<Button size="sm" className="w-full">
 													Collect Payment

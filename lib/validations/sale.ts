@@ -6,7 +6,10 @@ export const saleSchema = z
     customer_id: z.string().uuid("Invalid customer selected"),
     sold_by_admin: z.boolean().default(false),
     advisor_id: z.string().uuid("Invalid advisor selected").optional().nullable(),
-    sale_phase: z.enum(["token", "agreement", "registry", "full_payment"]),
+    // Project workflow is simplified to only two phases:
+    // - token (booking in progress)
+    // - full_payment (payment completed / sold)
+    sale_phase: z.enum(["token", "full_payment"]),
     token_date: z.string().optional().nullable(),
     agreement_date: z.string().optional().nullable(),
     total_sale_amount: z.coerce.number().positive("Total sale amount must be positive"),

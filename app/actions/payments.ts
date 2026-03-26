@@ -80,6 +80,23 @@ export async function createPayment(
 
 	revalidatePath("/payments");
 	revalidatePath("/sales");
+
+	// Ensure project plot-grid reflects Token -> Sold transitions.
+	try {
+		const { data: salePlot, error: salePlotErr } = await supabase
+			.from("plot_sales")
+			.select("plot_id, plots(project_id)")
+			.eq("id", parsed.data.sale_id)
+			.maybeSingle();
+		const projectId = (salePlot as any)?.plots?.project_id as string | undefined;
+		if (projectId) {
+			revalidatePath(`/projects/${projectId}/plots`);
+			revalidatePath(`/projects/${projectId}`);
+		}
+	} catch {
+		// best-effort only
+	}
+
 	return { success: true };
 }
 

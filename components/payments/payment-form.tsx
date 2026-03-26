@@ -81,6 +81,10 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   const salePaid = Number(activeSale?.amount_paid ?? 0);
   const saleRemaining = Math.max(0, saleTotal - salePaid);
 
+  // Payment phase selector (UI-only). DB triggers keep plot status/sale_phase consistent
+  // based on remaining_amount, but this helps the operator choose "sold/full payment".
+  const [targetPhase, setTargetPhase] = useState<"token" | "full_payment">("token");
+
   // Update customer_id when sale_id changes
   useEffect(() => {
     const sale = sales.find(s => s.id === currentSaleId);
@@ -88,6 +92,26 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       form.setValue("customer_id", sale.customer_id);
     }
   }, [currentSaleId, sales, form]);
+
+  useEffect(() => {
+    // If sale already fully paid, default to full_payment. Otherwise default to token.
+    if (saleRemaining <= 0) {
+      setTargetPhase("full_payment");
+      return;
+    }
+    const current = (activeSale?.sale_phase as string | undefined) ?? "token";
+    setTargetPhase(current === "full_payment" ? "full_payment" : "token");
+  }, [activeSale?.sale_phase, saleRemaining]);
+
+  useEffect(() => {
+    // Auto-switch phase when the user enters the exact remaining amount.
+    if (saleRemaining > 0 && amountValue > 0 && amountValue === saleRemaining) {
+      setTargetPhase("full_payment");
+    }
+    if (saleRemaining > 0 && amountValue > 0 && amountValue < saleRemaining) {
+      setTargetPhase("token");
+    }
+  }, [amountValue, saleRemaining]);
 
   const fillMockData = () => {
     if (sales.length === 0) {
@@ -262,6 +286,39 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
                   </FormItem>
                 )}
               />
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium text-zinc-900">
+                  Payment Phase
+                </p>
+                <Select
+                  value={targetPhase}
+                  onValueChange={(v) => {
+                    if (v !== "token" && v !== "full_payment") return;
+                    setTargetPhase(v);
+                    if (v === "full_payment") {
+                      form.setValue("amount", saleRemaining > 0 ? saleRemaining : 0);
+                    }
+                  }}
+                  disabled={saleRemaining <= 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select phase" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="token">Token / Booking</SelectItem>
+                    <SelectItem value="full_payment">Payment completed (Sold)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {targetPhase === "full_payment" ? (
+                  <p className="text-[11px] text-zinc-500">
+                    When full payment is selected, remaining amount will be filled.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-zinc-500">
+                    Partial payment keeps the sale in token phase.
+                  </p>
+                )}
+              </div>
               <FormField
                 control={form.control}
                 name="payment_date"

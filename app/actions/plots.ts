@@ -2,7 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { plotSchema, type PlotFormValues } from "@/lib/validations/plot";
+import {
+	plotSchema,
+	plotBulkUpdateSchema,
+	type PlotFormValues,
+	type PlotBulkUpdateValues,
+} from "@/lib/validations/plot";
 
 export type ActionResponse = {
 	success: boolean;
@@ -156,6 +161,81 @@ export async function updatePlot(
 	return { success: true };
 }
 
+export async function bulkUpdatePlots(
+	plotIds: string[],
+	projectId: string,
+	values: PlotBulkUpdateValues
+): Promise<ActionResponse> {
+	const parsed = plotBulkUpdateSchema.safeParse(values);
+	if (!parsed.success) {
+		return {
+			success: false,
+			error: parsed.error.issues[0]?.message || "Validation failed",
+		};
+	}
+
+	if (!plotIds.length) {
+		return { success: false, error: "No plots selected" };
+	}
+
+	// Require at least one field to update.
+	const hasAny =
+		parsed.data.size_sqft !== undefined ||
+		parsed.data.rate_per_sqft !== undefined ||
+		parsed.data.facing !== undefined ||
+		parsed.data.notes !== undefined;
+	if (!hasAny) {
+		return { success: false, error: "Nothing to update" };
+	}
+
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	// Only allow bulk editing available plots (same rule as updatePlot).
+	const { data: rows, error: statusErr } = await supabase
+		.from("plots")
+		.select("id, status")
+		.in("id", plotIds)
+		.eq("project_id", projectId);
+
+	if (statusErr) return { success: false, error: statusErr.message };
+	const foundIds = new Set((rows ?? []).map((r: any) => String(r.id)));
+	if (foundIds.size !== new Set(plotIds).size) {
+		return {
+			success: false,
+			error: "Some selected plots are missing or belong to another project",
+		};
+	}
+
+	const nonEditable = (rows ?? []).filter((r: any) => r.status !== "available");
+	if (nonEditable.length) {
+		return {
+			success: false,
+			error: "Only available plots can be edited in bulk",
+		};
+	}
+
+	const payload: any = { updated_at: new Date().toISOString() };
+	if (parsed.data.size_sqft !== undefined) payload.size_sqft = parsed.data.size_sqft;
+	if (parsed.data.rate_per_sqft !== undefined) payload.rate_per_sqft = parsed.data.rate_per_sqft;
+	if (parsed.data.facing !== undefined)
+		payload.facing = parsed.data.facing.trim() ? parsed.data.facing.trim() : null;
+	if (parsed.data.notes !== undefined)
+		payload.notes = parsed.data.notes.trim() ? parsed.data.notes.trim() : null;
+
+	const { error } = await supabase
+		.from("plots")
+		.update(payload)
+		.in("id", plotIds)
+		.eq("project_id", projectId);
+
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath(`/projects/${projectId}/plots`);
+	revalidatePath(`/projects/${projectId}`);
+	return { success: true };
+}
+
 export async function deletePlot(
 	id: string,
 	projectId: string
@@ -188,6 +268,57 @@ export async function deletePlot(
 
 	revalidatePath(`/projects/${projectId}/plots`);
 	revalidatePath(`/projects/${projectId}`);
+	return { success: true };
+}
+
+export async function revokePlotSale(
+	plotId: string
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	// We need projectId to revalidate the correct pages.
+	const { data: plotRow, error: plotErr } = await supabase
+		.from("plots")
+		.select("id, project_id, status")
+		.eq("id", plotId)
+		.single();
+
+	if (plotErr || !plotRow) {
+		return { success: false, error: plotErr?.message || "Plot not found" };
+	}
+
+	const projectId = plotRow.project_id as string;
+
+	// Mark the active sale as cancelled (do not delete, keep payments).
+	const { error: saleErr } = await supabase
+		.from("plot_sales")
+		.update({
+			is_cancelled: true,
+			notes: "Revoked",
+			updated_at: new Date().toISOString(),
+		})
+		.eq("plot_id", plotId)
+		.eq("is_cancelled", false);
+
+	if (saleErr) {
+		return { success: false, error: saleErr.message };
+	}
+
+	// Ensure the plot becomes available in the UI immediately.
+	const { error: plotUpdateErr } = await supabase
+		.from("plots")
+		.update({ status: "available", updated_at: new Date().toISOString() })
+		.eq("id", plotId);
+
+	if (plotUpdateErr) {
+		return { success: false, error: plotUpdateErr.message };
+	}
+
+	revalidatePath(`/projects/${projectId}/plots`);
+	revalidatePath(`/projects/${projectId}`);
+	revalidatePath(`/sales`);
+
 	return { success: true };
 }
 

@@ -14,6 +14,15 @@ export const plotSchema = z.object({
 
 export type PlotFormValues = z.infer<typeof plotSchema>;
 
+export const plotBulkUpdateSchema = z.object({
+  size_sqft: z.number().positive("Size must be greater than 0").optional(),
+  rate_per_sqft: z.number().positive("Rate must be greater than 0").optional(),
+  facing: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type PlotBulkUpdateValues = z.infer<typeof plotBulkUpdateSchema>;
+
 export const bulkPlotSchema = z.object({
   from_number: z.number().int().positive("Must be greater than 0"),
   to_number: z.number().int().positive("Must be greater than 0"),

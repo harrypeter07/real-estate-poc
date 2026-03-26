@@ -129,7 +129,7 @@ export default async function ProjectDetailPage({
 			/>
 
 			{/* Stats Grid */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 				<StatCard
 					title="Total Plots"
 					value={plotCounts.total}
@@ -149,13 +149,7 @@ export default async function ProjectDetailPage({
 					color="orange"
 				/>
 				<StatCard
-					title="Agreement"
-					value={plotCounts.agreement}
-					icon={FileText}
-					color="blue"
-				/>
-				<StatCard
-					title="Sold"
+					title="Payment completed / Sold"
 					value={plotCounts.sold}
 					icon={ShieldCheck}
 					color="red"

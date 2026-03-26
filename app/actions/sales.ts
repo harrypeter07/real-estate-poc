@@ -146,12 +146,7 @@ export async function createSale(
 	}
 
 	// 2. Update the plot status
-	const plotStatus =
-		parsed.data.sale_phase === "token"
-			? "token"
-			: parsed.data.sale_phase === "agreement"
-			? "agreement"
-			: "sold";
+	const plotStatus = parsed.data.sale_phase === "token" ? "token" : "sold";
 
 	const { error: plotError } = await supabase
 		.from("plots")

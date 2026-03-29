@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 /**
  * Format amount as Indian Rupee: ₹1,00,000
@@ -46,12 +46,24 @@ export function formatCurrencyShort(amount: number, opts?: { digits?: number }):
 }
 
 /**
- * Format date string to "14 Mar 2026"
+ * Format date string to "14 Mar 2026".
+ * Never throws: invalid / empty values render as "—" (avoids RangeError from date-fns format).
  */
-export function formatDate(date: string | Date): string {
-  if (!date) return "—";
-  const parsed = typeof date === "string" ? parseISO(date) : date;
-  return format(parsed, "dd MMM yyyy");
+export function formatDate(date: string | Date | null | undefined): string {
+  if (date == null) return "—";
+  if (typeof date === "string") {
+    const trimmed = date.trim();
+    if (!trimmed) return "—";
+    let parsed: Date = parseISO(trimmed);
+    if (!isValid(parsed)) parsed = new Date(trimmed);
+    if (!isValid(parsed)) return "—";
+    return format(parsed, "dd MMM yyyy");
+  }
+  if (date instanceof Date) {
+    if (!isValid(date)) return "—";
+    return format(date, "dd MMM yyyy");
+  }
+  return "—";
 }
 
 /**

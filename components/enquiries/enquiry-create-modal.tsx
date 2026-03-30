@@ -19,7 +19,6 @@ import {
 	SelectValue,
 } from "@/components/ui";
 import type { EnquiryCustomerFormValues } from "@/lib/validations/enquiry";
-import { ENQUIRY_PLAN_OPTIONS } from "@/lib/validations/enquiry";
 import { createEnquiryCustomer, getTempCustomersByPhone } from "@/app/actions/enquiries";
 import { cn } from "@/lib/utils";
 
@@ -37,10 +36,12 @@ export function EnquiryCreateModal({
 	open,
 	onOpenChange,
 	projects,
+	advisors,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	projects: Array<{ id: string; name: string }>;
+	advisors: Array<{ id: string; name: string }>;
 }) {
 	const router = useRouter();
 	const [saving, setSaving] = useState(false);
@@ -52,13 +53,20 @@ export function EnquiryCreateModal({
 		phone: "",
 		alternate_phone: "",
 		address: "",
+		email_id: null,
 		birth_date: null,
 		project_id: null,
 		category: "General",
+		property_type: null,
+		segment: null,
+		budget_min: null,
+		budget_max: null,
+		preferred_location: null,
+		bhk_size_requirement: null,
+		assigned_advisor_id: null,
 		details: "",
 		is_active: true,
 		follow_up_date: null,
-		interested_plan: null,
 		enquiry_status: "new",
 	};
 
@@ -177,12 +185,19 @@ export function EnquiryCreateModal({
 		try {
 			const res = await createEnquiryCustomer({
 				...form,
+				email_id: form.email_id || null,
 				birth_date: form.birth_date || null,
 				project_id: form.project_id || null,
+				property_type: form.property_type || null,
+				segment: form.segment || null,
+				budget_min: form.budget_min ?? null,
+				budget_max: form.budget_max ?? null,
+				preferred_location: form.preferred_location || null,
+				bhk_size_requirement: form.bhk_size_requirement || null,
+				assigned_advisor_id: form.assigned_advisor_id || null,
 				alternate_phone: form.alternate_phone || "",
 				details: form.details || "",
 				follow_up_date: form.follow_up_date || null,
-				interested_plan: form.interested_plan || null,
 				enquiry_status: form.enquiry_status ?? "new",
 			} as any);
 
@@ -250,13 +265,20 @@ export function EnquiryCreateModal({
 									phone,
 									alternate_phone: altPhone,
 									address: `Plot No ${Math.floor(Math.random() * 500) + 1}, ${routesPick}, Nagpur`,
+									email_id: null,
 									birth_date: "1990-08-20",
 									project_id: projectPick,
 									category,
+									property_type: null,
+									segment: null,
+									budget_min: null,
+									budget_max: null,
+									preferred_location: routesPick,
+									bhk_size_requirement: null,
+									assigned_advisor_id: null,
 									details,
 									is_active: true,
 									follow_up_date: null,
-									interested_plan: "Quarterly",
 									enquiry_status: "new",
 								});
 							}}
@@ -341,6 +363,21 @@ export function EnquiryCreateModal({
 								}
 							/>
 						</div>
+					<div className="space-y-2">
+						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+							Email ID
+						</div>
+						<Input
+							value={form.email_id ?? ""}
+							placeholder="customer@email.com"
+							onChange={(e) =>
+								setForm((s) => ({
+									...s,
+									email_id: e.target.value || null,
+								}))
+							}
+						/>
+					</div>
 						<div className="space-y-2">
 							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
 								Birth Date
@@ -388,7 +425,7 @@ export function EnquiryCreateModal({
 
 						<div className="space-y-2">
 							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-								Enquiry Category
+								How did they find us?
 							</div>
 							<Select
 								value={form.category}
@@ -408,13 +445,116 @@ export function EnquiryCreateModal({
 						</div>
 					</div>
 
+					{/* Requirement Details */}
 					<div className="space-y-2">
 						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-							Address
+							Requirement Details
 						</div>
-						<Textarea
-							rows={2}
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+							<div className="space-y-2">
+								<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+									Property Type
+								</div>
+								<Input
+									value={form.property_type ?? ""}
+									placeholder="e.g. Flats"
+									onChange={(e) =>
+										setForm((s) => ({
+											...s,
+											property_type: e.target.value || null,
+										}))
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+									Segment
+								</div>
+								<Input
+									value={form.segment ?? ""}
+									placeholder="e.g. Mid"
+									onChange={(e) =>
+										setForm((s) => ({
+											...s,
+											segment: e.target.value || null,
+										}))
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+									Budget Min (₹)
+								</div>
+								<Input
+									type="number"
+									value={form.budget_min ?? ""}
+									placeholder="e.g. 2000000"
+									onChange={(e) =>
+										setForm((s) => ({
+											...s,
+											budget_min:
+												e.target.value === "" ? null : Number(e.target.value),
+										}))
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+									Budget Max (₹)
+								</div>
+								<Input
+									type="number"
+									value={form.budget_max ?? ""}
+									placeholder="e.g. 5000000"
+									onChange={(e) =>
+										setForm((s) => ({
+											...s,
+											budget_max:
+												e.target.value === "" ? null : Number(e.target.value),
+										}))
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+									Preferred Location
+								</div>
+								<Input
+									value={form.preferred_location ?? ""}
+									placeholder="e.g. Besa"
+									onChange={(e) =>
+										setForm((s) => ({
+											...s,
+											preferred_location: e.target.value || null,
+										}))
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+									BHK / Size Requirement
+								</div>
+								<Input
+									value={form.bhk_size_requirement ?? ""}
+									placeholder="e.g. 2BHK, 1200 sqft"
+									onChange={(e) =>
+										setForm((s) => ({
+											...s,
+											bhk_size_requirement: e.target.value || null,
+										}))
+									}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div className="space-y-2">
+						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+							City / Location
+						</div>
+						<Input
 							value={form.address ?? ""}
+							placeholder="e.g. Besa, Nagpur"
 							onChange={(e) => setForm((s) => ({ ...s, address: e.target.value }))}
 						/>
 					</div>
@@ -431,40 +571,42 @@ export function EnquiryCreateModal({
 						/>
 					</div>
 
-					<div className="space-y-2">
-						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-							Follow-up date
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						<div className="space-y-2">
+							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+								Follow-up date
+							</div>
+							<Input
+								type="date"
+								value={form.follow_up_date ?? ""}
+								onChange={(e) =>
+									setForm((s) => ({ ...s, follow_up_date: e.target.value || null }))
+								}
+							/>
+							<p className="text-[11px] text-zinc-500">Must be on or after visit date (if applicable).</p>
 						</div>
-						<Input
-							type="date"
-							value={form.follow_up_date ?? ""}
-							onChange={(e) =>
-								setForm((s) => ({ ...s, follow_up_date: e.target.value || null }))
-							}
-						/>
-						<p className="text-[11px] text-zinc-500">Must be on or after visit date (if applicable).</p>
-					</div>
-
-					<div className="space-y-2">
-						<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-							Interested plan
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{ENQUIRY_PLAN_OPTIONS.map((plan) => (
-								<button
-									key={plan}
-									type="button"
-									onClick={() => setForm((s) => ({ ...s, interested_plan: plan }))}
-									className={cn(
-										"rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-										form.interested_plan === plan
-											? "border-blue-600 bg-blue-600 text-white"
-											: "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
-									)}
-								>
-									{plan}
-								</button>
-							))}
+						<div className="space-y-2">
+							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+								Assigned Advisor (Admin)
+							</div>
+							<Select
+								value={form.assigned_advisor_id ?? "none"}
+								onValueChange={(v) =>
+									setForm((s) => ({ ...s, assigned_advisor_id: v === "none" ? null : v }))
+								}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder="Unassigned" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">Unassigned</SelectItem>
+									{advisors.map((a) => (
+										<SelectItem key={a.id} value={a.id}>
+											{a.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 

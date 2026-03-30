@@ -3,6 +3,7 @@ import { EnquiriesClient } from "@/components/enquiries/enquiries-client";
 import { createClient } from "@/lib/supabase/server";
 import { getProjects } from "@/app/actions/project-actions";
 import { getEnquiryCustomers } from "@/app/actions/enquiries";
+import { getAdvisors } from "@/app/actions/advisors";
 
 export default async function EnquiriesPage() {
 	const supabase = await createClient();
@@ -18,13 +19,18 @@ export default async function EnquiriesPage() {
 	const role = (user.user_metadata as any)?.role ?? "admin";
 	if (role === "advisor") redirect("/advisor");
 
-	const [enquiries, projects] = await Promise.all([
+	const [enquiries, projects, advisors] = await Promise.all([
 		getEnquiryCustomers(),
 		getProjects(),
+		getAdvisors(),
 	]);
 
 	return (
-		<EnquiriesClient initialEnquiries={enquiries} projects={projects} />
+		<EnquiriesClient
+			initialEnquiries={enquiries}
+			projects={projects}
+			advisors={advisors}
+		/>
 	);
 }
 

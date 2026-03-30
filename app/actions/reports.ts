@@ -276,6 +276,21 @@ export async function getProjectAnalytics(projectId: string) {
 	).length;
 	const available = (plots ?? []).filter((p: any) => p.status === "available").length;
 
+	// Estimated revenue from "left" plots = sum of (size_sqft * rate_per_sqft) for available plots.
+	const leftPlots = (plots ?? [])
+		.filter((p: any) => p.status === "available")
+		.map((p: any) => ({
+			plot_number: p.plot_number,
+			status: p.status,
+			value: Number(p.size_sqft ?? 0) * Number(p.rate_per_sqft ?? 0),
+			size_sqft: Number(p.size_sqft ?? 0),
+			rate_per_sqft: Number(p.rate_per_sqft ?? 0),
+			facing: p.facing ?? null,
+		}))
+		.sort((a: any, b: any) => b.value - a.value);
+	const estimatedRevenueLeft = leftPlots.reduce((sum: number, p: any) => sum + Number(p.value ?? 0), 0);
+	const leftPlotsTop = leftPlots.slice(0, 8);
+
 	const { data: sales } = await supabase
 		.from("plot_sales")
 		.select("id, total_sale_amount, amount_paid, remaining_amount, sold_by_admin, advisors(name)")
@@ -331,12 +346,84 @@ export async function getProjectAnalytics(projectId: string) {
 	return {
 		project: project as any,
 		plots: { total, sold, available },
+		estimatedRevenueLeft,
+		leftPlots: leftPlotsTop,
 		revenue: { total: totalRevenue, salesValue: totalSalesValue, outstanding },
 		layoutExpense: Number((project as any).layout_expense ?? 0),
 		extraCommissionPaid,
 		advisors: advisorsInProject,
 		topPlots,
 	};
+}
+
+export type SalesTrendPoint = { month: string; count: number; value: number };
+
+// Collections trend for a project (by confirmed payments month).
+export async function getProjectPaymentsTrend(
+	projectId: string,
+	filters?: ReportFilters
+): Promise<{
+	data: SalesTrendPoint[];
+	summary: { collected: number; paymentsCount: number };
+}> {
+	const supabase = await createClient();
+	if (!supabase) {
+		return { data: [], summary: { collected: 0, paymentsCount: 0 } };
+	}
+
+	const start = filters?.startDate ? toDateOnly(filters.startDate) : undefined;
+	const end = filters?.endDate ? toDateOnly(filters.endDate) : undefined;
+
+	// Get plot IDs for this project (needed to fetch related sales, then payments).
+	const { data: plots } = await supabase
+		.from("plots")
+		.select("id")
+		.eq("project_id", projectId);
+	const plotIds = (plots ?? []).map((p: any) => p.id);
+
+	if (plotIds.length === 0) {
+		return { data: [], summary: { collected: 0, paymentsCount: 0 } };
+	}
+
+	const { data: sales } = await supabase
+		.from("plot_sales")
+		.select("id")
+		.in("plot_id", plotIds)
+		.eq("is_cancelled", false);
+
+	const saleIds = (sales ?? []).map((s: any) => s.id);
+	if (saleIds.length === 0) {
+		return { data: [], summary: { collected: 0, paymentsCount: 0 } };
+	}
+
+	let q = supabase
+		.from("payments")
+		.select("amount, payment_date")
+		.in("sale_id", saleIds)
+		.eq("is_confirmed", true);
+
+	if (start) q = q.gte("payment_date", start);
+	if (end) q = q.lte("payment_date", end);
+
+	const { data: payments, error } = await q.order("payment_date", { ascending: true });
+	if (error) throw new Error(error.message);
+
+	const byMonth = new Map<string, SalesTrendPoint>();
+	for (const p of payments ?? []) {
+		const dt = (p.payment_date ?? "") as string;
+		const month = dt.slice(0, 7); // YYYY-MM
+		if (!month) continue;
+		const cur = byMonth.get(month) ?? { month, count: 0, value: 0 };
+		cur.count += 1;
+		cur.value += Number(p.amount ?? 0);
+		byMonth.set(month, cur);
+	}
+
+	const data = Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month));
+	const collected = data.reduce((sum, d) => sum + Number(d.value ?? 0), 0);
+	const paymentsCount = data.reduce((sum, d) => sum + Number(d.count ?? 0), 0);
+
+	return { data, summary: { collected, paymentsCount } };
 }
 
 function getEmptyReport() {

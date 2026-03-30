@@ -20,9 +20,12 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 	}, [from, to]);
 
 	function setRange(start: string, end: string) {
-		const params = new URLSearchParams();
+		// Preserve other query params (like `project`) while changing date range.
+		const params = new URLSearchParams(searchParams.toString());
 		if (start) params.set("from", start);
+		else params.delete("from");
 		if (end) params.set("to", end);
+		else params.delete("to");
 		startTransition(() => {
 			router.push(`${basePath}?${params.toString()}`);
 		});

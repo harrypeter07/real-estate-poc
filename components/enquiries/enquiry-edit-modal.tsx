@@ -19,7 +19,6 @@ import {
 	SelectValue,
 } from "@/components/ui";
 import type { EnquiryCustomerFormValues } from "@/lib/validations/enquiry";
-import { ENQUIRY_PLAN_OPTIONS } from "@/lib/validations/enquiry";
 import type { EnquiryRow } from "@/app/actions/enquiries";
 import { updateEnquiryCustomer } from "@/app/actions/enquiries";
 import { cn } from "@/lib/utils";
@@ -47,11 +46,13 @@ export function EnquiryEditModal({
 	onOpenChange,
 	enquiry,
 	projects,
+	advisors,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	enquiry: EnquiryRow | null;
 	projects: Array<{ id: string; name: string }>;
+	advisors: Array<{ id: string; name: string }>;
 }) {
 	const router = useRouter();
 	const [saving, setSaving] = useState(false);
@@ -67,13 +68,20 @@ export function EnquiryEditModal({
 			phone: enquiry.phone,
 			alternate_phone: enquiry.alternate_phone ?? "",
 			address: enquiry.address ?? "",
+			email_id: enquiry.email_id ?? null,
 			birth_date: enquiry.birth_date,
 			project_id: enquiry.project_id,
 			category: enquiry.category,
+			property_type: enquiry.property_type ?? null,
+			segment: enquiry.segment ?? null,
+			budget_min: enquiry.budget_min,
+			budget_max: enquiry.budget_max,
+			preferred_location: enquiry.preferred_location ?? null,
+			bhk_size_requirement: enquiry.bhk_size_requirement ?? null,
+			assigned_advisor_id: enquiry.assigned_advisor_id ?? null,
 			details: enquiry.details ?? "",
 			is_active: enquiry.is_active,
 			follow_up_date: enquiry.follow_up_date,
-			interested_plan: enquiry.interested_plan,
 			enquiry_status: (enquiry.enquiry_status as EnquiryCustomerFormValues["enquiry_status"]) ?? "new",
 		});
 	}, [open, enquiry]);
@@ -86,10 +94,17 @@ export function EnquiryEditModal({
 				...form,
 				birth_date: form.birth_date || null,
 				project_id: form.project_id || null,
+				email_id: form.email_id || null,
 				alternate_phone: form.alternate_phone || "",
+				property_type: form.property_type || null,
+				segment: form.segment || null,
+				budget_min: form.budget_min ?? null,
+				budget_max: form.budget_max ?? null,
+				preferred_location: form.preferred_location || null,
+				bhk_size_requirement: form.bhk_size_requirement || null,
+				assigned_advisor_id: form.assigned_advisor_id || null,
 				details: form.details || "",
 				follow_up_date: form.follow_up_date || null,
-				interested_plan: form.interested_plan || null,
 			});
 			if (!res.success) {
 				toast.error(res.error ?? "Update failed");
@@ -134,6 +149,55 @@ export function EnquiryEditModal({
 						</div>
 					</div>
 
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						<div className="space-y-1">
+							<div className="text-xs font-semibold uppercase text-zinc-500">Email ID</div>
+							<Input
+								value={form.email_id ?? ""}
+								placeholder="customer@email.com"
+								onChange={(e) => setForm((s) => s && { ...s, email_id: e.target.value || null })}
+							/>
+						</div>
+						<div className="space-y-1">
+							<div className="text-xs font-semibold uppercase text-zinc-500">City / Location</div>
+							<Input
+								value={form.address ?? ""}
+								placeholder="e.g. Besa, Nagpur"
+								onChange={(e) => setForm((s) => s && { ...s, address: e.target.value })}
+							/>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						<div className="space-y-1">
+							<div className="text-xs font-semibold uppercase text-zinc-500">Date of Birth</div>
+							<Input
+								type="date"
+								value={form.birth_date ?? ""}
+								onChange={(e) => setForm((s) => s && { ...s, birth_date: e.target.value || null })}
+							/>
+						</div>
+						<div className="space-y-1">
+							<div className="text-xs font-semibold uppercase text-zinc-500">Assigned Advisor (Admin)</div>
+							<Select
+								value={form.assigned_advisor_id ?? "none"}
+								onValueChange={(v) => setForm((s) => s && { ...s, assigned_advisor_id: v === "none" ? null : v })}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder="Unassigned" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">Unassigned</SelectItem>
+									{advisors.map((a) => (
+										<SelectItem key={a.id} value={a.id}>
+											{a.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+
 					<div className="space-y-1">
 						<div className="text-xs font-semibold uppercase text-zinc-500">Follow-up date</div>
 						<Input
@@ -147,23 +211,66 @@ export function EnquiryEditModal({
 					</div>
 
 					<div className="space-y-2">
-						<div className="text-xs font-semibold uppercase text-zinc-500">Interested plan</div>
-						<div className="flex flex-wrap gap-2">
-							{ENQUIRY_PLAN_OPTIONS.map((plan) => (
-								<button
-									key={plan}
-									type="button"
-									onClick={() => setForm((s) => s && { ...s, interested_plan: plan })}
-									className={cn(
-										"rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-										form.interested_plan === plan
-											? "border-blue-600 bg-blue-600 text-white"
-											: "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
-									)}
-								>
-									{plan}
-								</button>
-							))}
+						<div className="text-xs font-semibold uppercase text-zinc-500">Requirement Details</div>
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+							<div className="space-y-1">
+								<div className="text-xs font-semibold uppercase text-zinc-500">Property Type</div>
+								<Input
+									value={form.property_type ?? ""}
+									placeholder="e.g. Flats"
+									onChange={(e) => setForm((s) => s && { ...s, property_type: e.target.value || null })}
+								/>
+							</div>
+							<div className="space-y-1">
+								<div className="text-xs font-semibold uppercase text-zinc-500">Segment</div>
+								<Input
+									value={form.segment ?? ""}
+									placeholder="e.g. Mid"
+									onChange={(e) => setForm((s) => s && { ...s, segment: e.target.value || null })}
+								/>
+							</div>
+							<div className="space-y-1">
+								<div className="text-xs font-semibold uppercase text-zinc-500">Budget Min (₹)</div>
+								<Input
+									type="number"
+									value={form.budget_min ?? ""}
+									placeholder="e.g. 2000000"
+									onChange={(e) =>
+										setForm((s) => s && { ...s, budget_min: e.target.value === "" ? null : Number(e.target.value) })
+									}
+								/>
+							</div>
+							<div className="space-y-1">
+								<div className="text-xs font-semibold uppercase text-zinc-500">Budget Max (₹)</div>
+								<Input
+									type="number"
+									value={form.budget_max ?? ""}
+									placeholder="e.g. 5000000"
+									onChange={(e) =>
+										setForm((s) => s && { ...s, budget_max: e.target.value === "" ? null : Number(e.target.value) })
+									}
+								/>
+							</div>
+							<div className="space-y-1">
+								<div className="text-xs font-semibold uppercase text-zinc-500">Preferred Location</div>
+								<Input
+									value={form.preferred_location ?? ""}
+									placeholder="e.g. Besa"
+									onChange={(e) =>
+										setForm((s) => s && { ...s, preferred_location: e.target.value || null })
+									}
+								/>
+							</div>
+							<div className="space-y-1">
+								<div className="text-xs font-semibold uppercase text-zinc-500">BHK / Size Requirement</div>
+								<Input
+									value={form.bhk_size_requirement ?? ""}
+									placeholder="e.g. 2BHK, 1200 sqft"
+									onChange={(e) =>
+										setForm((s) => s && { ...s, bhk_size_requirement: e.target.value || null })
+									}
+								/>
+							</div>
 						</div>
 					</div>
 

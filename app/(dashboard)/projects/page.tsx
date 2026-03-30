@@ -52,6 +52,9 @@ export default async function ProjectsPage() {
               total_plots_count={project.total_plots_count}
               layout_expense={Number(project.layout_expense)}
               plotCounts={project.plotCounts}
+              available_area_sqft={project.available_area_sqft}
+              sold_area_sqft={project.sold_area_sqft}
+              left_area_sqft={project.left_area_sqft}
             />
           ))}
         </div>

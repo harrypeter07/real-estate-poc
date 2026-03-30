@@ -22,13 +22,16 @@ import { EnquiryEditModal } from "@/components/enquiries/enquiry-edit-modal";
 import { EnquiryTempCustomersModal } from "@/components/enquiries/enquiry-temp-customers-modal";
 import { Calendar, Building2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { formatCurrency } from "@/lib/utils/formatters";
 
 export function EnquiriesClient({
 	initialEnquiries,
 	projects,
+	advisors,
 }: {
 	initialEnquiries: EnquiryRow[];
 	projects: Array<{ id: string; name: string }>;
+	advisors: Array<{ id: string; name: string }>;
 }) {
 	const router = useRouter();
 	const [query, setQuery] = useState("");
@@ -38,6 +41,27 @@ export function EnquiriesClient({
 	const [createOpen, setCreateOpen] = useState(false);
 	const [tempCustomersOpen, setTempCustomersOpen] = useState(false);
 	const [editEnquiry, setEditEnquiry] = useState<EnquiryRow | null>(null);
+
+	const advisorById = useMemo(() => {
+		return new Map(advisors.map((a) => [a.id, a.name]));
+	}, [advisors]);
+
+	const pipelineLabel = (st: string) => {
+		switch (st) {
+			case "new":
+				return "New Lead — Contact Pending";
+			case "contacted":
+				return "Contact Done — Site Visit Pending";
+			case "follow_up":
+				return "Follow-Up Pending";
+			case "joined":
+				return "Closed Won";
+			case "not_interested":
+				return "Closed Lost";
+			default:
+				return st;
+		}
+	};
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -140,10 +164,10 @@ export function EnquiriesClient({
 						<TableHeader>
 								<TableRow>
 									<TableHead>Customer</TableHead>
-									<TableHead>Enquiry</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Plan</TableHead>
-									<TableHead>Follow-up</TableHead>
+									<TableHead>Requirements</TableHead>
+									<TableHead>Pipeline Status</TableHead>
+									<TableHead>Budget</TableHead>
+									<TableHead>Advisor</TableHead>
 									<TableHead>Project</TableHead>
 									<TableHead>Date</TableHead>
 								</TableRow>
@@ -169,26 +193,44 @@ export function EnquiriesClient({
 													<div className="font-semibold text-sm truncate">{enq.name}</div>
 												</div>
 												<div className="text-xs text-zinc-500 font-mono mt-0.5">{enq.phone}</div>
+												{enq.email_id ? (
+													<div className="text-[11px] text-zinc-400 truncate">{enq.email_id}</div>
+												) : null}
 											</div>
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-col gap-1">
-												<div className="flex items-center gap-2">
-													<Badge variant="secondary">{enq.category}</Badge>
+												<div className="flex flex-wrap gap-1.5">
+													{enq.property_type ? (
+														<Badge variant="secondary">{enq.property_type}</Badge>
+													) : null}
+													{enq.segment ? (
+														<Badge variant="outline">{enq.segment}</Badge>
+													) : null}
 												</div>
-												<div className="text-xs text-zinc-600 truncate max-w-[200px]">{enq.details ?? "—"}</div>
+												<div className="text-xs text-zinc-600 truncate max-w-[240px]">
+													{enq.bhk_size_requirement ?? enq.details ?? "—"}
+												</div>
 											</div>
 										</TableCell>
 										<TableCell>
 											<Badge variant="outline" className="font-normal capitalize">
-												{(enq.enquiry_status ?? "new").replace(/_/g, " ")}
+												{pipelineLabel(enq.enquiry_status ?? "new")}
 											</Badge>
 										</TableCell>
-										<TableCell className="text-sm text-zinc-700">
-											{enq.interested_plan ?? "—"}
-										</TableCell>
 										<TableCell className="text-sm text-zinc-700 whitespace-nowrap">
-											{enq.follow_up_date ? String(enq.follow_up_date).slice(0, 10) : "—"}
+											{enq.budget_min != null || enq.budget_max != null ? (
+												<>
+													{enq.budget_min != null ? formatCurrency(Number(enq.budget_min)) : "—"}{" "}
+													-{" "}
+													{enq.budget_max != null ? formatCurrency(Number(enq.budget_max)) : "—"}
+												</>
+											) : (
+												"—"
+											)}
+										</TableCell>
+										<TableCell className="text-sm text-zinc-700">
+											{enq.assigned_advisor_id ? advisorById.get(enq.assigned_advisor_id) ?? "—" : "Unassigned"}
 										</TableCell>
 										<TableCell>
 											<div className="flex items-center gap-2">
@@ -216,6 +258,7 @@ export function EnquiriesClient({
 				open={createOpen}
 				onOpenChange={setCreateOpen}
 				projects={projects}
+				advisors={advisors}
 			/>
 
 			<EnquiryEditModal
@@ -225,6 +268,7 @@ export function EnquiriesClient({
 				}}
 				enquiry={editEnquiry}
 				projects={projects}
+				advisors={advisors}
 			/>
 
 			<EnquiryTempCustomersModal

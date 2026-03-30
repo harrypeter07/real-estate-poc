@@ -290,10 +290,11 @@ export async function getProjectsWithPlotCounts() {
 
 	const { data: allPlots } = await supabase
 		.from("plots")
-		.select("project_id, status")
+		.select("project_id, status, size_sqft")
 		.in("project_id", projectIds);
 
 	const plotCountsMap = new Map<string, PlotStatusCounts>();
+	const areaMap = new Map<string, { total: number; available: number }>();
 
 	projects.forEach((p) => {
 		plotCountsMap.set(p.id, {
@@ -303,14 +304,23 @@ export async function getProjectsWithPlotCounts() {
 			sold: 0,
 			total: 0,
 		});
+		areaMap.set(p.id, { total: 0, available: 0 });
 	});
 
 	allPlots?.forEach((plot) => {
 		const counts = plotCountsMap.get(plot.project_id);
+		const area = areaMap.get(plot.project_id);
+		const size = Number(plot.size_sqft ?? 0);
 		if (counts) {
 			counts.total++;
 			if (plot.status && plot.status in counts) {
 				counts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
+			}
+		}
+		if (area) {
+			area.total += size;
+			if (plot.status === "available") {
+				area.available += size;
 			}
 		}
 	});
@@ -324,5 +334,9 @@ export async function getProjectsWithPlotCounts() {
 			sold: 0,
 			total: 0,
 		},
+		available_area_sqft: areaMap.get(project.id)?.available ?? 0,
+		sold_area_sqft: (areaMap.get(project.id)?.total ?? 0) - (areaMap.get(project.id)?.available ?? 0),
+		left_area_sqft: areaMap.get(project.id)?.available ?? 0,
+		total_area_sqft: areaMap.get(project.id)?.total ?? 0,
 	}));
 }

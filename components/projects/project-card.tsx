@@ -27,6 +27,9 @@ interface ProjectCardProps {
 	total_plots_count: number;
 	layout_expense: number | null;
 	plotCounts: PlotStatusCounts;
+	available_area_sqft?: number;
+	sold_area_sqft?: number;
+	left_area_sqft?: number;
 }
 
 const statusConfig = {
@@ -55,8 +58,14 @@ export function ProjectCard({
 	total_plots_count,
 	layout_expense,
 	plotCounts,
+	available_area_sqft,
+	sold_area_sqft,
+	left_area_sqft,
 }: ProjectCardProps) {
 	const router = useRouter();
+	const availableArea = Math.round(Number(available_area_sqft ?? 0));
+	const soldArea = Math.round(Number(sold_area_sqft ?? 0));
+	const leftArea = Math.round(Number(left_area_sqft ?? 0));
 
 	return (
 		<div
@@ -118,6 +127,15 @@ export function ProjectCard({
 							<span className="text-xs text-zinc-400">No plots added yet</span>
 						)}
 					</div>
+
+					{/* Area stats */}
+					{total_plots_count > 0 && (
+						<div className="text-xs text-zinc-600">
+							Area: {availableArea.toLocaleString("en-IN")} sqft available •{" "}
+							{soldArea.toLocaleString("en-IN")} sqft sold •{" "}
+							{leftArea.toLocaleString("en-IN")} sqft left
+						</div>
+					)}
 
 					{/* Layout expense */}
 					{layout_expense && layout_expense > 0 ? (

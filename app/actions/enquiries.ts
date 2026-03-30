@@ -31,19 +31,47 @@ export async function updateEnquiryCustomer(
 			phone: parsed.data.phone,
 			alternate_phone: parsed.data.alternate_phone || null,
 			address: parsed.data.address || null,
+			email_id: parsed.data.email_id || null,
 			birth_date: parsed.data.birth_date || null,
 			project_id: parsed.data.project_id || null,
 			category: parsed.data.category,
+			property_type: parsed.data.property_type || null,
+			segment: parsed.data.segment || null,
+			budget_min: parsed.data.budget_min ?? null,
+			budget_max: parsed.data.budget_max ?? null,
+			preferred_location: parsed.data.preferred_location || null,
+			bhk_size_requirement: parsed.data.bhk_size_requirement || null,
+			assigned_advisor_id: parsed.data.assigned_advisor_id || null,
 			details: parsed.data.details || null,
 			is_active: parsed.data.is_active,
 			follow_up_date: parsed.data.follow_up_date || null,
-			interested_plan: parsed.data.interested_plan || null,
 			enquiry_status: parsed.data.enquiry_status ?? "new",
 			updated_at: new Date().toISOString(),
 		})
 		.eq("id", id);
 
 	if (error) return { success: false, error: error.message };
+
+	// Keep linked temporary customer fields in sync while the enquiry is still active.
+	// This avoids mismatches in the UI before the user upgrades/promotes.
+	const { error: custErr } = await supabase
+		.from("customers")
+		.update({
+			name: parsed.data.name,
+			email: parsed.data.email_id || null,
+			alternate_phone: parsed.data.alternate_phone || null,
+			address: parsed.data.address || null,
+			birth_date: parsed.data.birth_date || null,
+			advisor_id: parsed.data.assigned_advisor_id || null,
+			route: parsed.data.preferred_location || parsed.data.address || null,
+			notes: parsed.data.details || null,
+		})
+		.eq("enquiry_temp_id", id)
+		.eq("is_active", false);
+
+	if (custErr) {
+		// best-effort sync (do not fail enquiry update)
+	}
 
 	revalidatePath("/enquiries");
 	return { success: true };
@@ -55,15 +83,22 @@ export type EnquiryRow = {
 	phone: string;
 	alternate_phone: string | null;
 	address: string | null;
+	email_id: string | null;
 	birth_date: string | null;
 	category: string;
+	property_type: string | null;
+	segment: string | null;
+	budget_min: number | null;
+	budget_max: number | null;
+	preferred_location: string | null;
+	bhk_size_requirement: string | null;
+	assigned_advisor_id: string | null;
 	details: string | null;
 	project_id: string | null;
 	project_name: string | null;
 	is_active: boolean;
 	created_at: string;
 	follow_up_date: string | null;
-	interested_plan: string | null;
 	enquiry_status: string;
 };
 
@@ -200,15 +235,22 @@ export async function getEnquiryCustomers(): Promise<EnquiryRow[]> {
 		phone: e.phone,
 		alternate_phone: e.alternate_phone,
 		address: e.address,
+		email_id: e.email_id ?? null,
 		birth_date: e.birth_date,
 		category: e.category,
+		property_type: e.property_type ?? null,
+		segment: e.segment ?? null,
+		budget_min: e.budget_min ?? null,
+		budget_max: e.budget_max ?? null,
+		preferred_location: e.preferred_location ?? null,
+		bhk_size_requirement: e.bhk_size_requirement ?? null,
+		assigned_advisor_id: e.assigned_advisor_id ?? null,
 		details: e.details,
 		project_id: e.project_id,
 		project_name: e.projects?.name ?? null,
 		is_active: !!e.is_active,
 		created_at: e.created_at,
 		follow_up_date: e.follow_up_date ?? null,
-		interested_plan: e.interested_plan ?? null,
 		enquiry_status: e.enquiry_status ?? "new",
 	})) as EnquiryRow[];
 }
@@ -235,13 +277,20 @@ export async function createEnquiryCustomer(
 			phone: parsed.data.phone,
 			alternate_phone: parsed.data.alternate_phone || null,
 			address: parsed.data.address || null,
+			email_id: parsed.data.email_id || null,
 			birth_date: parsed.data.birth_date || null,
 			project_id: parsed.data.project_id || null,
 			category: parsed.data.category,
+			property_type: parsed.data.property_type || null,
+			segment: parsed.data.segment || null,
+			budget_min: parsed.data.budget_min ?? null,
+			budget_max: parsed.data.budget_max ?? null,
+			preferred_location: parsed.data.preferred_location || null,
+			bhk_size_requirement: parsed.data.bhk_size_requirement || null,
+			assigned_advisor_id: parsed.data.assigned_advisor_id || null,
 			details: parsed.data.details || null,
 			is_active: parsed.data.is_active,
 			follow_up_date: parsed.data.follow_up_date || null,
-			interested_plan: parsed.data.interested_plan || null,
 			enquiry_status: parsed.data.enquiry_status ?? "new",
 		})
 		.select("id")
@@ -283,12 +332,17 @@ export async function createEnquiryCustomer(
 		// For temporary customers, keep user-related fields in sync as user types / selects.
 		if (shouldSetTempLink) {
 			customerUpdates.name = parsed.data.name;
+			if (parsed.data.email_id != null && String(parsed.data.email_id).trim()) {
+				customerUpdates.email = String(parsed.data.email_id).trim();
+			}
 			if (parsed.data.alternate_phone && parsed.data.alternate_phone.trim()) {
 				customerUpdates.alternate_phone = parsed.data.alternate_phone.trim();
 			}
 			if (parsed.data.address && parsed.data.address.trim()) {
 				customerUpdates.address = parsed.data.address.trim();
 			}
+			customerUpdates.route = (parsed.data.preferred_location || parsed.data.address || null) as any;
+			customerUpdates.advisor_id = parsed.data.assigned_advisor_id || null;
 			if (parsed.data.birth_date) {
 				customerUpdates.birth_date = parsed.data.birth_date;
 			}
@@ -311,8 +365,9 @@ export async function createEnquiryCustomer(
 				alternate_phone: parsed.data.alternate_phone || null,
 				address: parsed.data.address || null,
 				birth_date: parsed.data.birth_date || null,
-				advisor_id: null,
-				route: null,
+				email: parsed.data.email_id || null,
+				advisor_id: parsed.data.assigned_advisor_id || null,
+				route: parsed.data.preferred_location || parsed.data.address || null,
 				notes: parsed.data.details || null,
 				is_active: false, // temporary until upgraded
 				enquiry_temp_id: enquiryId,
@@ -379,7 +434,7 @@ export async function upgradeEnquiryToCustomer(opts: {
 
 	const { data: enquiry, error: enquiryErr } = await supabase
 		.from("enquiry_customers")
-		.select("phone,category,details")
+		.select("phone,category,details,assigned_advisor_id,preferred_location,address,email_id")
 		.eq("id", enquiryId)
 		.single();
 
@@ -391,6 +446,10 @@ export async function upgradeEnquiryToCustomer(opts: {
 		.from("customers")
 		.update({
 			is_active: true,
+			advisor_id: enquiry.assigned_advisor_id ?? null,
+			route: enquiry.preferred_location ?? enquiry.address ?? null,
+			email: enquiry.email_id ?? null,
+			address: enquiry.address ?? null,
 			upgraded_from_enquiry_id: enquiryId,
 			upgraded_from_enquiry_category: enquiry.category,
 			upgraded_from_enquiry_details: enquiry.details,

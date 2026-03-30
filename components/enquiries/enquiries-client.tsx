@@ -20,7 +20,7 @@ import type { EnquiryRow } from "@/app/actions/enquiries";
 import { EnquiryCreateModal } from "@/components/enquiries/enquiry-create-modal";
 import { EnquiryEditModal } from "@/components/enquiries/enquiry-edit-modal";
 import { EnquiryTempCustomersModal } from "@/components/enquiries/enquiry-temp-customers-modal";
-import { Calendar, Building2, User } from "lucide-react";
+import { Calendar, Building2, User, CheckCircle2, Clock3, UserCheck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -60,6 +60,23 @@ export function EnquiriesClient({
 				return "Closed Lost";
 			default:
 				return st;
+		}
+	};
+
+	const pipelineBadge = (st: string) => {
+		switch (st) {
+			case "new":
+				return { badge: "bg-blue-100 text-blue-800 border-blue-200", Icon: Clock3 };
+			case "contacted":
+				return { badge: "bg-green-100 text-green-800 border-green-200", Icon: CheckCircle2 };
+			case "follow_up":
+				return { badge: "bg-amber-100 text-amber-900 border-amber-200", Icon: Clock3 };
+			case "joined":
+				return { badge: "bg-purple-100 text-purple-900 border-purple-200", Icon: UserCheck };
+			case "not_interested":
+				return { badge: "bg-red-100 text-red-800 border-red-200", Icon: XCircle };
+			default:
+				return { badge: "bg-zinc-100 text-zinc-800 border-zinc-200", Icon: Clock3 };
 		}
 	};
 
@@ -215,7 +232,17 @@ export function EnquiriesClient({
 										</TableCell>
 										<TableCell>
 											<Badge variant="outline" className="font-normal capitalize">
-												{pipelineLabel(enq.enquiry_status ?? "new")}
+												{(() => {
+													const { badge, Icon } = pipelineBadge(enq.enquiry_status ?? "new");
+													return (
+														<span className="flex items-center gap-1">
+															<Icon className="h-3.5 w-3.5" />
+															<span className="whitespace-nowrap">
+																{pipelineLabel(enq.enquiry_status ?? "new")}
+															</span>
+														</span>
+													);
+												})()}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-sm text-zinc-700 whitespace-nowrap">

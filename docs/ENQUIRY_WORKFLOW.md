@@ -46,7 +46,6 @@ The create/edit form supports these main fields:
 - `category` -> `enquiry_customers.category` (shown as “How did they find us?”)
 - `details` -> `enquiry_customers.details`
 - `follow_up_date` -> `enquiry_customers.follow_up_date` (optional)
-- `interested_plan` -> `enquiry_customers.interested_plan` (optional)
 - `enquiry_status` -> `enquiry_customers.enquiry_status`
 - `is_active`
   - Active enquiries are those with `enquiry_customers.is_active = true`.

@@ -399,33 +399,22 @@ export async function getProjectPaymentsTrend(
 	const start = filters?.startDate ? toDateOnly(filters.startDate) : undefined;
 	const end = filters?.endDate ? toDateOnly(filters.endDate) : undefined;
 
-	// Get plot IDs for this project (needed to fetch related sales, then payments).
-	const { data: plots } = await supabase
-		.from("plots")
-		.select("id")
-		.eq("project_id", projectId);
-	const plotIds = (plots ?? []).map((p: any) => p.id);
-
-	if (plotIds.length === 0) {
-		return { data: [], summary: { collected: 0, paymentsCount: 0 } };
-	}
-
-	const { data: sales } = await supabase
-		.from("plot_sales")
-		.select("id")
-		.in("plot_id", plotIds)
-		.eq("is_cancelled", false);
-
-	const saleIds = (sales ?? []).map((s: any) => s.id);
-	if (saleIds.length === 0) {
-		return { data: [], summary: { collected: 0, paymentsCount: 0 } };
-	}
-
+	// Single query using joins (fewer round trips).
 	let q = supabase
 		.from("payments")
-		.select("amount, payment_date")
-		.in("sale_id", saleIds)
-		.eq("is_confirmed", true);
+		.select(
+			`
+      amount,
+      payment_date,
+      plot_sales!inner(
+        is_cancelled,
+        plots!inner(project_id)
+      )
+    `
+		)
+		.eq("is_confirmed", true)
+		.eq("plot_sales.is_cancelled", false)
+		.eq("plot_sales.plots.project_id", projectId);
 
 	if (start) q = q.gte("payment_date", start);
 	if (end) q = q.lte("payment_date", end);

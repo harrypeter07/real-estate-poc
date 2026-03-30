@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export default async function RootPage() {
   const supabase = await createClient();
@@ -19,6 +20,10 @@ export default async function RootPage() {
 
     redirect("/dashboard");
   } catch (error) {
+    // Next.js `redirect()` throws internally; don't log it as an auth error.
+    if (isRedirectError(error)) {
+      throw error;
+    }
     console.error("Auth error in root page:", error);
     redirect("/login");
   }

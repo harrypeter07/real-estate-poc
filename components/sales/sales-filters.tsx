@@ -61,7 +61,9 @@ export function SalesFilters({
 		setSelectedPhase("all");
 		setSelectedProject("all");
 		setSelectedSort("newest");
-		router.push("/sales");
+		startTransition(() => {
+			router.push("/sales");
+		});
 	}
 
 	const now = new Date();
@@ -83,8 +85,11 @@ export function SalesFilters({
 						setSelectedPhase("all");
 						setSelectedProject("all");
 						setSelectedSort("newest");
-						router.push("/sales");
+						startTransition(() => {
+							router.push("/sales");
+						});
 					}}
+					disabled={isPending}
 				>
 					All time
 				</Button>
@@ -96,8 +101,14 @@ export function SalesFilters({
 						params.set("from", thisMonthStart);
 						params.set("to", thisMonthEnd);
 						if (selectedPhase && selectedPhase !== "all") params.set("phase", selectedPhase);
-						router.push(`/sales?${params.toString()}`);
+						if (selectedAdvisor && selectedAdvisor !== "all") params.set("advisor", selectedAdvisor);
+						if (selectedProject && selectedProject !== "all") params.set("project", selectedProject);
+						if (selectedSort && selectedSort !== "newest") params.set("sort", selectedSort);
+						startTransition(() => {
+							router.push(`/sales?${params.toString()}`);
+						});
 					}}
+					disabled={isPending}
 				>
 					This month
 				</Button>
@@ -109,8 +120,14 @@ export function SalesFilters({
 						params.set("from", thisYearStart);
 						params.set("to", thisYearEnd);
 						if (selectedPhase && selectedPhase !== "all") params.set("phase", selectedPhase);
-						router.push(`/sales?${params.toString()}`);
+						if (selectedAdvisor && selectedAdvisor !== "all") params.set("advisor", selectedAdvisor);
+						if (selectedProject && selectedProject !== "all") params.set("project", selectedProject);
+						if (selectedSort && selectedSort !== "newest") params.set("sort", selectedSort);
+						startTransition(() => {
+							router.push(`/sales?${params.toString()}`);
+						});
 					}}
+					disabled={isPending}
 				>
 					This year
 				</Button>

@@ -37,7 +37,9 @@ export function CommissionsFilters() {
 		setCustomFrom("");
 		setCustomTo("");
 		setSelectedStatus("all");
-		router.push("/commissions");
+		startTransition(() => {
+			router.push("/commissions");
+		});
 	}
 
 	const now = new Date();
@@ -57,8 +59,11 @@ export function CommissionsFilters() {
 						setCustomFrom("");
 						setCustomTo("");
 						setSelectedStatus("all");
-						router.push("/commissions");
+						startTransition(() => {
+							router.push("/commissions");
+						});
 					}}
+					disabled={isPending}
 				>
 					All time
 				</Button>
@@ -70,8 +75,11 @@ export function CommissionsFilters() {
 						params.set("from", thisMonthStart);
 						params.set("to", thisMonthEnd);
 						if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
-						router.push(`/commissions?${params.toString()}`);
+						startTransition(() => {
+							router.push(`/commissions?${params.toString()}`);
+						});
 					}}
+					disabled={isPending}
 				>
 					This month
 				</Button>
@@ -83,8 +91,11 @@ export function CommissionsFilters() {
 						params.set("from", thisYearStart);
 						params.set("to", thisYearEnd);
 						if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
-						router.push(`/commissions?${params.toString()}`);
+						startTransition(() => {
+							router.push(`/commissions?${params.toString()}`);
+						});
 					}}
+					disabled={isPending}
 				>
 					This year
 				</Button>

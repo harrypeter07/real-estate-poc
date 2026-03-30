@@ -35,6 +35,9 @@ export function SalesList({
 		<>
 			<div className="grid grid-cols-1 gap-4">
 				{sales.map((sale) => {
+					const advisorName = sale.sold_by_admin
+						? "Admin (Direct)"
+						: sale.advisors?.name ?? "—";
 					const phase =
 						sale.is_cancelled
 							? { label: "Plot revoked", className: "bg-zinc-200 text-zinc-700 border-zinc-300" }
@@ -104,7 +107,9 @@ export function SalesList({
 													<p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
 														Advisor
 													</p>
-													<p className="text-sm font-semibold">{sale.advisors?.name}</p>
+													<p className="text-sm font-semibold">
+														{advisorName}
+													</p>
 												</div>
 											</div>
 										</div>

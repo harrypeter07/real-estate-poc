@@ -13,7 +13,13 @@ import { formatCurrency } from "@/lib/utils/formatters";
 
 type SalesTrendPoint = { month: string; count: number; value: number };
 
-export function SalesTrendLineChart({ data }: { data: SalesTrendPoint[] }) {
+export function SalesTrendLineChart({
+	data,
+	granularity = "month",
+}: {
+	data: SalesTrendPoint[];
+	granularity?: "week" | "month";
+}) {
 	const values = data.map((d) => Number(d.value ?? 0));
 	const min = values.length ? Math.min(...values) : 0;
 	const max = values.length ? Math.max(...values) : 0;
@@ -31,7 +37,18 @@ export function SalesTrendLineChart({ data }: { data: SalesTrendPoint[] }) {
 					margin={{ top: 8, right: 16, bottom: 0, left: 8 }}
 				>
 					<CartesianGrid strokeDasharray="3 3" />
-					<XAxis dataKey="month" tick={{ fontSize: 12 }} />
+					<XAxis
+						dataKey="month"
+						tick={{ fontSize: 12 }}
+						tickFormatter={(v: any) => {
+							const s = String(v ?? "");
+							if (granularity === "week" && s.includes("-W")) {
+								const parts = s.split("-W");
+								return `W${parts[1] ?? ""}`;
+							}
+							return s;
+						}}
+					/>
 					<YAxis
 						domain={domain}
 						tickFormatter={(v) =>
@@ -40,7 +57,14 @@ export function SalesTrendLineChart({ data }: { data: SalesTrendPoint[] }) {
 					/>
 					<Tooltip
 						formatter={(v: any) => formatCurrency(Number(v))}
-						labelFormatter={(label: any) => `Month: ${label}`}
+						labelFormatter={(label: any) => {
+							const s = String(label ?? "");
+							if (granularity === "week" && s.includes("-W")) {
+								const parts = s.split("-W");
+								return `Week: W${parts[1] ?? ""}`;
+							}
+							return `Month: ${s}`;
+						}}
 					/>
 					<Line
 						type="monotone"

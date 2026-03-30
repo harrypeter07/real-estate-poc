@@ -42,7 +42,9 @@ export function PaymentsFilters() {
 		setCustomTo("");
 		setSelectedStatus("all");
 		setSelectedMode("all");
-		router.push("/payments");
+		startTransition(() => {
+			router.push("/payments");
+		});
 	}
 
 	const now = new Date();
@@ -63,8 +65,11 @@ export function PaymentsFilters() {
 						setCustomTo("");
 						setSelectedStatus("all");
 						setSelectedMode("all");
-						router.push("/payments");
+						startTransition(() => {
+							router.push("/payments");
+						});
 					}}
+					disabled={isPending}
 				>
 					All time
 				</Button>
@@ -77,8 +82,11 @@ export function PaymentsFilters() {
 						params.set("to", thisMonthEnd);
 						if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
 						if (selectedMode && selectedMode !== "all") params.set("mode", selectedMode);
-						router.push(`/payments?${params.toString()}`);
+						startTransition(() => {
+							router.push(`/payments?${params.toString()}`);
+						});
 					}}
+					disabled={isPending}
 				>
 					This month
 				</Button>
@@ -91,8 +99,11 @@ export function PaymentsFilters() {
 						params.set("to", thisYearEnd);
 						if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
 						if (selectedMode && selectedMode !== "all") params.set("mode", selectedMode);
-						router.push(`/payments?${params.toString()}`);
+						startTransition(() => {
+							router.push(`/payments?${params.toString()}`);
+						});
 					}}
+					disabled={isPending}
 				>
 					This year
 				</Button>

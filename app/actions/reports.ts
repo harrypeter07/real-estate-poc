@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getISOWeek, getISOWeekYear, startOfISOWeek } from "date-fns";
 
 export type ReportFilters = {
 	startDate?: string; // ISO date YYYY-MM-DD
@@ -220,6 +221,26 @@ export async function getReportStats(filters?: ReportFilters) {
 		salesByMonth[month] = prev;
 	}
 
+	// 13b. Sale count by ISO week (for trend)
+	const salesByWeek: Record<string, { count: number; value: number; sortKey: string }> = {};
+	for (const s of filteredSales) {
+		const createdAt = (s as any).created_at ?? "";
+		const d = createdAt ? new Date(createdAt) : null;
+		if (!d || Number.isNaN(d.getTime())) continue;
+
+		const isoYear = getISOWeekYear(d);
+		const isoWeek = getISOWeek(d);
+		const label = `${isoYear}-W${String(isoWeek).padStart(2, "0")}`;
+		const weekStart = startOfISOWeek(d);
+		const sortKey = weekStart.toISOString().slice(0, 10);
+
+		const prev = salesByWeek[label] ?? { count: 0, value: 0, sortKey };
+		prev.count += 1;
+		prev.value += Number((s as any).total_sale_amount ?? 0);
+		prev.sortKey = sortKey;
+		salesByWeek[label] = prev;
+	}
+
 	return {
 		summary: {
 			totalSalesValue,
@@ -249,6 +270,10 @@ export async function getReportStats(filters?: ReportFilters) {
 		salesByMonth: Object.entries(salesByMonth)
 			.map(([month, v]) => ({ month, ...v }))
 			.sort((a, b) => a.month.localeCompare(b.month)),
+		salesByWeek: Object.entries(salesByWeek)
+			.map(([weekLabel, v]) => ({ month: weekLabel, count: v.count, value: v.value, sortKey: v.sortKey }))
+			.sort((a: any, b: any) => (a.sortKey ?? "").localeCompare(b.sortKey ?? ""))
+			.map((p: any) => ({ month: p.month, count: p.count, value: p.value })),
 	};
 }
 
@@ -451,5 +476,6 @@ function getEmptyReport() {
 		collectionsVsOutstanding: { collected: 0, outstanding: 0, total: 0 },
 		newCustomersInPeriod: 0,
 		salesByMonth: [] as { month: string; count: number; value: number }[],
+		salesByWeek: [] as { month: string; count: number; value: number }[],
 	};
 }

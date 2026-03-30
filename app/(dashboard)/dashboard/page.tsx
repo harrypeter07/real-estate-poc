@@ -17,11 +17,12 @@ import { getReportStats } from "@/app/actions/reports";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { ReportsFilters } from "@/components/reports/reports-filters";
 import { SalesTrendLineChart } from "@/components/reports/sales-trend-line-chart";
+import { SalesTrendControls } from "@/components/reports/sales-trend-controls";
 
 export default async function DashboardPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ from?: string; to?: string }>;
+	searchParams: Promise<{ from?: string; to?: string; trend?: "week" | "month" }>;
 }) {
 	const params = await searchParams;
 	const filters = {
@@ -29,6 +30,11 @@ export default async function DashboardPage({
 		endDate: params.to ?? undefined,
 	};
 	const stats = await getReportStats(filters);
+	const trendMode: "week" | "month" = params.trend ?? "month";
+	const trendData =
+		trendMode === "week"
+			? (stats.salesByWeek as any)
+			: (stats.salesByMonth as any);
 
 	return (
 		<div className="space-y-6">
@@ -313,16 +319,24 @@ export default async function DashboardPage({
 				</CardContent>
 			</Card>
 
-			{stats.salesByMonth.length > 0 && (
+			{trendData.length > 0 && (
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-sm font-bold flex items-center gap-2">
-							<BarChart3 className="h-4 w-4" /> Sales Trend by Month
+							<BarChart3 className="h-4 w-4" /> Sales Trend by {trendMode === "week" ? "Week" : "Month"}
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<SalesTrendLineChart data={stats.salesByMonth as any} />
-						<div className="mt-3 text-xs text-zinc-500">Y-axis range adapts automatically to the selected date range.</div>
+						<div className="mb-3">
+							<SalesTrendControls />
+						</div>
+						<SalesTrendLineChart
+							data={trendData}
+							granularity={trendMode}
+						/>
+						<div className="mt-3 text-xs text-zinc-500">
+							Y-axis range adapts automatically to the selected date range.
+						</div>
 					</CardContent>
 				</Card>
 			)}

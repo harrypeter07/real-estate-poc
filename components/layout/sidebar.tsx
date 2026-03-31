@@ -49,8 +49,12 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
       setEnabledModules(new Set((rows ?? []).map((r: any) => String(r.module_key))));
     }
     void load();
+    const interval = window.setInterval(() => {
+      void load();
+    }, 8000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, [items]);
 

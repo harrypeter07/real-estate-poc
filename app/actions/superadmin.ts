@@ -152,6 +152,88 @@ export async function saCreateTenantAdmin(input: {
 	}
 }
 
+export async function saCreateBusinessWithOwner(input: {
+	business_name: string;
+	admin_name: string;
+	admin_email: string;
+	admin_password: string;
+}): Promise<SAResult<{ business_id: string; admin_auth_user_id: string }>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const admin = createAdminClient();
+		if (!admin) return { ok: false, error: "Missing service role key" };
+
+		const businessName = (input.business_name ?? "").trim();
+		const adminName = (input.admin_name ?? "").trim();
+		const adminEmail = (input.admin_email ?? "").trim().toLowerCase();
+		const adminPassword = (input.admin_password ?? "").trim();
+
+		if (!businessName) return { ok: false, error: "Business name is required" };
+		if (!adminEmail || !adminEmail.includes("@")) return { ok: false, error: "Valid admin email is required" };
+		if (adminPassword.length < 6) return { ok: false, error: "Password must be at least 6 characters" };
+
+		// 1) Create business
+		const { data: biz, error: bizErr } = await supabase
+			.from("businesses")
+			.insert({ name: businessName, status: "active" })
+			.select("id")
+			.single();
+		if (bizErr || !biz?.id) return { ok: false, error: bizErr?.message ?? "Failed to create business" };
+
+		// 2) Seed modules for business
+		const { data: modules } = await supabase.from("modules").select("key");
+		const entRows = (modules ?? []).map((m: any) => ({
+			business_id: biz.id,
+			module_key: m.key,
+			enabled: true,
+		}));
+		if (entRows.length) await supabase.from("business_modules").upsert(entRows);
+
+		// 3) Create auth user as admin for this business
+		const { data: authRes, error: authErr } = await admin.auth.admin.createUser({
+			email: adminEmail,
+			password: adminPassword,
+			email_confirm: true,
+			user_metadata: {
+				role: "admin",
+				business_id: biz.id,
+				name: adminName,
+			},
+		});
+		if (authErr || !authRes?.user?.id) return { ok: false, error: authErr?.message ?? "Failed to create admin user" };
+
+		const authUserId = authRes.user.id;
+
+		// 4) Insert mapping into business_admins
+		const { error: mapErr } = await supabase.from("business_admins").insert({
+			business_id: biz.id,
+			auth_user_id: authUserId,
+			name: adminName || null,
+			email: adminEmail,
+			is_active: true,
+		});
+		if (mapErr) return { ok: false, error: mapErr.message };
+
+		// 5) Audit
+		await audit({
+			actorId: user.id,
+			action: "business_with_owner.create",
+			targetBusinessId: biz.id,
+			targetAdminAuthUserId: authUserId,
+			after: {
+				business_name: businessName,
+				admin_email: adminEmail,
+				admin_name: adminName,
+			},
+		});
+
+		return { ok: true, data: { business_id: biz.id, admin_auth_user_id: authUserId } };
+	} catch (e: any) {
+		if (isRedirectError(e)) throw e;
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
 export async function saListTenantAdmins(params: {
 	business_id?: string;
 }): Promise<
@@ -370,6 +452,89 @@ export async function saToggleBusinessModule(input: {
 			before,
 			after: { business_id: businessId, module_key: moduleKey, enabled: input.enabled },
 		});
+		return { ok: true, data: true };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saSetBusinessModulesBulk(input: {
+	business_id: string;
+	enabledModuleKeys: string[];
+}): Promise<SAResult<true>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const businessId = String(input.business_id ?? "").trim();
+		if (!businessId) return { ok: false, error: "Business is required" };
+
+		const enabledSet = new Set((input.enabledModuleKeys ?? []).map((k) => String(k).trim()));
+
+		// Snapshot before
+		const { data: beforeRows } = await supabase
+			.from("business_modules")
+			.select("module_key, enabled")
+			.eq("business_id", businessId);
+
+		const { data: modules } = await supabase.from("modules").select("key");
+		const entRows = (modules ?? []).map((m: any) => ({
+			business_id: businessId,
+			module_key: m.key,
+			enabled: enabledSet.has(m.key),
+		}));
+
+		if (entRows.length) {
+			const { error } = await supabase.from("business_modules").upsert(entRows);
+			if (error) return { ok: false, error: error.message };
+		}
+
+		await audit({
+			actorId: user.id,
+			action: "module.set_bulk",
+			targetBusinessId: businessId,
+			before: beforeRows ?? null,
+			after: { enabledModuleKeys: Array.from(enabledSet.values()) },
+		});
+
+		return { ok: true, data: true };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saChangeTenantAdminPassword(input: {
+	business_admin_id: string;
+	newPassword: string;
+}): Promise<SAResult<true>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const id = String(input.business_admin_id ?? "").trim();
+		const newPassword = String(input.newPassword ?? "").trim();
+		if (!id) return { ok: false, error: "Admin id is required" };
+		if (newPassword.length < 6) return { ok: false, error: "Password must be at least 6 characters" };
+
+		const { data: row, error } = await supabase
+			.from("business_admins")
+			.select("id, auth_user_id")
+			.eq("id", id)
+			.single();
+		if (error || !row?.auth_user_id) return { ok: false, error: error?.message ?? "Admin not found" };
+
+		const admin = createAdminClient();
+		if (!admin) return { ok: false, error: "Missing service role key" };
+
+		await admin.auth.admin.updateUserById(row.auth_user_id, {
+			password: newPassword,
+		});
+
+		await audit({
+			actorId: user.id,
+			action: "admin.password.change",
+			targetBusinessId: null,
+			targetAdminAuthUserId: row.auth_user_id,
+			before: null,
+			after: { changed: true },
+		});
+
 		return { ok: true, data: true };
 	} catch (e: any) {
 		return { ok: false, error: e?.message ?? "Failed" };

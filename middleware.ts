@@ -80,7 +80,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const role = (user?.user_metadata as any)?.role;
+  const role =
+    (user?.user_metadata as any)?.role ?? (user?.app_metadata as any)?.role;
 
   // If superadmin is logged in, keep them inside /superadmin routes (and allow /dashboard if needed)
   if (user && String(role || "").toLowerCase() === "superadmin") {
@@ -140,7 +141,12 @@ export async function middleware(request: NextRequest) {
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     const rr = String(role || "").toLowerCase();
-    url.pathname = rr === "advisor" ? "/advisor" : rr === "superadmin" ? "/superadmin" : "/dashboard";
+    url.pathname =
+      rr === "advisor"
+        ? "/advisor"
+        : rr === "superadmin"
+          ? "/superadmin"
+          : "/dashboard";
     return NextResponse.redirect(url);
   }
 

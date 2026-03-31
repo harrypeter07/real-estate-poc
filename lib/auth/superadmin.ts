@@ -5,7 +5,8 @@ import type { User } from "@supabase/supabase-js";
 export function isSuperAdmin(user: User | null): boolean {
 	if (!user) return false;
 	const md = (user.user_metadata ?? {}) as Record<string, unknown>;
-	const role = String(md.role ?? "").trim().toLowerCase();
+	const appMd = (user.app_metadata ?? {}) as Record<string, unknown>;
+	const role = String(md.role ?? appMd.role ?? "").trim().toLowerCase();
 	return role === "superadmin";
 }
 

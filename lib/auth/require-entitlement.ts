@@ -15,7 +15,9 @@ export type ModuleKey =
 	| "reports";
 
 function roleOf(user: any): string {
-	return String(user?.user_metadata?.role ?? "").trim().toLowerCase();
+	const md = user?.user_metadata ?? {};
+	const appMd = user?.app_metadata ?? {};
+	return String(md?.role ?? appMd?.role ?? "").trim().toLowerCase();
 }
 
 export async function requireEntitlement(moduleKey: ModuleKey) {

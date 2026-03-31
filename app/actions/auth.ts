@@ -42,7 +42,12 @@ export async function signInWithEmailOrPhone(
 		});
 
 		if (!signInErr) {
-			redirect("/dashboard");
+			const { data: roleUser } = await supabase.auth.getUser();
+			const roleUserAny = roleUser as any;
+			const md = (roleUserAny?.user_metadata ?? {}) as any;
+			const appMd = (roleUserAny?.app_metadata ?? {}) as any;
+			const role = String(md.role ?? appMd.role ?? "").trim().toLowerCase();
+			redirect(role === "superadmin" ? "/superadmin" : "/dashboard");
 			return { success: true };
 		}
 
@@ -102,7 +107,13 @@ export async function signInWithEmailOrPhone(
 		});
 
 		if (finalErr) return { success: false, error: "Invalid credentials." };
-		redirect("/dashboard");
+		// After successful login, redirect based on role.
+		const { data: roleUser } = await supabase.auth.getUser();
+		const roleUserAny = roleUser as any;
+		const md = (roleUserAny?.user_metadata ?? {}) as any;
+		const appMd = (roleUserAny?.app_metadata ?? {}) as any;
+		const role = String(md.role ?? appMd.role ?? "").trim().toLowerCase();
+		redirect(role === "superadmin" ? "/superadmin" : "/dashboard");
 		return { success: true };
 	}
 
@@ -115,5 +126,11 @@ export async function signInWithEmailOrPhone(
 		return { success: false, error: "Invalid credentials." };
 	}
 
-	redirect("/dashboard");
+	// Redirect based on role immediately after login (prevents wrong initial layout).
+	const { data: roleUser } = await supabase.auth.getUser();
+	const roleUserAny = roleUser as any;
+	const md = (roleUserAny?.user_metadata ?? {}) as any;
+	const appMd = (roleUserAny?.app_metadata ?? {}) as any;
+	const role = String(md.role ?? appMd.role ?? "").trim().toLowerCase();
+	redirect(role === "superadmin" ? "/superadmin" : "/dashboard");
 }

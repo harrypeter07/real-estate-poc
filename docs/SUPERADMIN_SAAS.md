@@ -86,9 +86,11 @@ UI mapping is defined in `components/layout/nav-items.ts` via `moduleKey`.
 - **UI navigation**: `components/layout/sidebar.tsx`
   - Loads enabled modules from `business_modules` and hides disabled items.
 
-- **Server-side blocking**: `lib/auth/require-entitlement.ts`
-  - Pages/actions can call `await requireEntitlement(\"reports\")` etc.
-  - Currently applied to `app/(dashboard)/reports/page.tsx`.
+- **Server-side blocking (real time)**: `middleware.ts`
+  - For admin/advisor route paths, middleware checks `business_modules` for the current tenant and redirects if the module is disabled.
+
+- **Optional page-level checks**: `lib/auth/require-entitlement.ts`
+  - Individual pages/actions may also call `await requireEntitlement(\"reports\")` etc.
 
 ### Super Admin UI
 
@@ -103,6 +105,8 @@ UI mapping is defined in `components/layout/nav-items.ts` via `moduleKey`.
   - Existing single-tenant data is assigned to `Default Business`.
   - Existing users without `business_id` metadata keep working due to `app_business_id()` fallback.
   - Recommended: set correct `business_id` into every admin/advisor auth user metadata going forward.
+
+  - The app also seeds `business_modules` rows for the Default Business so module navigation works immediately.
 
 - **RLS**
   - If you disable a module, the UI hides it and server-side checks can block entry.

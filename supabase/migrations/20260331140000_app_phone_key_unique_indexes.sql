@@ -1,5 +1,8 @@
 -- Normalized phone key (last 10 digits) for uniqueness per business.
 -- Run scripts/sql/preview_duplicate_phones.sql first if migration fails on duplicates.
+--
+-- If CREATE UNIQUE INDEX advisors_phone_unique fails (23505 duplicate key), merge duplicates
+-- then create the index: scripts/sql/merge_duplicate_advisors_phone_then_index.sql
 
 CREATE OR REPLACE FUNCTION public.app_phone_key(p text)
 RETURNS text

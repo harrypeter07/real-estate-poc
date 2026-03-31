@@ -6,16 +6,21 @@ import {
 	customerSchema,
 	type CustomerFormValues,
 } from "@/lib/validations/customer";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import { mapUniquePhoneViolation } from "@/lib/utils/db-errors";
 
 export type ActionResponse = {
 	success: boolean;
 	error?: string;
 };
 
-function mapCustomerDbError(error: { code?: string; message: string }): string {
-	if (error.code === "23505" && /(phone|customers_phone_unique)/i.test(error.message)) {
-		return "A customer with this phone number already exists.";
-	}
+function mapCustomerDbError(error: {
+	code?: string;
+	message: string;
+	details?: string;
+}): string {
+	const phoneMsg = mapUniquePhoneViolation(error, "customer");
+	if (phoneMsg) return phoneMsg;
 	return error.message;
 }
 
@@ -105,9 +110,12 @@ export async function createCustomer(
 		return { success: false, error: "Advisor context missing" };
 	}
 
+	const businessId = await getCurrentBusinessId();
+
 	const { data: insertedCustomer, error } = await supabase
 		.from("customers")
 		.insert({
+		business_id: businessId,
 		name: parsed.data.name,
 		phone: parsed.data.phone,
 		alternate_phone: parsed.data.alternate_phone || null,

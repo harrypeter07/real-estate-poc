@@ -6,6 +6,8 @@ import {
 	enquiryCustomerSchema,
 	type EnquiryCustomerFormValues,
 } from "@/lib/validations/enquiry";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import { mapUniquePhoneViolation } from "@/lib/utils/db-errors";
 
 export type ActionResponse = {
 	success: boolean;
@@ -269,10 +271,13 @@ export async function createEnquiryCustomer(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	const businessId = await getCurrentBusinessId();
+
 	// Insert enquiry record always (same phone can have multiple enquiries).
 	const { data: enquiry, error: enquiryErr } = await supabase
 		.from("enquiry_customers")
 		.insert({
+			business_id: businessId,
 			name: parsed.data.name,
 			phone: parsed.data.phone,
 			alternate_phone: parsed.data.alternate_phone || null,
@@ -303,11 +308,14 @@ export async function createEnquiryCustomer(
 	const enquiryId = enquiry.id;
 
 	// If a customer with same phone exists, reuse it; otherwise create a temp customer.
-	const { data: existingCustomer, error: custFindErr } = await supabase
+	let existingQuery = supabase
 		.from("customers")
 		.select("id,is_active,enquiry_temp_id,upgraded_from_enquiry_id,notes")
-		.eq("phone", parsed.data.phone)
-		.maybeSingle();
+		.eq("phone", parsed.data.phone);
+	if (businessId) {
+		existingQuery = existingQuery.eq("business_id", businessId);
+	}
+	const { data: existingCustomer, error: custFindErr } = await existingQuery.maybeSingle();
 
 	if (custFindErr) {
 		return { success: false, error: custFindErr.message };
@@ -360,6 +368,7 @@ export async function createEnquiryCustomer(
 		const { data: newCustomer, error: custInsertErr } = await supabase
 			.from("customers")
 			.insert({
+				business_id: businessId,
 				name: parsed.data.name,
 				phone: parsed.data.phone,
 				alternate_phone: parsed.data.alternate_phone || null,
@@ -376,7 +385,11 @@ export async function createEnquiryCustomer(
 			.single();
 
 		if (custInsertErr || !newCustomer) {
-			return { success: false, error: custInsertErr?.message || "Failed to create temp customer" };
+			const dup = mapUniquePhoneViolation(custInsertErr ?? {}, "customer");
+			return {
+				success: false,
+				error: dup || custInsertErr?.message || "Failed to create temp customer",
+			};
 		}
 
 		customerId = newCustomer.id;

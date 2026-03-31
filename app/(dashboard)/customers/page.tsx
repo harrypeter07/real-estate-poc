@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
-import { CustomerCard } from "@/components/customers/customer-card";
+import { CustomersTableClient } from "@/components/customers/customers-table-client";
 import { getCustomers } from "@/app/actions/customers";
 
 export default async function CustomersPage() {
@@ -40,11 +40,7 @@ export default async function CustomersPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {customers.map((customer) => (
-            <CustomerCard key={customer.id} customer={customer} />
-          ))}
-        </div>
+        <CustomersTableClient customers={customers as any} variant="admin" />
       )}
     </div>
   );

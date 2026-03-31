@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isAdminUser } from "@/lib/hr/auth-route";
 import { tryNormalizeHrPhone } from "@/lib/hr/phone";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import { mapUniquePhoneViolation } from "@/lib/utils/db-errors";
 
 export type HrEmployeeRow = {
 	id: string;
@@ -184,13 +186,13 @@ async function assertUniqueHrPhone(
 	excludeEmployeeId?: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
 	if (!phoneDigits) return { ok: true };
-	const { data: existing, error } = await supabase
-		.from("hr_employees")
-		.select("id")
-		.eq("phone", phoneDigits)
-		.maybeSingle();
+	const businessId = await getCurrentBusinessId();
+	let q = supabase.from("hr_employees").select("id").eq("phone", phoneDigits);
+	if (businessId) q = q.eq("business_id", businessId);
+	const { data: rows, error } = await q.limit(2);
 	if (error) return { ok: false, error: error.message };
-	if (existing?.id && existing.id !== excludeEmployeeId) {
+	const existing = (rows ?? []).find((r: { id: string }) => r.id !== excludeEmployeeId);
+	if (existing) {
 		return { ok: false, error: "This phone number is already used by another employee." };
 	}
 	return { ok: true };
@@ -204,13 +206,15 @@ async function assertUniqueEmployeeCode(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
 	const code = employeeCode.trim();
 	if (!code) return { ok: false, error: "Employee code is required." };
-	const { data: existing, error } = await supabase
-		.from("hr_employees")
-		.select("id, employee_code")
-		.eq("employee_code", code)
-		.maybeSingle();
+	const businessId = await getCurrentBusinessId();
+	let q = supabase.from("hr_employees").select("id, employee_code").eq("employee_code", code);
+	if (businessId) q = q.eq("business_id", businessId);
+	const { data: rows, error } = await q.limit(2);
 	if (error) return { ok: false, error: error.message };
-	if (existing?.id && existing.id !== excludeEmployeeId) {
+	const existing = (rows ?? []).find((r: { id: string }) => r.id !== excludeEmployeeId) as
+		| { id: string; employee_code: string }
+		| undefined;
+	if (existing) {
 		return {
 			ok: false,
 			error: `Employee code "${existing.employee_code}" already exists. Use a different code.`,
@@ -242,7 +246,10 @@ export async function createHrEmployee(form: {
 	if (!phoneCheck.ok) return { success: false, error: phoneCheck.error };
 	if (!codeCheck.ok) return { success: false, error: codeCheck.error };
 
+	const businessId = await getCurrentBusinessId();
+
 	const { error } = await r.supabase.from("hr_employees").insert({
+		business_id: businessId,
 		name: form.name.trim(),
 		employee_code: codeTrimmed,
 		phone,
@@ -254,9 +261,8 @@ export async function createHrEmployee(form: {
 	});
 	if (error) {
 		if (error.code === "23505") {
-			if (/phone/i.test(error.message)) {
-				return { success: false, error: "This phone number is already used by another employee." };
-			}
+			const phoneMsg = mapUniquePhoneViolation(error, "employee");
+			if (phoneMsg) return { success: false, error: phoneMsg };
 			if (/employee_code|hr_employees_employee_code/i.test(error.message)) {
 				return { success: false, error: "This employee code already exists. Use a different code." };
 			}
@@ -308,9 +314,8 @@ export async function updateHrEmployee(
 		.eq("id", id);
 	if (error) {
 		if (error.code === "23505") {
-			if (/phone/i.test(error.message)) {
-				return { success: false, error: "This phone number is already used by another employee." };
-			}
+			const phoneMsg = mapUniquePhoneViolation(error, "employee");
+			if (phoneMsg) return { success: false, error: phoneMsg };
 			if (/employee_code|hr_employees_employee_code/i.test(error.message)) {
 				return { success: false, error: "This employee code already exists. Use a different code." };
 			}

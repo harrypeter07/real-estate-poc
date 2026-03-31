@@ -8,6 +8,7 @@ import {
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
 import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import { mapUniquePhoneViolation } from "@/lib/utils/db-errors";
 
 export type ActionResponse = {
 	success: boolean;
@@ -124,7 +125,12 @@ export async function createAdvisor(
 			};
 		}
 		if (error.code === "23505") {
-			return { success: false, error: "Advisor code already exists" };
+			const phoneMsg = mapUniquePhoneViolation(error, "advisor");
+			if (phoneMsg) return { success: false, error: phoneMsg };
+			return {
+				success: false,
+				error: "Advisor code already exists for this business.",
+			};
 		}
 		return { success: false, error: error.message };
 	}
@@ -207,6 +213,14 @@ export async function updateAdvisor(
 					"SQL:\n" +
 					"ALTER TABLE advisors ADD COLUMN IF NOT EXISTS email TEXT;\n" +
 					"ALTER TABLE advisors ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;\n",
+			};
+		}
+		if (error.code === "23505") {
+			const phoneMsg = mapUniquePhoneViolation(error, "advisor");
+			if (phoneMsg) return { success: false, error: phoneMsg };
+			return {
+				success: false,
+				error: "Advisor code already exists for this business.",
 			};
 		}
 		return { success: false, error: error.message };

@@ -247,16 +247,9 @@ export async function saUpdateTenantAdmin(input: {
 		// Update auth user if email/name changed.
 		const admin = createAdminClient();
 		if (admin) {
-			const userUpdatePayload: any = {};
-			if (updates.email) userUpdatePayload.email = updates.email;
-			if (nextName !== undefined) {
-				userUpdatePayload.user_metadata = {
-					...(before as any),
-				};
-			}
-			// Keep it minimal: update email & metadata name only.
+			// Keep it minimal: update email (if changed) + metadata name/business_id.
 			await admin.auth.admin.updateUserById(before.auth_user_id, {
-				...(updates.email ? { email: updates.email } : null),
+				email: updates.email ?? undefined,
 				user_metadata: {
 					role: "admin",
 					business_id: (before as any).business_id,

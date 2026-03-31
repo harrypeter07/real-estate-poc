@@ -40,9 +40,17 @@ This document explains how the app now supports **multiple businesses (tenants)*
 ### How login works with tenants
 
 - **Super Admin**
-  - Create a Supabase Auth user.
-  - Set `user_metadata.role = "superadmin"`.
-  - Login at `/login` then you’ll be redirected to `/superadmin`.
+  - Bootstrap an Auth user with `user_metadata.role = "superadmin"`.
+  - Then login at `/login` and you’ll be redirected to `/superadmin`.
+
+  Bootstrap via script (no manual Supabase UI needed):
+
+  1. Set environment variables (or use defaults in the script):
+     - `SUPABASE_URL`
+     - `SUPABASE_SERVICE_ROLE_KEY`
+     - optional: `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD`
+  2. Run:
+     - `node scripts/create-superadmin.js`
 
 - **Tenant Admin**
   - Created from Super Admin UI:

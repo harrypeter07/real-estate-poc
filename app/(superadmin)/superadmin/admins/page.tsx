@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { saCreateBusiness, saCreateTenantAdmin, saListBusinesses, saListTenantAdmins, saSetAdminActive } from "@/app/actions/superadmin";
+import {
+	saCreateBusiness,
+	saCreateTenantAdmin,
+	saDeleteTenantAdmin,
+	saListBusinesses,
+	saListTenantAdmins,
+	saSetAdminActive,
+	saUpdateTenantAdmin,
+} from "@/app/actions/superadmin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +27,10 @@ export default function SuperAdminAdminsPage() {
 	const [adminName, setAdminName] = useState("");
 	const [adminEmail, setAdminEmail] = useState("");
 	const [adminPassword, setAdminPassword] = useState("");
+
+	const [editId, setEditId] = useState<string | null>(null);
+	const [editName, setEditName] = useState("");
+	const [editEmail, setEditEmail] = useState("");
 
 	const filteredAdmins = useMemo(() => {
 		if (!selectedBiz) return admins;
@@ -125,6 +137,67 @@ export default function SuperAdminAdminsPage() {
 				</Card>
 			</div>
 
+			{editId ? (
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-sm font-bold">Edit tenant admin</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-3">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+							<Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Admin name" disabled={isPending} />
+							<Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Admin email" disabled={isPending} />
+						</div>
+						<div className="flex flex-wrap gap-2">
+							<Button
+								disabled={isPending}
+								onClick={() => {
+									startTransition(async () => {
+										setErr(null);
+										const res = await saUpdateTenantAdmin({
+											business_admin_id: editId,
+											name: editName,
+											email: editEmail,
+										});
+										if (!res.ok) setErr(res.error);
+										setEditId(null);
+										await load();
+									});
+								}}
+							>
+								Save changes
+							</Button>
+							<Button
+								variant="outline"
+								disabled={isPending}
+								onClick={() => {
+									setEditId(null);
+								}}
+							>
+								Cancel
+							</Button>
+							<Button
+								variant="outline"
+								disabled={isPending}
+								className="border-red-200 text-red-700 hover:bg-red-50"
+								onClick={() => {
+									startTransition(async () => {
+										const ok = window.confirm("Delete this tenant admin? This will delete their login user.");
+										if (!ok) return;
+										setErr(null);
+										const res = await saDeleteTenantAdmin({ business_admin_id: editId });
+										if (!res.ok) setErr(res.error);
+										setEditId(null);
+										await load();
+									});
+								}}
+							>
+								Delete
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			) : null}
+
 			<Card>
 				<CardHeader className="pb-3">
 					<CardTitle className="text-sm font-bold">Admins</CardTitle>
@@ -184,6 +257,20 @@ export default function SuperAdminAdminsPage() {
 											}}
 										>
 											{a.is_active ? "Disable" : "Enable"}
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={isPending}
+											className="ml-2"
+											onClick={() => {
+												setEditId(a.id);
+												setEditName(a.name ?? "");
+												setEditEmail(a.email ?? "");
+												setErr(null);
+											}}
+										>
+											Edit
 										</Button>
 									</TableCell>
 								</TableRow>

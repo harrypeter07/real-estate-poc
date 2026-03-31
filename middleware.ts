@@ -1,6 +1,37 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function getModuleKeyForPath(pathname: string): string | null {
+  // Super admin /auth excluded from gating.
+  if (pathname.startsWith("/superadmin") || pathname === "/login") return null;
+
+  if (
+    pathname.startsWith("/projects") ||
+    pathname.startsWith("/advisors") ||
+    pathname.startsWith("/customers") ||
+    pathname.startsWith("/advisor/customers")
+  )
+    return "projects";
+
+  if (pathname.startsWith("/enquiries") || pathname.startsWith("/dashboard/enquiries")) return "enquiries";
+
+  if (pathname.startsWith("/sales") || pathname.startsWith("/advisor/sales")) return "sales";
+
+  if (pathname.startsWith("/payments") || pathname.startsWith("/advisor/payments")) return "payments";
+
+  if (pathname.startsWith("/commissions") || pathname.startsWith("/advisor/commissions")) return "commissions";
+
+  if (pathname.startsWith("/expenses")) return "expenses";
+
+  if (pathname.startsWith("/messaging") || pathname.startsWith("/advisor/messaging")) return "messaging";
+
+  if (pathname.startsWith("/hr")) return "hr";
+
+  if (pathname.startsWith("/reports")) return "reports";
+
+  return null;
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -80,6 +111,28 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/advisor";
       return NextResponse.redirect(url);
+    }
+  }
+
+  // Module entitlement gating (real-time via business_modules)
+  if (user) {
+    const moduleKey = getModuleKeyForPath(pathname);
+    const roleLower = String(role || "").toLowerCase();
+
+    if (moduleKey && roleLower !== "superadmin") {
+      // If entitlement row doesn't exist yet for this tenant, treat it as enabled for backward compatibility.
+      const { data: modRow } = await supabase
+        .from("business_modules")
+        .select("enabled")
+        .eq("module_key", moduleKey)
+        .maybeSingle();
+
+      if (modRow && modRow.enabled === false) {
+        const url = request.nextUrl.clone();
+        url.pathname = roleLower === "advisor" ? "/advisor" : "/dashboard";
+        url.searchParams.set("forbidden", "module");
+        return NextResponse.redirect(url);
+      }
     }
   }
 

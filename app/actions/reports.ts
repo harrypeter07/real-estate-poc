@@ -20,6 +20,16 @@ function inRange(dateStr: string, start?: string, end?: string): boolean {
 	return true;
 }
 
+function getTimestampBounds(start?: string, end?: string): {
+	startTs?: string;
+	endTs?: string;
+} {
+	return {
+		startTs: start ? `${start}T00:00:00.000Z` : undefined,
+		endTs: end ? `${end}T23:59:59.999Z` : undefined,
+	};
+}
+
 export async function getReportStats(filters?: ReportFilters) {
 	const supabase = await createClient();
 	if (!supabase) {
@@ -28,34 +38,44 @@ export async function getReportStats(filters?: ReportFilters) {
 
 	const start = filters?.startDate ? toDateOnly(filters.startDate) : undefined;
 	const end = filters?.endDate ? toDateOnly(filters.endDate) : undefined;
+	const { startTs, endTs } = getTimestampBounds(start, end);
 
 	// 1. Sales
-	const { data: sales } = await supabase
+	let salesQuery = supabase
 		.from("plot_sales")
 		.select("id, customer_id, total_sale_amount, amount_paid, remaining_amount, created_at, plots(project_id, projects(id, name)), sale_phase")
 		.eq("is_cancelled", false);
+	if (startTs) salesQuery = salesQuery.gte("created_at", startTs);
+	if (endTs) salesQuery = salesQuery.lte("created_at", endTs);
+	const { data: sales } = await salesQuery;
 
-	const filteredSales = (sales ?? []).filter((s: any) => inRange(s.created_at ?? "", start, end));
+	const filteredSales = sales ?? [];
 
 	const totalSalesValue = filteredSales.reduce((sum, s) => sum + Number(s.total_sale_amount ?? 0), 0);
 	const totalRevenueCollected = filteredSales.reduce((sum, s) => sum + Number(s.amount_paid ?? 0), 0);
 	const totalOutstanding = filteredSales.reduce((sum, s) => sum + Number(s.remaining_amount ?? 0), 0);
 
 	// 2. Payments (for collections timeline)
-	const { data: payments } = await supabase
+	let paymentsQuery = supabase
 		.from("payments")
 		.select("amount, payment_date, is_confirmed")
 		.eq("is_confirmed", true);
+	if (start) paymentsQuery = paymentsQuery.gte("payment_date", start);
+	if (end) paymentsQuery = paymentsQuery.lte("payment_date", end);
+	const { data: payments } = await paymentsQuery;
 
-	const filteredPayments = (payments ?? []).filter((p: any) => inRange(p.payment_date ?? "", start, end));
+	const filteredPayments = payments ?? [];
 	const totalPaymentsCollected = filteredPayments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
 
 	// 3. Expenses
-	const { data: expenses } = await supabase
+	let expensesQuery = supabase
 		.from("office_expenses")
 		.select("amount, expense_date, category");
+	if (start) expensesQuery = expensesQuery.gte("expense_date", start);
+	if (end) expensesQuery = expensesQuery.lte("expense_date", end);
+	const { data: expenses } = await expensesQuery;
 
-	const filteredExpenses = (expenses ?? []).filter((e: any) => inRange(e.expense_date ?? "", start, end));
+	const filteredExpenses = expenses ?? [];
 	const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
 
 	// 4. Advisor commissions
@@ -130,12 +150,15 @@ export async function getReportStats(filters?: ReportFilters) {
 
 	// 8. Top advisors by sales value (includes "Admin (Direct)" for sold_by_admin)
 	const advisorSales: Record<string, number> = {};
-	const { data: salesWithAdvisor } = await supabase
+	let salesWithAdvisorQuery = supabase
 		.from("plot_sales")
 		.select("advisor_id, sold_by_admin, total_sale_amount, created_at, advisors(name)")
 		.eq("is_cancelled", false);
+	if (startTs) salesWithAdvisorQuery = salesWithAdvisorQuery.gte("created_at", startTs);
+	if (endTs) salesWithAdvisorQuery = salesWithAdvisorQuery.lte("created_at", endTs);
+	const { data: salesWithAdvisor } = await salesWithAdvisorQuery;
 
-	const filteredWithAdvisor = (salesWithAdvisor ?? []).filter((s: any) => inRange(s.created_at ?? "", start, end));
+	const filteredWithAdvisor = salesWithAdvisor ?? [];
 	for (const s of filteredWithAdvisor) {
 		const name =
 			(s as any).sold_by_admin
@@ -164,21 +187,24 @@ export async function getReportStats(filters?: ReportFilters) {
 	};
 
 	// 11. Customer count (new in period)
-	const { data: customers } = await supabase
+	let customersQuery = supabase
 		.from("customers")
 		.select("created_at");
-
-	const newCustomersInPeriod = (customers ?? []).filter((c: any) => inRange(c.created_at ?? "", start, end)).length;
+	if (startTs) customersQuery = customersQuery.gte("created_at", startTs);
+	if (endTs) customersQuery = customersQuery.lte("created_at", endTs);
+	const { data: customers } = await customersQuery;
+	const newCustomersInPeriod = (customers ?? []).length;
 
 	// 12. Enquiry conversions (temporary -> regular)
-	const { data: enquiryUpgradedCustomers } = await supabase
+	let enquiryUpgradedCustomersQuery = supabase
 		.from("customers")
-		.select("id, upgraded_from_enquiry_id, upgraded_from_enquiry_at");
+		.select("id, upgraded_from_enquiry_id, upgraded_from_enquiry_at")
+		.not("upgraded_from_enquiry_id", "is", null);
+	if (startTs) enquiryUpgradedCustomersQuery = enquiryUpgradedCustomersQuery.gte("upgraded_from_enquiry_at", startTs);
+	if (endTs) enquiryUpgradedCustomersQuery = enquiryUpgradedCustomersQuery.lte("upgraded_from_enquiry_at", endTs);
+	const { data: enquiryUpgradedCustomers } = await enquiryUpgradedCustomersQuery;
 
-	const upgradedInPeriod = (enquiryUpgradedCustomers ?? []).filter(
-		(c: any) =>
-			!!c.upgraded_from_enquiry_id && inRange(c.upgraded_from_enquiry_at ?? "", start, end)
-	);
+	const upgradedInPeriod = enquiryUpgradedCustomers ?? [];
 
 	const upgradedCustomerIds = new Set(upgradedInPeriod.map((c: any) => c.id));
 	const convertedSales = filteredSales.filter(

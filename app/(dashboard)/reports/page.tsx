@@ -21,6 +21,7 @@ import ProjectAnalyticsSection from "./project-analytics-section";
 import { ReportsFilters } from "@/components/reports/reports-filters";
 import ProjectTrendsSection from "./project-trends-section";
 import ProjectSelectorContainer from "./project-selector-container";
+import { requireEntitlement } from "@/lib/auth/require-entitlement";
 
 export default async function ReportsPage({
 	searchParams,
@@ -29,6 +30,9 @@ export default async function ReportsPage({
 }) {
 	const params = await searchParams;
 	const projectId = params.project ?? "";
+
+	// Module gating (real-time, tenant-scoped)
+	await requireEntitlement("reports");
 
 	const supabase = await createClient();
 	if (!supabase) {

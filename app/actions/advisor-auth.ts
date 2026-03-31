@@ -21,7 +21,7 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 
 	const { data: advisor, error } = await supabase
 		.from("advisors")
-		.select("id, phone, email, auth_user_id, is_active")
+		.select("id, phone, email, auth_user_id, is_active, business_id")
 		.eq("id", advisorId)
 		.single();
 
@@ -37,7 +37,7 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 		email,
 		password: String(advisor.phone).replace(/\D/g, "").slice(-10).padEnd(6, "0"),
 		email_confirm: true,
-		user_metadata: { role: "advisor", advisor_id: advisor.id },
+		user_metadata: { role: "advisor", advisor_id: advisor.id, business_id: advisor.business_id ?? null },
 	});
 
 	if (createErr || !created?.user) {

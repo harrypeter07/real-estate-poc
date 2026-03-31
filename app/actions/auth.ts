@@ -55,7 +55,7 @@ export async function signInWithEmailOrPhone(
 		// Try to find advisor record using admin privileges.
 		const { data: advisors } = await admin
 			.from("advisors")
-			.select("id, email, phone, auth_user_id, is_active")
+			.select("id, email, phone, auth_user_id, is_active, business_id")
 			.eq("is_active", true);
 
 		const match = advisors?.find((a: any) => {
@@ -80,7 +80,11 @@ export async function signInWithEmailOrPhone(
 				email: resolvedEmail,
 				password: pw,
 				email_confirm: true,
-				user_metadata: { role: "advisor", advisor_id: match.id },
+				user_metadata: {
+					role: "advisor",
+					advisor_id: match.id,
+					business_id: match.business_id ?? null,
+				},
 			});
 
 			if (!authError && authUser?.user?.id) {

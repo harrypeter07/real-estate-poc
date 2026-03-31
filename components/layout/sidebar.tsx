@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { Building2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ADMIN_NAV_ITEMS, type NavItem } from "./nav-items";
 import { Button } from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
 
 interface SidebarProps {
   open: boolean;
@@ -15,7 +17,50 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose, items }: SidebarProps) {
   const pathname = usePathname();
-  const navItems = items ?? ADMIN_NAV_ITEMS;
+  const baseItems = items ?? ADMIN_NAV_ITEMS;
+  const [enabledModules, setEnabledModules] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    // Only filter when using default ADMIN_NAV_ITEMS (dashboard sidebar).
+    if (items) return;
+    const supabase = createClient();
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user as any;
+      if (!user) {
+        if (!cancelled) setEnabledModules(null);
+        return;
+      }
+      const role = String(user.user_metadata?.role ?? "").toLowerCase();
+      if (role === "superadmin") {
+        if (!cancelled) setEnabledModules(new Set()); // empty set = show all
+        return;
+      }
+      const { data: rows, error } = await supabase
+        .from("business_modules")
+        .select("module_key, enabled")
+        .eq("enabled", true);
+      if (cancelled) return;
+      if (error) {
+        setEnabledModules(null); // fallback: don't hide nav if not configured
+        return;
+      }
+      setEnabledModules(new Set((rows ?? []).map((r: any) => String(r.module_key))));
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
+
+  const navItems = useMemo(() => {
+    // If enabledModules is null => don't filter (compat mode).
+    if (enabledModules === null) return baseItems;
+    // If enabledModules is empty set => superadmin (show all).
+    if (enabledModules.size === 0) return baseItems;
+    return baseItems.filter((it) => !it.moduleKey || enabledModules.has(it.moduleKey));
+  }, [baseItems, enabledModules]);
 
   return (
     <>

@@ -37,6 +37,12 @@ This document explains how the app now supports **multiple businesses (tenants)*
 - `supabase/migrations/20260331124000_app_business_id_default_fallback.sql`
   - Compatibility: if a user token has no `business_id`, it falls back to the DB’s `default_business_id`.
 
+- `supabase/migrations/20260331124500_seed_default_business_modules.sql`
+  - Seeds `business_modules` for the Default Business.
+
+- `supabase/migrations/20260331125500_allow_advisors_read_business_modules.sql`
+  - Allows advisors to SELECT their own `business_modules` (required for real-time entitlement checks).
+
 ### How login works with tenants
 
 - **Super Admin**

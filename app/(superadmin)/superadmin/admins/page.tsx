@@ -9,8 +9,6 @@ import {
 	saChangeTenantAdminPassword,
 	saListBusinesses,
 	saListTenantAdmins,
-	saGetBusinessModules,
-	saSetBusinessModulesBulk,
 	saSetAdminActive,
 	saUpdateTenantAdmin,
 } from "@/app/actions/superadmin";
@@ -48,14 +46,10 @@ export default function SuperAdminAdminsPage() {
 	const [detailsName, setDetailsName] = useState("");
 	const [detailsEmail, setDetailsEmail] = useState("");
 	const [detailsIsActive, setDetailsIsActive] = useState(true);
-	const [detailsModules, setDetailsModules] = useState<Array<{ module_key: string; enabled: boolean; name: string }>>([]);
 	const [detailsPassword, setDetailsPassword] = useState("");
 	const [showDetailsPassword, setShowDetailsPassword] = useState(false);
-	const [detailsSavingModules, setDetailsSavingModules] = useState(false);
 	const [detailsSavingProfile, setDetailsSavingProfile] = useState(false);
 	const [detailsSavingPassword, setDetailsSavingPassword] = useState(false);
-	const [selectedBizModules, setSelectedBizModules] = useState<Array<{ module_key: string; enabled: boolean; name: string }>>([]);
-	const [loadingSelectedModules, setLoadingSelectedModules] = useState(false);
 
 	const [editId, setEditId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
@@ -88,35 +82,14 @@ export default function SuperAdminAdminsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	useEffect(() => {
-		async function loadModulesForSelectedBiz() {
-			if (!selectedBiz) {
-				setSelectedBizModules([]);
-				return;
-			}
-			setLoadingSelectedModules(true);
-			try {
-				const res = await saGetBusinessModules({ business_id: selectedBiz });
-				if (res.ok) setSelectedBizModules(res.data);
-			} finally {
-				setLoadingSelectedModules(false);
-			}
-		}
-		void loadModulesForSelectedBiz();
-	}, [selectedBiz]);
-
 	async function openDetails(a: any) {
 		setDetailsAdmin(a);
 		setDetailsName(a.name ?? "");
 		setDetailsEmail(a.email ?? "");
 		setDetailsIsActive(!!a.is_active);
-		setDetailsModules([]);
 		setDetailsPassword("");
 		setShowDetailsPassword(false);
 		setDetailsOpen(true);
-		// Load module entitlements for this admin's business
-		const res = await saGetBusinessModules({ business_id: a.business_id });
-		if (res.ok) setDetailsModules(res.data);
 	}
 
 	async function saveDetailsProfile() {
@@ -145,24 +118,6 @@ export default function SuperAdminAdminsPage() {
 			setErr(e?.message ?? "Failed to save admin");
 		} finally {
 			setDetailsSavingProfile(false);
-		}
-	}
-
-	async function saveDetailsModules() {
-		if (!detailsAdmin) return;
-		setDetailsSavingModules(true);
-		try {
-			const businessId = detailsAdmin.business_id as string;
-			const enabledKeys = detailsModules.filter((m) => m.enabled).map((m) => m.module_key);
-			const res = await saSetBusinessModulesBulk({ business_id: businessId, enabledModuleKeys: enabledKeys });
-			if (!res.ok) throw new Error(res.error);
-			const refreshed = await saGetBusinessModules({ business_id: businessId });
-			if (refreshed.ok) setDetailsModules(refreshed.data);
-			await load();
-		} catch (e: any) {
-			setErr(e?.message ?? "Failed to save modules");
-		} finally {
-			setDetailsSavingModules(false);
 		}
 	}
 
@@ -420,7 +375,6 @@ export default function SuperAdminAdminsPage() {
 								<TableHead>Email</TableHead>
 								<TableHead>Name</TableHead>
 								<TableHead>Created</TableHead>
-								<TableHead>Modules</TableHead>
 								<TableHead className="text-right">Actions</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -434,15 +388,6 @@ export default function SuperAdminAdminsPage() {
 									<TableCell className="font-mono text-xs">{a.email ?? "—"}</TableCell>
 									<TableCell className="text-sm">{a.name ?? "—"}</TableCell>
 									<TableCell className="text-xs text-zinc-500">{String(a.created_at ?? "").slice(0, 10)}</TableCell>
-									<TableCell className="text-sm">
-										{loadingSelectedModules ? (
-											<span className="text-zinc-400">...</span>
-										) : (
-											<span className="text-zinc-700">
-												{selectedBizModules.filter((m) => m.enabled).length} enabled
-											</span>
-										)}
-									</TableCell>
 									<TableCell className="text-right">
 										<Button
 											variant="outline"
@@ -460,7 +405,7 @@ export default function SuperAdminAdminsPage() {
 							))}
 							{filteredAdmins.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={5} className="text-sm text-zinc-500 text-center py-8">
+									<TableCell colSpan={4} className="text-sm text-zinc-500 text-center py-8">
 										No admins found.
 									</TableCell>
 								</TableRow>
@@ -480,7 +425,7 @@ export default function SuperAdminAdminsPage() {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Admin details</DialogTitle>
-						<DialogDescription>Manage login, modules, and password for this tenant admin.</DialogDescription>
+						<DialogDescription>Manage login and password for this tenant admin.</DialogDescription>
 					</DialogHeader>
 
 					{detailsAdmin ? (
@@ -529,7 +474,7 @@ export default function SuperAdminAdminsPage() {
 									<Button
 										variant="outline"
 										className="border-red-200 text-red-700 hover:bg-red-50"
-										disabled={detailsSavingProfile || detailsSavingModules || detailsSavingPassword}
+										disabled={detailsSavingProfile || detailsSavingPassword}
 										onClick={() => {
 											const ok = window.confirm("Delete this tenant admin and remove their login user?");
 											if (!ok) return;
@@ -544,56 +489,6 @@ export default function SuperAdminAdminsPage() {
 										}}
 									>
 										Delete admin
-									</Button>
-								</div>
-							</div>
-
-							<div className="space-y-3">
-								<div>
-									<div className="text-sm font-bold">Modules (business-level)</div>
-									<div className="text-xs text-zinc-500">
-										These toggles apply to the tenant/business entitlements (all admins inside this business share the same module access).
-									</div>
-								</div>
-
-								<div className="max-h-56 overflow-y-auto border rounded-md p-3 space-y-3">
-									{detailsModules.length === 0 ? (
-										<div className="text-sm text-zinc-500">Loading modules...</div>
-									) : (
-										detailsModules.map((m) => (
-											<div key={m.module_key} className="flex items-center justify-between gap-3">
-												<div className="min-w-0">
-													<div className="text-sm font-semibold truncate">{m.name}</div>
-													<div className="text-xs text-zinc-500 font-mono truncate">{m.module_key}</div>
-												</div>
-												<Switch
-													checked={m.enabled}
-													disabled={detailsSavingModules}
-													onCheckedChange={(checked) => {
-														setDetailsModules((prev) =>
-															prev.map((x) => (x.module_key === m.module_key ? { ...x, enabled: checked } : x))
-														);
-													}}
-												/>
-											</div>
-										))
-									)}
-								</div>
-
-								<div className="flex flex-wrap gap-2">
-									<Button disabled={detailsSavingModules} onClick={() => startTransition(() => void saveDetailsModules())}>
-										{detailsSavingModules ? "Saving modules..." : "Save modules"}
-									</Button>
-									<Button
-										variant="outline"
-										disabled={detailsSavingModules}
-										onClick={async () => {
-											if (!detailsAdmin) return;
-											const refreshed = await saGetBusinessModules({ business_id: detailsAdmin.business_id });
-											if (refreshed.ok) setDetailsModules(refreshed.data);
-										}}
-									>
-										Reset modules
 									</Button>
 								</div>
 							</div>

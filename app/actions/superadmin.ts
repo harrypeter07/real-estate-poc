@@ -214,6 +214,112 @@ export async function saSetAdminActive(input: {
 	}
 }
 
+export async function saUpdateTenantAdmin(input: {
+	business_admin_id: string;
+	name?: string;
+	email?: string;
+}): Promise<SAResult<true>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const id = String(input.business_admin_id ?? "").trim();
+		if (!id) return { ok: false, error: "Admin id is required" };
+
+		const { data: before } = await supabase
+			.from("business_admins")
+			.select("id, business_id, auth_user_id, name, email")
+			.eq("id", id)
+			.single();
+		if (!before) return { ok: false, error: "Admin not found" };
+
+		const nextName = (input.name ?? "").trim();
+		const nextEmail = (input.email ?? "").trim().toLowerCase();
+
+		const updates: any = {};
+		if (input.name !== undefined) updates.name = nextName || null;
+		if (input.email !== undefined) {
+			if (!nextEmail || !nextEmail.includes("@")) return { ok: false, error: "Valid email is required" };
+			updates.email = nextEmail;
+		}
+
+		const { error: mapErr } = await supabase.from("business_admins").update(updates).eq("id", id);
+		if (mapErr) return { ok: false, error: mapErr.message };
+
+		// Update auth user if email/name changed.
+		const admin = createAdminClient();
+		if (admin) {
+			const userUpdatePayload: any = {};
+			if (updates.email) userUpdatePayload.email = updates.email;
+			if (nextName !== undefined) {
+				userUpdatePayload.user_metadata = {
+					...(before as any),
+				};
+			}
+			// Keep it minimal: update email & metadata name only.
+			await admin.auth.admin.updateUserById(before.auth_user_id, {
+				...(updates.email ? { email: updates.email } : null),
+				user_metadata: {
+					role: "admin",
+					business_id: (before as any).business_id,
+					name: updates.name ?? (before as any).name,
+				},
+			});
+		}
+
+		await audit({
+			actorId: user.id,
+			action: "admin.update",
+			targetBusinessId: (before as any)?.business_id ?? null,
+			targetAdminAuthUserId: (before as any)?.auth_user_id ?? null,
+			before,
+			after: updates,
+		});
+
+		return { ok: true, data: true };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saDeleteTenantAdmin(input: {
+	business_admin_id: string;
+}): Promise<SAResult<true>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const id = String(input.business_admin_id ?? "").trim();
+		if (!id) return { ok: false, error: "Admin id is required" };
+
+		const { data: before } = await supabase
+			.from("business_admins")
+			.select("id, business_id, auth_user_id")
+			.eq("id", id)
+			.single();
+		if (!before) return { ok: false, error: "Admin not found" };
+
+		const admin = createAdminClient();
+		if (!admin) return { ok: false, error: "Missing service role key" };
+
+		// Delete mapping first
+		const { error: mapErr } = await supabase.from("business_admins").delete().eq("id", id);
+		if (mapErr) return { ok: false, error: mapErr.message };
+
+		// Then delete auth user (removes ability to login).
+		await admin.auth.admin.deleteUser(before.auth_user_id);
+
+		await audit({
+			actorId: user.id,
+			action: "admin.delete",
+			targetBusinessId: (before as any)?.business_id ?? null,
+			targetAdminAuthUserId: (before as any)?.auth_user_id ?? null,
+			before,
+			after: { deleted: true },
+		});
+
+		return { ok: true, data: true };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
 export async function saGetBusinessModules(params: {
 	business_id: string;
 }): Promise<SAResult<Array<{ module_key: string; enabled: boolean; name: string }>>> {

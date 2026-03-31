@@ -7,6 +7,7 @@ import {
 	advisorSchema,
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 
 export type ActionResponse = {
 	success: boolean;
@@ -90,9 +91,12 @@ export async function createAdvisor(
 			? parsed.data.phone.replace(/\D/g, "").slice(-10) || parsed.data.phone
 			: parsed.data.password;
 
+	const businessId = await getCurrentBusinessId();
+
 	const { data: advisor, error } = await supabase
 		.from("advisors")
 		.insert({
+			business_id: businessId,
 			name: parsed.data.name,
 			code: parsed.data.code,
 			phone: parsed.data.phone,
@@ -142,7 +146,7 @@ export async function createAdvisor(
 			email: advisorEmail,
 			password: pw,
 			email_confirm: true,
-			user_metadata: { role: "advisor", advisor_id: advisor.id },
+			user_metadata: { role: "advisor", advisor_id: advisor.id, business_id: businessId ?? null },
 		});
 		if (!authError && authUser?.user) {
 			await supabase

@@ -6,6 +6,9 @@ import { getPayments } from "@/app/actions/payments";
 import { PaymentsTable } from "@/components/payments/payments-table";
 import { PaymentsFilters } from "@/components/payments/payments-filters";
 import { PaymentsPageActions } from "@/components/payments/payments-page-actions";
+import { PaymentsAsOfDate } from "@/components/payments/payments-asof-date";
+import { getEmiDueRows } from "@/app/actions/payment-due";
+import { PaymentsEmiDueSection } from "@/components/payments/payments-emi-due-section";
 
 export default async function PaymentsPage({
 	searchParams,
@@ -15,12 +18,17 @@ export default async function PaymentsPage({
 		to?: string;
 		status?: string;
 		mode?: string;
+		asOf?: string;
 	}>;
 }) {
 	const params = await searchParams;
 
 	const from = params.from ?? "";
 	const to = params.to ?? "";
+	const asOf =
+		typeof params.asOf === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.asOf)
+			? params.asOf
+			: "";
 	const status =
 		typeof params.status === "string" && params.status !== "all"
 			? params.status
@@ -38,9 +46,12 @@ export default async function PaymentsPage({
 				? status
 				: "",
 		mode: mode || undefined,
+		asOf: asOf || undefined,
 	});
 
-	const hasFilters = Boolean(from || to || status || mode);
+	const emiDueRows = await getEmiDueRows({ asOf: asOf || undefined });
+
+	const hasFilters = Boolean(from || to || status || mode || asOf);
 
 	return (
 		<div className="space-y-6">
@@ -50,7 +61,11 @@ export default async function PaymentsPage({
 				action={<PaymentsPageActions />}
 			/>
 
+			<PaymentsAsOfDate />
+
 			<PaymentsFilters />
+
+			<PaymentsEmiDueSection rows={emiDueRows as any} asOf={asOf || undefined} />
 
 			{filteredPayments.length === 0 ? (
 				<div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">

@@ -105,6 +105,7 @@ export type PaymentsFilter = {
 	to?: string;
 	status?: "confirmed" | "pending" | "";
 	mode?: string;
+	asOf?: string;
 };
 
 async function lastConfirmedPaymentDateBySale(
@@ -131,7 +132,8 @@ async function lastConfirmedPaymentDateBySale(
 
 function enrichPaymentsWithDue(
 	rows: any[],
-	lastBySale: Record<string, string>
+	lastBySale: Record<string, string>,
+	asOfYmd?: string
 ) {
 	return rows.map((p) => {
 		const sale = p.plot_sales as Record<string, unknown> | null | undefined;
@@ -146,7 +148,8 @@ function enrichPaymentsWithDue(
 				agreement_date: (sale?.agreement_date as string) ?? null,
 				followup_date: (sale?.followup_date as string) ?? null,
 			},
-			last
+			last,
+			asOfYmd
 		);
 		return { ...p, payment_due_meta: meta };
 	});
@@ -199,7 +202,11 @@ export async function getPayments(filters?: PaymentsFilter) {
 		),
 	];
 	const lastBySale = await lastConfirmedPaymentDateBySale(supabase, saleIds);
-	return enrichPaymentsWithDue(rows, lastBySale);
+	const asOf =
+		typeof filters?.asOf === "string" && /^\d{4}-\d{2}-\d{2}$/.test(filters.asOf)
+			? filters.asOf
+			: undefined;
+	return enrichPaymentsWithDue(rows, lastBySale, asOf);
 }
 
 export async function confirmPayment(id: string) {

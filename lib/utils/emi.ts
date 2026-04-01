@@ -6,13 +6,13 @@ export function getNextEmiDueDate(sale: {
   emi_day: number | null;
   token_date?: string | null;
   agreement_date?: string | null;
-}, lastPaymentDate?: string | null): string | null {
+}, lastPaymentDate?: string | null, todayYmd?: string | null): string | null {
   const day = sale.emi_day;
   if (!day || day < 1 || day > 31) return null;
 
   const refStr = lastPaymentDate ?? sale.agreement_date ?? sale.token_date;
   const ref = refStr ? new Date(refStr) : new Date();
-  const now = new Date();
+  const now = todayYmd ? new Date(todayYmd) : new Date();
 
   // Start from the month after last payment (or sale date)
   let year = ref.getFullYear();

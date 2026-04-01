@@ -18,7 +18,8 @@ export type SaleLikeForDue = {
  */
 export function computePaymentDueMeta(
 	sale: SaleLikeForDue,
-	lastConfirmedPaymentDate: string | null | undefined
+	lastConfirmedPaymentDate: string | null | undefined,
+	todayYmd?: string | null
 ): {
 	next_emi_due: string | null;
 	is_payment_due: boolean;
@@ -45,11 +46,12 @@ export function computePaymentDueMeta(
 				token_date: sale.token_date ?? null,
 				agreement_date: sale.agreement_date ?? null,
 			},
-			lastConfirmedPaymentDate ?? null
+			lastConfirmedPaymentDate ?? null,
+			todayYmd ?? null
 		);
 	}
 
-	const today = new Date().toISOString().slice(0, 10);
+	const today = (todayYmd || new Date().toISOString().slice(0, 10)).slice(0, 10);
 
 	let is_payment_due = false;
 

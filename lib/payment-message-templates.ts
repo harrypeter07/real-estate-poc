@@ -1,4 +1,8 @@
-export type PaymentTemplateId = "payment_due" | "emi_due" | "overdue";
+export type PaymentTemplateId =
+	| "payment_due"
+	| "emi_due"
+	| "overdue"
+	| "plot_cancellation_reminder";
 
 export type PaymentMessageTemplate = {
 	id: PaymentTemplateId;
@@ -24,6 +28,12 @@ export const PAYMENT_MESSAGE_TEMPLATES: PaymentMessageTemplate[] = [
 		label: "Overdue follow-up",
 		body:
 			"Hi [name], we noticed an overdue balance of [remaining] for plot [plot] ([project]). Please contact us to arrange payment.\n\n— S-Infra",
+	},
+	{
+		id: "plot_cancellation_reminder",
+		label: "Plot cancellation reminder (3+ EMIs overdue)",
+		body:
+			"Hi [name], we have not received EMI(s) for plot [plot] ([project]). Pending amount: [remaining]. Please pay immediately to avoid cancellation. Due date: [due_date].\n\n— S-Infra",
 	},
 ];
 

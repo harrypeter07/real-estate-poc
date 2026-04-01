@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, ShoppingCart, Calendar, User, MapPin, IndianRupee, MessageCircle } from "lucide-react";
 import { openWhatsAppPaymentReminder } from "@/lib/payment-whatsapp";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { SaleDetailModal } from "./sale-detail-modal";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const phaseConfig: Record<string, { label: string; className: string }> = {
 	token: { label: "Token", className: "bg-yellow-100 text-yellow-800" },
@@ -25,11 +26,28 @@ export function SalesList({
 }) {
 	const [selectedSale, setSelectedSale] = useState<any | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
+	const router = useRouter();
+	const searchParams = useSearchParams();
 
 	const openSaleModal = (sale: any) => {
 		setSelectedSale(sale);
 		setModalOpen(true);
 	};
+
+	useEffect(() => {
+		const openSaleId = searchParams.get("openSaleId");
+		if (!openSaleId) return;
+		const match = (sales ?? []).find((s: any) => String(s?.id ?? "") === String(openSaleId));
+		if (!match) return;
+		openSaleModal(match);
+
+		// Prevent re-opening the modal on refresh/back.
+		const params = new URLSearchParams(searchParams.toString());
+		params.delete("openSaleId");
+		params.delete("collect");
+		router.replace(params.toString() ? `/sales?${params.toString()}` : "/sales");
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [sales]);
 
 	return (
 		<>

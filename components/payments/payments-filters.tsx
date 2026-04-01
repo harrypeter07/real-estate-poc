@@ -13,6 +13,7 @@ export function PaymentsFilters() {
 	const to = searchParams.get("to") ?? "";
 	const status = searchParams.get("status") ?? "all";
 	const mode = searchParams.get("mode") ?? "all";
+	const asOf = searchParams.get("asOf") ?? "";
 	
 	const [customFrom, setCustomFrom] = useState(from);
 	const [customTo, setCustomTo] = useState(to);
@@ -32,6 +33,7 @@ export function PaymentsFilters() {
 		if (customTo) params.set("to", customTo);
 		if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
 		if (selectedMode && selectedMode !== "all") params.set("mode", selectedMode);
+		if (asOf) params.set("asOf", asOf);
 		startTransition(() => {
 			router.push(`/payments?${params.toString()}`);
 		});
@@ -43,7 +45,9 @@ export function PaymentsFilters() {
 		setSelectedStatus("all");
 		setSelectedMode("all");
 		startTransition(() => {
-			router.push("/payments");
+			const params = new URLSearchParams();
+			if (asOf) params.set("asOf", asOf);
+			router.push(params.toString() ? `/payments?${params.toString()}` : "/payments");
 		});
 	}
 
@@ -66,7 +70,9 @@ export function PaymentsFilters() {
 						setSelectedStatus("all");
 						setSelectedMode("all");
 						startTransition(() => {
-							router.push("/payments");
+							const params = new URLSearchParams();
+							if (asOf) params.set("asOf", asOf);
+							router.push(params.toString() ? `/payments?${params.toString()}` : "/payments");
 						});
 					}}
 					disabled={isPending}
@@ -82,6 +88,7 @@ export function PaymentsFilters() {
 						params.set("to", thisMonthEnd);
 						if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
 						if (selectedMode && selectedMode !== "all") params.set("mode", selectedMode);
+						if (asOf) params.set("asOf", asOf);
 						startTransition(() => {
 							router.push(`/payments?${params.toString()}`);
 						});
@@ -99,6 +106,7 @@ export function PaymentsFilters() {
 						params.set("to", thisYearEnd);
 						if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
 						if (selectedMode && selectedMode !== "all") params.set("mode", selectedMode);
+						if (asOf) params.set("asOf", asOf);
 						startTransition(() => {
 							router.push(`/payments?${params.toString()}`);
 						});

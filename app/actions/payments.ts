@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { computePaymentDueMeta } from "@/lib/payment-due";
@@ -26,6 +27,15 @@ export async function createPayment(
 
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
 
 	// Guard: confirmed customer payments should never exceed sale total.
 	const { data: saleRow, error: saleErr } = await supabase
@@ -63,6 +73,7 @@ export async function createPayment(
 	}
 
 	const { error } = await supabase.from("payments").insert({
+		business_id: businessId,
 		sale_id: parsed.data.sale_id,
 		customer_id: parsed.data.customer_id,
 		amount: parsed.data.amount,

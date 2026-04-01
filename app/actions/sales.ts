@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { computePaymentDueMeta } from "@/lib/payment-due";
 import { revalidatePath } from "next/cache";
@@ -26,16 +27,28 @@ export async function createSale(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	const jwtBusinessId = await getCurrentBusinessId();
+	if (!jwtBusinessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	// Fetch plot details (per-plot rate is the canonical base rate)
 	const { data: plotRow, error: plotFetchError } = await supabase
 		.from("plots")
-		.select("id, project_id, size_sqft, rate_per_sqft, plot_number")
+		.select("id, project_id, size_sqft, rate_per_sqft, plot_number, business_id")
 		.eq("id", parsed.data.plot_id)
 		.single();
 
 	if (plotFetchError || !plotRow) {
 		return { success: false, error: "Plot not found" };
 	}
+
+	const businessId =
+		(plotRow as { business_id?: string | null }).business_id?.trim() || jwtBusinessId;
 
 	const plotBaseRate = Number((plotRow as any).rate_per_sqft ?? 0);
 	const plotSize = Number(plotRow.size_sqft ?? 0);
@@ -169,6 +182,7 @@ export async function createSale(
 			new Date().toISOString().slice(0, 10);
 
 		const { error: dpError } = await supabase.from("payments").insert({
+			business_id: businessId,
 			sale_id: sale.id,
 			customer_id: parsed.data.customer_id,
 			slip_number: null,

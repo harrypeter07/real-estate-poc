@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
 	AlertTriangle,
 	CalendarClock,
 	CreditCard,
 	FileText,
 	MessageCircle,
+	Search,
 	User,
 	Home,
 } from "lucide-react";
@@ -20,6 +22,7 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	Input,
 	Table,
 	TableBody,
 	TableCell,
@@ -30,40 +33,108 @@ import {
 import type { EmiDueRow } from "@/app/actions/payment-due";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { openWhatsAppPaymentReminder } from "@/lib/payment-whatsapp";
+import { digitsOnly } from "@/lib/utils/phone";
 
-export function PaymentsEmiDueSection({
+export function PaymentsEmiDuePageClient({
 	rows,
+	initialQuery,
 	asOf,
 }: {
 	rows: EmiDueRow[];
+	initialQuery?: string;
 	asOf?: string;
 }) {
+	const router = useRouter();
+	const sp = useSearchParams();
+	const [isPending, startTransition] = useTransition();
+
+	const [query, setQuery] = useState(initialQuery ?? "");
 	const [selected, setSelected] = useState<EmiDueRow | null>(null);
 
-	const sorted = useMemo(() => rows ?? [], [rows]);
-	if (!sorted.length) return null;
+	const filtered = useMemo(() => {
+		const q = query.trim().toLowerCase();
+		const qDigits = digitsOnly(query);
+		if (!q) return rows ?? [];
+		return (rows ?? []).filter((r) => {
+			const phone = String(r.customer.phone ?? "");
+			const phoneDigits = digitsOnly(phone);
+			return (
+				r.customer.name.toLowerCase().includes(q) ||
+				r.plot.plot_number.toLowerCase().includes(q) ||
+				r.plot.project_name.toLowerCase().includes(q) ||
+				r.seller.label.toLowerCase().includes(q) ||
+				phone.includes(q) ||
+				(qDigits.length > 0 && phoneDigits.includes(qDigits))
+			);
+		});
+	}, [rows, query]);
 
-	const title = asOf ? `EMI Due (as of ${formatDate(asOf)})` : "EMI Due";
+	function applyQueryToUrl(next: string) {
+		const params = new URLSearchParams(sp.toString());
+		if (next.trim()) params.set("q", next.trim());
+		else params.delete("q");
+		startTransition(() => {
+			router.push(params.toString() ? `/payments/due?${params.toString()}` : "/payments/due");
+		});
+	}
 
 	return (
 		<>
 			<Card className="border-zinc-200 shadow-sm">
-				<CardContent className="p-4">
-					<div className="flex items-center justify-between gap-3">
+				<CardContent className="p-4 space-y-3">
+					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 						<div className="min-w-0">
 							<div className="flex items-center gap-2">
 								<CalendarClock className="h-4 w-4 text-zinc-500" />
-								<h3 className="font-semibold truncate">{title}</h3>
+								<div className="font-semibold">
+									{asOf ? `EMI Due (as of ${formatDate(asOf)})` : "EMI Due"}
+								</div>
 							</div>
 							<p className="text-xs text-zinc-500 mt-1">
-								Shows EMI sales where missed months (confirmed payments &lt; monthly EMI) exist.
+								Missed month rule: confirmed payments in month must total ≥ monthly EMI.
 							</p>
 						</div>
-						<Badge variant="outline" className="text-xs">
-							{sorted.length} due
+						<Badge variant="outline" className="text-xs w-fit">
+							{filtered.length} results
 						</Badge>
 					</div>
+
+					<div className="flex flex-col sm:flex-row sm:items-center gap-2">
+						<div className="relative flex-1 max-w-xl">
+							<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+							<Input
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+								placeholder="Search by customer, phone, plot, project, seller…"
+								className="h-9 pl-8 text-sm"
+							/>
+						</div>
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							className="h-9"
+							disabled={isPending}
+							onClick={() => applyQueryToUrl(query)}
+						>
+							Apply search
+						</Button>
+						<Button
+							type="button"
+							size="sm"
+							variant="ghost"
+							className="h-9"
+							disabled={isPending || !sp.get("q")}
+							onClick={() => {
+								setQuery("");
+								applyQueryToUrl("");
+							}}
+						>
+							Clear
+						</Button>
+					</div>
 				</CardContent>
+
 				<CardContent className="p-0 overflow-x-auto">
 					<Table>
 						<TableHeader>
@@ -78,103 +149,113 @@ export function PaymentsEmiDueSection({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{sorted.map((r) => {
-								const critical = r.missed_months >= 3;
-								return (
-									<TableRow
-										key={r.sale_id}
-										className={[
-											"cursor-pointer hover:bg-zinc-50",
-											critical ? "bg-red-50/40" : "",
-										].join(" ")}
-										onClick={() => setSelected(r)}
-									>
-										<TableCell>
-											<div className="flex flex-col">
-												<span className="font-semibold text-sm flex items-center gap-1">
-													<User className="h-3 w-3 text-zinc-400" />
-													{r.customer.name}
-												</span>
-												<span className="text-xs text-zinc-500 flex items-center gap-1">
-													<Home className="h-3 w-3 text-zinc-400" />
-													{r.plot.project_name} - {r.plot.plot_number}
-												</span>
-											</div>
-										</TableCell>
-										<TableCell className="text-sm">{r.seller.label}</TableCell>
-										<TableCell className="text-right font-medium">
-											{formatCurrency(r.monthly_emi)}
-											<div className="text-[10px] text-zinc-500">Day {r.emi_day}</div>
-										</TableCell>
-										<TableCell className="text-right font-bold">
-											{critical ? (
-												<span className="inline-flex items-center gap-1 text-red-700">
-													<AlertTriangle className="h-3.5 w-3.5" />
-													{r.missed_months} mo
-												</span>
-											) : (
-												`${r.missed_months} mo`
-											)}
-										</TableCell>
-										<TableCell className="text-right font-bold text-red-700">
-											{formatCurrency(r.collapsed_due_amount)}
-										</TableCell>
-										<TableCell className="text-sm">
-											{r.next_emi_due ? formatDate(r.next_emi_due) : "—"}
-										</TableCell>
-										<TableCell
-											className="text-right"
-											onClick={(e) => e.stopPropagation()}
+							{filtered.length === 0 ? (
+								<TableRow>
+									<TableCell colSpan={7} className="py-10 text-center text-sm text-zinc-500">
+										No due EMI accounts match this search.
+									</TableCell>
+								</TableRow>
+							) : (
+								filtered.map((r) => {
+									const critical = r.missed_months >= 3;
+									return (
+										<TableRow
+											key={r.sale_id}
+											className={[
+												"cursor-pointer hover:bg-zinc-50",
+												critical ? "bg-red-50/40" : "",
+											].join(" ")}
+											onClick={() => setSelected(r)}
 										>
-											<div className="flex justify-end gap-2">
-												<Link href={`/sales?openSaleId=${r.sale_id}&collect=1`}>
-													<Button size="sm" className="h-8 gap-1">
-														<CreditCard className="h-3.5 w-3.5" />
-														Collect
+											<TableCell>
+												<div className="flex flex-col">
+													<span className="font-semibold text-sm flex items-center gap-1">
+														<User className="h-3 w-3 text-zinc-400" />
+														{r.customer.name}
+													</span>
+													<span className="text-xs text-zinc-500 flex items-center gap-1">
+														<Home className="h-3 w-3 text-zinc-400" />
+														{r.plot.project_name} - {r.plot.plot_number}
+													</span>
+												</div>
+											</TableCell>
+											<TableCell className="text-sm">{r.seller.label}</TableCell>
+											<TableCell className="text-right font-medium">
+												{formatCurrency(r.monthly_emi)}
+												<div className="text-[10px] text-zinc-500">Day {r.emi_day}</div>
+											</TableCell>
+											<TableCell className="text-right font-bold">
+												{critical ? (
+													<span className="inline-flex items-center gap-1 text-red-700">
+														<AlertTriangle className="h-3.5 w-3.5" />
+														{r.missed_months} mo
+													</span>
+												) : (
+													`${r.missed_months} mo`
+												)}
+											</TableCell>
+											<TableCell className="text-right font-bold text-red-700">
+												{formatCurrency(r.collapsed_due_amount)}
+											</TableCell>
+											<TableCell className="text-sm">
+												{r.next_emi_due ? formatDate(r.next_emi_due) : "—"}
+											</TableCell>
+											<TableCell
+												className="text-right"
+												onClick={(e) => e.stopPropagation()}
+											>
+												<div className="flex justify-end gap-2">
+													<Link href={`/sales?openSaleId=${r.sale_id}&collect=1`}>
+														<Button size="sm" className="h-8 gap-1">
+															<CreditCard className="h-3.5 w-3.5" />
+															Collect
+														</Button>
+													</Link>
+													<Button
+														type="button"
+														size="sm"
+														variant="outline"
+														className={[
+															"h-8 gap-1",
+															critical
+																? "text-red-700 border-red-200"
+																: "text-green-700 border-green-200",
+														].join(" ")}
+														onClick={() =>
+															openWhatsAppPaymentReminder({
+																phone: r.customer.phone,
+																customerName: r.customer.name,
+																plot: r.plot.plot_number,
+																project: r.plot.project_name,
+																remainingAmount: r.remaining_amount,
+																monthlyEmi: r.monthly_emi,
+																nextDue: r.next_emi_due,
+																templateId: critical
+																	? "plot_cancellation_reminder"
+																	: "emi_due",
+															})
+														}
+														disabled={!r.customer.phone}
+													>
+														<MessageCircle className="h-3.5 w-3.5" />
+														{critical ? "Cancellation reminder" : "Remind"}
 													</Button>
-												</Link>
-												<Button
-													type="button"
-													size="sm"
-													variant="outline"
-													className={[
-														"h-8 gap-1",
-														critical ? "text-red-700 border-red-200" : "text-green-700 border-green-200",
-													].join(" ")}
-													onClick={() =>
-														openWhatsAppPaymentReminder({
-															phone: r.customer.phone,
-															customerName: r.customer.name,
-															plot: r.plot.plot_number,
-															project: r.plot.project_name,
-															remainingAmount: r.remaining_amount,
-															monthlyEmi: r.monthly_emi,
-															nextDue: r.next_emi_due,
-															templateId: critical
-																? "plot_cancellation_reminder"
-																: "emi_due",
-														})
-													}
-													disabled={!r.customer.phone}
-												>
-													<MessageCircle className="h-3.5 w-3.5" />
-													{critical ? "Cancellation reminder" : "Remind"}
-												</Button>
-												<Button
-													type="button"
-													size="sm"
-													variant="ghost"
-													className="h-8 px-2"
-													onClick={() => setSelected(r)}
-													title="Details"
-												>
-													<FileText className="h-4 w-4" />
-												</Button>
-											</div>
-										</TableCell>
-									</TableRow>
-								);
-							})}
+													<Button
+														type="button"
+														size="sm"
+														variant="ghost"
+														className="h-8 px-2"
+														onClick={() => setSelected(r)}
+														title="Details"
+													>
+														<FileText className="h-4 w-4" />
+													</Button>
+												</div>
+											</TableCell>
+										</TableRow>
+									);
+								})
+							)}
 						</TableBody>
 					</Table>
 				</CardContent>
@@ -216,7 +297,9 @@ export function PaymentsEmiDueSection({
 												</Link>
 											) : null}
 										</div>
-										<div className="text-zinc-600">Phone: {selected.customer.phone ?? "—"}</div>
+										<div className="text-zinc-600">
+											Phone: {selected.customer.phone ?? "—"}
+										</div>
 									</div>
 								</div>
 								<div className="rounded-lg border border-zinc-200 p-3">
@@ -259,6 +342,45 @@ export function PaymentsEmiDueSection({
 											<span className="font-semibold text-red-700">
 												{formatCurrency(selected.remaining_amount)}
 											</span>
+										</div>
+										<div className="pt-2 flex flex-wrap gap-2">
+											<Link href={`/sales?openSaleId=${selected.sale_id}&collect=1`}>
+												<Button size="sm" className="gap-1">
+													<CreditCard className="h-4 w-4" />
+													Collect payment
+												</Button>
+											</Link>
+											<Button
+												size="sm"
+												variant="outline"
+												className={[
+													"gap-1",
+													selected.missed_months >= 3
+														? "text-red-700 border-red-200"
+														: "text-green-700 border-green-200",
+												].join(" ")}
+												onClick={() =>
+													openWhatsAppPaymentReminder({
+														phone: selected.customer.phone,
+														customerName: selected.customer.name,
+														plot: selected.plot.plot_number,
+														project: selected.plot.project_name,
+														remainingAmount: selected.remaining_amount,
+														monthlyEmi: selected.monthly_emi,
+														nextDue: selected.next_emi_due,
+														templateId:
+															selected.missed_months >= 3
+																? "plot_cancellation_reminder"
+																: "emi_due",
+													})
+												}
+												disabled={!selected.customer.phone}
+											>
+												<MessageCircle className="h-4 w-4" />
+												{selected.missed_months >= 3
+													? "Send cancellation reminder"
+													: "Send reminder"}
+											</Button>
 										</div>
 									</div>
 								</div>

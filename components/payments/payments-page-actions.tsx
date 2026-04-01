@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Plus, CreditCard } from "lucide-react";
+import { Plus, CreditCard, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui";
 import { EmiModal } from "./emi-modal";
 import { PaymentTemplatesModal } from "./payment-templates-modal";
@@ -12,6 +12,12 @@ export function PaymentsPageActions() {
 	return (
 		<div className="flex flex-wrap items-center gap-2">
 			<PaymentTemplatesModal />
+			<Link href="/payments/due">
+				<Button size="sm" variant="outline" className="gap-2">
+					<AlertTriangle className="h-4 w-4 text-red-600" />
+					Due payments
+				</Button>
+			</Link>
 			<Button
 				size="sm"
 				variant="outline"

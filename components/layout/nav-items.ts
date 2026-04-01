@@ -29,6 +29,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Enquiries", href: "/enquiries", icon: Handshake, moduleKey: "enquiries" },
   { label: "Sales", href: "/sales", icon: Handshake, moduleKey: "sales" },
   { label: "Payments", href: "/payments", icon: CreditCard, moduleKey: "payments" },
+  { label: "Due Payments", href: "/payments/due", icon: CreditCard, moduleKey: "payments" },
   { label: "Commissions", href: "/commissions", icon: Banknote, moduleKey: "commissions" },
   { label: "Expenses", href: "/expenses", icon: Receipt, moduleKey: "expenses" },
   { label: "Messaging", href: "/messaging", icon: Bell, moduleKey: "messaging" },

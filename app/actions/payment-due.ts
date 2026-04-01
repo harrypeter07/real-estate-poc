@@ -15,7 +15,7 @@ type EmiDueMonth = {
 export type EmiDueRow = {
 	sale_id: string;
 	customer: { id: string; name: string; phone: string | null };
-	plot: { plot_number: string; project_name: string };
+	plot: { id: string; plot_number: string; project_id: string; project_name: string };
 	seller: { label: string }; // advisor name or Admin (Direct)
 	monthly_emi: number;
 	emi_day: number;
@@ -97,7 +97,7 @@ export async function getEmiDueRows(input?: {
       is_cancelled,
       customers(id, name, phone),
       advisors(name),
-      plots(plot_number, projects(name))
+      plots(id, plot_number, projects(id, name))
     `
 		)
 		.eq("is_cancelled", false)
@@ -209,7 +209,9 @@ export async function getEmiDueRows(input?: {
 				phone: s.customers?.phone ?? null,
 			},
 			plot: {
+				id: String(s.plots?.id ?? ""),
 				plot_number: String(s.plots?.plot_number ?? "—"),
+				project_id: String(s.plots?.projects?.id ?? ""),
 				project_name: String(s.plots?.projects?.name ?? "—"),
 			},
 			seller: { label: sellerLabel },

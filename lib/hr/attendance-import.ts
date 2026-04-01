@@ -231,6 +231,7 @@ export function partitionAttendanceRowsForSave(
 }
 
 type UpsertRow = {
+	business_id: string;
 	employee_id: string;
 	work_date: string;
 	in_time: string | null;
@@ -241,8 +242,13 @@ type UpsertRow = {
 	is_valid: boolean;
 };
 
-function toUpsertRow(r: ParsedAttendanceRow, employeeId: string): UpsertRow {
+function toUpsertRow(
+	r: ParsedAttendanceRow,
+	employeeId: string,
+	businessId: string,
+): UpsertRow {
 	return {
+		business_id: businessId,
 		employee_id: employeeId,
 		work_date: r.work_date,
 		in_time: r.in_time && r.in_time !== "00:00" ? r.in_time : null,
@@ -305,7 +311,7 @@ const emptyUpsertResult = (previewRows: AttendancePreviewRow[]) =>
 export async function upsertParsedAttendanceRows(
 	supabase: { from: (t: string) => any },
 	rows: ParsedAttendanceRow[],
-	options?: { hrEmployees?: HrEmployeeRef[] }
+	options?: { hrEmployees?: HrEmployeeRef[]; businessId?: string | null },
 ): Promise<{
 	/** Total rows successfully written (new + updated); kept name for older clients */
 	inserted: number;
@@ -314,6 +320,16 @@ export async function upsertParsedAttendanceRows(
 	errors: string[];
 	previewRows: AttendancePreviewRow[];
 }> {
+	const businessId = options?.businessId?.trim() || "";
+	if (!businessId) {
+		return {
+			...emptyUpsertResult(buildPreviewRows(rows)),
+			errors: [
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+			],
+		};
+	}
+
 	let list: HrEmployeeRef[];
 	if (options?.hrEmployees) {
 		list = options.hrEmployees;
@@ -342,7 +358,7 @@ export async function upsertParsedAttendanceRows(
 			insertErrors.push(`Unknown employee code: ${r.employee_code}`);
 			continue;
 		}
-		prepared.push(toUpsertRow(r, eid));
+		prepared.push(toUpsertRow(r, eid, businessId));
 	}
 
 	/** Last row wins per employee + day (same as upsert semantics). */

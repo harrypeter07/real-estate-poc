@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -124,8 +125,28 @@ export async function upsertAdvisorAssignment(
 		};
 	}
 
+	const jwtBiz = await getCurrentBusinessId();
+	if (!jwtBiz) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
+	const { data: proj, error: projErr } = await supabase
+		.from("projects")
+		.select("business_id")
+		.eq("id", projectId)
+		.maybeSingle();
+	if (projErr) return { success: false, error: projErr.message };
+
+	const businessId =
+		String((proj as { business_id?: string | null })?.business_id ?? "").trim() || jwtBiz;
+
 	const { error } = await supabase.from("advisor_project_commissions").upsert(
 		{
+			business_id: businessId,
 			project_id: projectId,
 			advisor_id: input.advisor_id,
 			commission_rate: input.commission_rate,

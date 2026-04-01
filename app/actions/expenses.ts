@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -28,7 +29,17 @@ export async function createExpense(
 		return { success: false, error: "Database connection failed" };
 	}
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const { error } = await supabase.from("office_expenses").insert({
+		business_id: businessId,
 		description: parsed.data.description,
 		amount: parsed.data.amount,
 		paid_amount: parsed.data.paid_amount,

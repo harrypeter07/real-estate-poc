@@ -272,6 +272,13 @@ export async function createEnquiryCustomer(
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
 	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
 
 	// Insert enquiry record always (same phone can have multiple enquiries).
 	const { data: enquiry, error: enquiryErr } = await supabase

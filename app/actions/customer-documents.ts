@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -88,7 +89,17 @@ export async function createCustomerDocument(values: {
 		}
 	}
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const { error } = await supabase.from("customer_documents").insert({
+		business_id: businessId,
 		customer_id: values.customer_id,
 		doc_category: values.doc_category,
 		doc_type: values.doc_type,

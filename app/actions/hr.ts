@@ -247,6 +247,13 @@ export async function createHrEmployee(form: {
 	if (!codeCheck.ok) return { success: false, error: codeCheck.error };
 
 	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
 
 	const { error } = await r.supabase.from("hr_employees").insert({
 		business_id: businessId,

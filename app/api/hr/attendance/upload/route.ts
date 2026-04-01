@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { requireAdmin } from "@/lib/hr/auth-route";
 import { matrixFromAttendanceUpload } from "@/lib/hr/attendance-upload-matrix";
 import { parseWorkDurationCsvMatrix } from "@/lib/hr/csv-work-duration-parser";
@@ -146,8 +147,12 @@ export async function POST(req: Request) {
 		});
 	}
 
+	const businessId = await getCurrentBusinessId();
 	const { inserted, attendanceCreated, attendanceUpdated, errors: upsertErrors, previewRows } =
-		await upsertParsedAttendanceRows(auth.supabase, accepted, { hrEmployees: hrList });
+		await upsertParsedAttendanceRows(auth.supabase, accepted, {
+			hrEmployees: hrList,
+			businessId,
+		});
 
 	return NextResponse.json({
 		...basePayload,

@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -154,6 +155,7 @@ export async function recordCommissionPayment(
 			`
       amount_paid,
       total_commission_amount,
+      business_id,
       plot_sales(
         total_sale_amount,
         amount_paid,
@@ -211,7 +213,19 @@ export async function recordCommissionPayment(
 	const referenceNumber = meta?.reference_number?.trim() || null;
 	const receiptPath = meta?.receipt_path?.trim() || null;
 
+	const commissionBusinessId =
+		String((comm as { business_id?: string | null }).business_id ?? "").trim() ||
+		(await getCurrentBusinessId());
+	if (!commissionBusinessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const payload = {
+		business_id: commissionBusinessId,
 		commission_id: id,
 		amount: add,
 		extra_paid_amount: extraPaidAmount,
@@ -230,7 +244,10 @@ export async function recordCommissionPayment(
 			const { extra_paid_amount, ...fallbackPayload } = payload as any;
 			const { error: fallbackErr } = await supabase
 				.from("advisor_commission_payments")
-				.insert(fallbackPayload);
+				.insert({
+					...fallbackPayload,
+					business_id: commissionBusinessId,
+				});
 			if (fallbackErr) return { success: false, error: fallbackErr.message };
 			revalidatePath("/commissions");
 			return { success: true, extraPaidAmount: 0 };

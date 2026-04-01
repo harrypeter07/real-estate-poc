@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { requireAdmin } from "@/lib/hr/auth-route";
 import { buildWeeklyBuckets, computePayoutForEmployee, formatYmdLocal } from "@/lib/hr/salary-engine";
 import type { HrEmployeeRow } from "@/lib/hr/types";
@@ -29,6 +30,17 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: "Invalid month format. Use YYYY-MM" }, { status: 400 });
 	}
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return NextResponse.json(
+			{
+				error:
+					"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+			},
+			{ status: 403 },
+		);
+	}
+
 	const { data: employees, error: e1 } = await auth.supabase.from("hr_employees").select("*");
 	if (e1) return NextResponse.json({ error: e1.message }, { status: 500 });
 
@@ -54,6 +66,7 @@ export async function POST(req: Request) {
 		const { data: ins, error: e3 } = await auth.supabase
 			.from("hr_payout_batches")
 			.insert({
+				business_id: businessId,
 				month_label: range.label,
 				status: "draft",
 				created_by: auth.user.id,
@@ -117,6 +130,7 @@ export async function POST(req: Request) {
 		const calc = computePayoutForEmployee(emp, buckets, presentDays, totalWorked, totalOt);
 
 		await auth.supabase.from("hr_employee_payouts").insert({
+			business_id: businessId,
 			batch_id: batchId,
 			employee_id: emp.id,
 			total_days: presentDays,

@@ -42,6 +42,9 @@ async function syncCustomerBirthdayReminder(
 	supabase: any,
 	customer: { id: string; name: string; phone: string; birth_date?: string | null },
 ) {
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) return;
+
 	const marker = `AUTO_BIRTHDAY:customer:${customer.id}`;
 	const { data: existing } = await supabase
 		.from("reminders")
@@ -58,6 +61,7 @@ async function syncCustomerBirthdayReminder(
 	}
 
 	const payload = {
+		business_id: businessId,
 		title: `Birthday Wish - ${customer.name}`,
 		type: "birthday_customer",
 		phone: customer.phone || null,
@@ -111,6 +115,13 @@ export async function createCustomer(
 	}
 
 	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
 
 	const { data: insertedCustomer, error } = await supabase
 		.from("customers")

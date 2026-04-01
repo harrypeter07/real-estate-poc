@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { requireAdmin } from "@/lib/hr/auth-route";
 
 export async function GET() {
@@ -31,9 +32,21 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: "name and employee_code required" }, { status: 400 });
 	}
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return NextResponse.json(
+			{
+				error:
+					"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+			},
+			{ status: 403 },
+		);
+	}
+
 	const { data, error } = await auth.supabase
 		.from("hr_employees")
 		.insert({
+			business_id: businessId,
 			name: String(body.name),
 			employee_code: String(body.employee_code).trim(),
 			phone: body.phone ?? null,

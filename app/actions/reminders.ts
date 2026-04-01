@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -61,7 +62,17 @@ export async function createReminder(
 		}
 	}
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const { error } = await supabase.from("reminders").insert({
+		business_id: businessId,
 		title: parsed.data.title,
 		type: parsed.data.type,
 		phone: parsed.data.phone || null,

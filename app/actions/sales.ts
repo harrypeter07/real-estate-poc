@@ -203,6 +203,7 @@ export async function createSale(
 	if (!soldByAdmin && parsed.data.advisor_id) {
 		const profitTotal = finance.profit;
 		await supabase.from("advisor_commissions").insert({
+			business_id: businessId,
 			advisor_id: parsed.data.advisor_id,
 			sale_id: sale.id,
 			commission_percentage: 0,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
 	Card,
@@ -17,10 +17,13 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	Input,
 } from "@/components/ui";
+import { digitsOnly } from "@/lib/utils/phone";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { PasswordResetButton } from "@/components/advisors/password-reset-button";
 import {
+	Search,
 	User,
 	KeyRound,
 	ExternalLink,
@@ -50,9 +53,25 @@ export function AdvisorAnalyticsTable({
 	salesAgg: Record<string, SalesAgg>;
 	commAgg: Record<string, CommAgg>;
 }) {
+	const [query, setQuery] = useState("");
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof getAdvisorAnalytics>> | null>(null);
 	const [loading, setLoading] = useState(false);
+
+	const filteredAdvisors = useMemo(() => {
+		const q = query.trim().toLowerCase();
+		const qDigits = digitsOnly(query);
+		if (!q) return advisors;
+		return advisors.filter((a) => {
+			const phoneDigits = digitsOnly(a.phone);
+			return (
+				a.name.toLowerCase().includes(q) ||
+				a.code.toLowerCase().includes(q) ||
+				a.phone.includes(q) ||
+				(qDigits.length > 0 && phoneDigits.includes(qDigits))
+			);
+		});
+	}, [advisors, query]);
 
 	async function openAdvisor(id: string) {
 		setSelectedId(id);
@@ -71,6 +90,17 @@ export function AdvisorAnalyticsTable({
 	return (
 		<>
 			<Card>
+				<CardContent className="p-3 md:p-4 pb-0">
+					<div className="relative max-w-md">
+						<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+						<Input
+							value={query}
+							onChange={(e) => setQuery(e.target.value)}
+							placeholder="Search by name, code, or phone…"
+							className="h-8 pl-8 text-sm"
+						/>
+					</div>
+				</CardContent>
 				<CardContent className="p-0 overflow-x-auto">
 					<Table>
 						<TableHeader>
@@ -93,8 +123,14 @@ export function AdvisorAnalyticsTable({
 										No advisors yet.
 									</TableCell>
 								</TableRow>
+							) : filteredAdvisors.length === 0 ? (
+								<TableRow>
+									<TableCell colSpan={9} className="py-10 text-center text-sm text-zinc-500">
+										No advisors match your search.
+									</TableCell>
+								</TableRow>
 							) : (
-								advisors.map((a) => {
+								filteredAdvisors.map((a) => {
 									const s = salesAgg[a.id] ?? { salesCount: 0, revenue: 0, due: 0 };
 									const c = commAgg[a.id] ?? { pending: 0, paid: 0, total: 0 };
 									const netRevenue = s.revenue - c.total;

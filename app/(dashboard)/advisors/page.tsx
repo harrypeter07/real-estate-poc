@@ -1,12 +1,21 @@
 import Link from "next/link";
-import { Plus, Users, UserPlus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
-import { AdvisorCard } from "@/components/advisors/advisor-card";
+import { AdvisorsManager } from "@/components/advisors/advisors-manager";
 import { getAdvisors } from "@/app/actions/advisors";
 
 export default async function AdvisorsPage() {
   const advisors = await getAdvisors();
+
+  const rows = (advisors ?? []).map((a: any) => ({
+    id: a.id,
+    name: a.name,
+    code: a.code,
+    phone: a.phone,
+    email: a.email ?? null,
+    is_active: a.is_active ?? true,
+  }));
 
   return (
     <div className="space-y-6">
@@ -40,11 +49,7 @@ export default async function AdvisorsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {advisors.map((advisor) => (
-            <AdvisorCard key={advisor.id} advisor={advisor} />
-          ))}
-        </div>
+        <AdvisorsManager advisors={rows} />
       )}
     </div>
   );

@@ -12,7 +12,7 @@ export function PaymentsPageActions() {
 	return (
 		<div className="flex flex-wrap items-center gap-2">
 			<PaymentTemplatesModal />
-			<Link href="/payments/due">
+			<Link href="/payments?status=pending">
 				<Button size="sm" variant="outline" className="gap-2">
 					<AlertTriangle className="h-4 w-4 text-red-600" />
 					Due payments

@@ -9,6 +9,7 @@ import { PaymentsPageActions } from "@/components/payments/payments-page-actions
 import { PaymentsAsOfDate } from "@/components/payments/payments-asof-date";
 import { getEmiDueRows } from "@/app/actions/payment-due";
 import { PaymentsEmiDueSection } from "@/components/payments/payments-emi-due-section";
+import { PaymentsEmiDuePageClient } from "@/components/payments/payments-emi-due-page-client";
 
 export default async function PaymentsPage({
 	searchParams,
@@ -19,6 +20,7 @@ export default async function PaymentsPage({
 		status?: string;
 		mode?: string;
 		asOf?: string;
+		q?: string;
 	}>;
 }) {
 	const params = await searchParams;
@@ -37,6 +39,7 @@ export default async function PaymentsPage({
 		typeof params.mode === "string" && params.mode !== "all"
 			? params.mode
 			: "";
+	const q = typeof params.q === "string" ? params.q : "";
 
 	const filteredPayments = await getPayments({
 		from: from || undefined,
@@ -52,6 +55,7 @@ export default async function PaymentsPage({
 	const emiDueRows = await getEmiDueRows({ asOf: asOf || undefined });
 
 	const hasFilters = Boolean(from || to || status || mode || asOf);
+	const isPendingDueView = status === "pending";
 
 	return (
 		<div className="space-y-6">
@@ -65,9 +69,17 @@ export default async function PaymentsPage({
 
 			<PaymentsFilters />
 
-			<PaymentsEmiDueSection rows={emiDueRows as any} asOf={asOf || undefined} />
+			{isPendingDueView ? (
+				<PaymentsEmiDuePageClient
+					rows={emiDueRows as any}
+					initialQuery={q}
+					asOf={asOf || undefined}
+				/>
+			) : (
+				<PaymentsEmiDueSection rows={emiDueRows as any} asOf={asOf || undefined} />
+			)}
 
-			{filteredPayments.length === 0 ? (
+			{isPendingDueView ? null : filteredPayments.length === 0 ? (
 				<div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
 					<div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 mb-4">
 						<CreditCard className="h-8 w-8 text-zinc-400" />

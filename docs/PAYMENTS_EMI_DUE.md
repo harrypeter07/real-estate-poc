@@ -40,6 +40,12 @@ Example URLs:
 - `/payments?asOf=2026-06-15`
 - `/payments?from=2026-01-01&to=2026-12-31&asOf=2026-06-15`
 
+### Where to view due EMI list
+
+- Use the existing **Status filter = Pending** on `/payments`.
+- URL form: `/payments?status=pending` (works with `asOf` too).
+- This renders the full Due EMI table (search, collect, reminder, details) inside the same Payments page.
+
 ### Collect payment flow
 
 From the EMI Due section:
@@ -52,7 +58,9 @@ From the EMI Due section:
 - EMI due computation (per-sale, missed-month logic): `app/actions/payment-due.ts`
 - Payments page wiring + asOf param: `app/(dashboard)/payments/page.tsx`
 - As-of date picker: `components/payments/payments-asof-date.tsx`
-- EMI due UI + modal: `components/payments/payments-emi-due-section.tsx`
+- EMI due UI + modal:
+  - compact section on normal Payments view: `components/payments/payments-emi-due-section.tsx`
+  - full due table when status is pending: `components/payments/payments-emi-due-page-client.tsx`
 - Sales deep-link auto-open: `components/sales/sales-list.tsx`
 - WhatsApp templates: `lib/payment-message-templates.ts`
 

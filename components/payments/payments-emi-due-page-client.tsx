@@ -71,10 +71,11 @@ export function PaymentsEmiDuePageClient({
 
 	function applyQueryToUrl(next: string) {
 		const params = new URLSearchParams(sp.toString());
+		params.set("status", "pending");
 		if (next.trim()) params.set("q", next.trim());
 		else params.delete("q");
 		startTransition(() => {
-			router.push(params.toString() ? `/payments/due?${params.toString()}` : "/payments/due");
+			router.push(params.toString() ? `/payments?${params.toString()}` : "/payments?status=pending");
 		});
 	}
 
@@ -184,7 +185,12 @@ export function PaymentsEmiDuePageClient({
 												{formatCurrency(r.monthly_emi)}
 												<div className="text-[10px] text-zinc-500">Day {r.emi_day}</div>
 											</TableCell>
-											<TableCell className="text-right font-bold">
+											<TableCell
+												className={[
+													"text-right font-bold",
+													critical ? "bg-red-100/70 text-red-700" : "",
+												].join(" ")}
+											>
 												{critical ? (
 													<span className="inline-flex items-center gap-1 text-red-700">
 														<AlertTriangle className="h-3.5 w-3.5" />
@@ -194,10 +200,17 @@ export function PaymentsEmiDuePageClient({
 													`${r.missed_months} mo`
 												)}
 											</TableCell>
-											<TableCell className="text-right font-bold text-red-700">
+											<TableCell
+												className={[
+													"text-right font-bold text-red-700",
+													critical ? "bg-red-100/70" : "",
+												].join(" ")}
+											>
 												{formatCurrency(r.collapsed_due_amount)}
 											</TableCell>
-											<TableCell className="text-sm">
+											<TableCell
+												className={critical ? "bg-red-100/50 text-red-700 font-medium" : "text-sm"}
+											>
 												{r.next_emi_due ? formatDate(r.next_emi_due) : "—"}
 											</TableCell>
 											<TableCell

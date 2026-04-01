@@ -172,3 +172,7 @@ npm run dev
 
 See [docs/FEATURES.md](docs/FEATURES.md) for full UI, API, forms, modals, and edge cases.
 
+### EMI due & testing with “As of date”
+
+Step-by-step manual tests (1 missed month vs 3+ months, collapsed due, pending filter): [docs/TESTING_EMI_DUE_DATES.md](docs/TESTING_EMI_DUE_DATES.md). Rules summary: [docs/PAYMENTS_EMI_DUE.md](docs/PAYMENTS_EMI_DUE.md).
+

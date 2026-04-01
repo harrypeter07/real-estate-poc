@@ -7,6 +7,7 @@ import {
 	projectSchema,
 	type ProjectFormValues,
 } from "@/lib/validations/project";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 
 export type ActionResponse = {
 	success: boolean;
@@ -45,9 +46,19 @@ export async function createProject(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const { data: projectRow, error } = await supabase
 		.from("projects")
 		.insert({
+			business_id: businessId,
 			name: parsed.data.name,
 			location: parsed.data.location,
 			total_plots_count: parsed.data.total_plots_count,
@@ -69,6 +80,7 @@ export async function createProject(
 		const plotsToInsert = Array.from({ length: count }, (_, idx) => {
 			const plotNumber = String(start + idx);
 			return {
+				business_id: businessId,
 				project_id: projectRow.id,
 				plot_number: plotNumber,
 				size_sqft: 0,

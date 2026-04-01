@@ -40,6 +40,10 @@ Example URLs:
 - `/payments?asOf=2026-06-15`
 - `/payments?from=2026-01-01&to=2026-12-31&asOf=2026-06-15`
 
+### Step-by-step testing (1 vs 3+ missed months)
+
+See **[TESTING_EMI_DUE_DATES.md](TESTING_EMI_DUE_DATES.md)** for concrete scenarios using **As of date** and the pending due table.
+
 ### Where to view due EMI list
 
 - Use the existing **Status filter = Pending** on `/payments`.

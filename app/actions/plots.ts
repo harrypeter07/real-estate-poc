@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -29,7 +30,17 @@ export async function createPlot(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const { error } = await supabase.from("plots").insert({
+		business_id: businessId,
 		project_id: projectId,
 		plot_number: parsed.data.plot_number,
 		size_sqft: parsed.data.size_sqft,
@@ -71,10 +82,20 @@ export async function createBulkPlots(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
 	const plots = [];
 	for (let i = data.from_number; i <= data.to_number; i++) {
 		const plotNumber = `${data.prefix}${String(i).padStart(2, "0")}`;
 		plots.push({
+			business_id: businessId,
 			project_id: projectId,
 			plot_number: plotNumber,
 			size_sqft: data.size_sqft,

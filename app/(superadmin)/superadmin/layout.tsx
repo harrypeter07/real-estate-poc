@@ -55,9 +55,6 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 							>
 								Menu
 							</Button>
-							<Link href="/dashboard" className="text-sm text-zinc-600 hover:underline">
-								Go to app
-							</Link>
 						</div>
 					</div>
 				</header>

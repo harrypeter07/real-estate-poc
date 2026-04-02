@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { formatAuditActionLabel, formatAuditTimestamp } from "@/lib/superadmin/audit-labels";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 type SAResult<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -541,23 +542,114 @@ export async function saChangeTenantAdminPassword(input: {
 	}
 }
 
+export type AuditLogRow = {
+	id: string;
+	created_at: string;
+	created_at_label: string;
+	action: string;
+	action_label: string;
+	actor_auth_user_id: string;
+	actor_label: string;
+	target_business_id: string | null;
+	business_name: string | null;
+	target_admin_auth_user_id: string | null;
+	target_admin_label: string | null;
+	before: any;
+	after: any;
+};
+
+type AuditLogRowDb = Omit<
+	AuditLogRow,
+	"created_at_label" | "action_label" | "actor_label" | "business_name" | "target_admin_label"
+>;
+
+function pickPersonLabel(name: string | null | undefined, email: string | null | undefined): string {
+	const n = String(name ?? "").trim();
+	const e = String(email ?? "").trim();
+	if (n && e) return `${n} (${e})`;
+	return e || n || "—";
+}
+
+async function enrichAuditLogRows(
+	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+	rows: AuditLogRowDb[],
+): Promise<AuditLogRow[]> {
+	if (!rows.length) return [];
+
+	const bizIds = [...new Set(rows.map((r) => r.target_business_id).filter(Boolean))] as string[];
+	const businessNameById: Record<string, string> = {};
+	if (bizIds.length) {
+		const { data: bizRows } = await supabase.from("businesses").select("id,name").in("id", bizIds);
+		for (const b of bizRows ?? []) {
+			const row = b as { id: string; name: string | null };
+			businessNameById[row.id] = String(row.name ?? "—");
+		}
+	}
+
+	const authIds = new Set<string>();
+	for (const r of rows) {
+		if (r.actor_auth_user_id) authIds.add(r.actor_auth_user_id);
+		if (r.target_admin_auth_user_id) authIds.add(r.target_admin_auth_user_id);
+	}
+	const idList = [...authIds];
+
+	const labelByAuthId: Record<string, string> = {};
+
+	if (idList.length) {
+		const { data: admRows } = await supabase
+			.from("business_admins")
+			.select("auth_user_id,name,email")
+			.in("auth_user_id", idList);
+
+		for (const a of admRows ?? []) {
+			const row = a as { auth_user_id: string; name: string | null; email: string | null };
+			labelByAuthId[row.auth_user_id] = pickPersonLabel(row.name, row.email);
+		}
+
+		const admin = createAdminClient();
+		const missing = idList.filter((id) => !labelByAuthId[id]);
+		if (admin && missing.length) {
+			await Promise.all(
+				missing.map(async (id) => {
+					try {
+						const { data, error } = await admin.auth.admin.getUserById(id);
+						if (error || !data?.user) {
+							labelByAuthId[id] = `Unknown user (${id.slice(0, 8)}…)`;
+							return;
+						}
+						const u = data.user;
+						const email = String(u.email ?? "").trim();
+						const name = String((u.user_metadata as { name?: string })?.name ?? "").trim();
+						labelByAuthId[id] = pickPersonLabel(name || null, email || null);
+					} catch {
+						labelByAuthId[id] = `Unknown user (${id.slice(0, 8)}…)`;
+					}
+				}),
+			);
+		}
+	}
+
+	return rows.map((r) => ({
+		...r,
+		action_label: formatAuditActionLabel(r.action),
+		created_at_label: formatAuditTimestamp(r.created_at),
+		actor_label:
+			labelByAuthId[r.actor_auth_user_id] ??
+			`Unknown user (${String(r.actor_auth_user_id).slice(0, 8)}…)`,
+		business_name: r.target_business_id
+			? businessNameById[r.target_business_id] ?? "Unknown business"
+			: null,
+		target_admin_label: r.target_admin_auth_user_id
+			? labelByAuthId[r.target_admin_auth_user_id] ??
+				`Unknown user (${String(r.target_admin_auth_user_id).slice(0, 8)}…)`
+			: null,
+	}));
+}
+
 export async function saListAuditLogs(params: {
 	business_id?: string;
 	limit?: number;
-}): Promise<
-	SAResult<
-		Array<{
-			id: string;
-			created_at: string;
-			action: string;
-			actor_auth_user_id: string;
-			target_business_id: string | null;
-			target_admin_auth_user_id: string | null;
-			before: any;
-			after: any;
-		}>
-	>
-> {
+}): Promise<SAResult<AuditLogRow[]>> {
 	try {
 		const { supabase } = await requireSA();
 		let q = supabase
@@ -568,7 +660,8 @@ export async function saListAuditLogs(params: {
 		if (params.business_id) q = q.eq("target_business_id", params.business_id);
 		const { data, error } = await q;
 		if (error) return { ok: false, error: error.message };
-		return { ok: true, data: (data ?? []) as any };
+		const enriched = await enrichAuditLogRows(supabase, (data ?? []) as AuditLogRowDb[]);
+		return { ok: true, data: enriched };
 	} catch (e: any) {
 		return { ok: false, error: e?.message ?? "Failed" };
 	}

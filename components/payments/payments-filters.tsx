@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { Loader2 } from "lucide-react";
+import { isPaymentsAsOfDateEnabled } from "@/lib/env";
 
 export function PaymentsFilters() {
 	const router = useRouter();
@@ -13,7 +14,8 @@ export function PaymentsFilters() {
 	const to = searchParams.get("to") ?? "";
 	const status = searchParams.get("status") ?? "all";
 	const mode = searchParams.get("mode") ?? "all";
-	const asOf = searchParams.get("asOf") ?? "";
+	const asOfRaw = searchParams.get("asOf") ?? "";
+	const asOf = isPaymentsAsOfDateEnabled() ? asOfRaw : "";
 	
 	const [customFrom, setCustomFrom] = useState(from);
 	const [customTo, setCustomTo] = useState(to);

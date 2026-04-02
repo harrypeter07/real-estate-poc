@@ -8,6 +8,7 @@ import { PaymentsFilters } from "@/components/payments/payments-filters";
 import { PaymentsPageActions } from "@/components/payments/payments-page-actions";
 import { PaymentsAsOfDate } from "@/components/payments/payments-asof-date";
 import { getEmiDueRows } from "@/app/actions/payment-due";
+import { isPaymentsAsOfDateEnabled } from "@/lib/env";
 import { PaymentsEmiDueSection } from "@/components/payments/payments-emi-due-section";
 import { PaymentsEmiDuePageClient } from "@/components/payments/payments-emi-due-page-client";
 
@@ -27,10 +28,11 @@ export default async function PaymentsPage({
 
 	const from = params.from ?? "";
 	const to = params.to ?? "";
-	const asOf =
+	const asOfParam =
 		typeof params.asOf === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.asOf)
 			? params.asOf
 			: "";
+	const asOf = isPaymentsAsOfDateEnabled() ? asOfParam : "";
 	const status =
 		typeof params.status === "string" && params.status !== "all"
 			? params.status
@@ -65,7 +67,7 @@ export default async function PaymentsPage({
 				action={<PaymentsPageActions />}
 			/>
 
-			<PaymentsAsOfDate />
+			{isPaymentsAsOfDateEnabled() ? <PaymentsAsOfDate /> : null}
 
 			<PaymentsFilters />
 

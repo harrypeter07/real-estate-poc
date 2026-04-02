@@ -1,5 +1,6 @@
 "use client";
 
+import { isPaymentsAsOfDateEnabled } from "@/lib/env";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input } from "@/components/ui";
@@ -26,6 +27,8 @@ export function PaymentsAsOfDate() {
 			router.push(qs ? `/payments?${qs}` : "/payments");
 		});
 	}
+
+	if (!isPaymentsAsOfDateEnabled()) return null;
 
 	return (
 		<div className="flex flex-col sm:flex-row sm:items-center gap-2">

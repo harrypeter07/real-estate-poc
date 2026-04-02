@@ -83,14 +83,13 @@ export async function middleware(request: NextRequest) {
   const role =
     (user?.user_metadata as any)?.role ?? (user?.app_metadata as any)?.role;
 
-  // If superadmin is logged in, keep them inside /superadmin routes (and allow /dashboard if needed)
+  // Superadmin: only the superadmin console — no tenant CRM routes (/dashboard, /payments, etc.)
   if (user && String(role || "").toLowerCase() === "superadmin") {
     const allowed =
       pathname === "/superadmin" ||
       pathname.startsWith("/superadmin/") ||
       pathname === "/login" ||
-      pathname.startsWith("/_next") ||
-      pathname.startsWith("/dashboard");
+      pathname.startsWith("/_next");
 
     if (!allowed) {
       const url = request.nextUrl.clone();

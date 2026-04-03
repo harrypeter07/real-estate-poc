@@ -29,8 +29,22 @@ import {
 import { saleSchema, type SaleFormValues } from "@/lib/validations/sale";
 import { createSale } from "@/app/actions/sales";
 import { ShareReceiptModal } from "./share-receipt-modal";
+import { CustomerCombobox } from "./customer-combobox";
 import { formatCurrency, formatCurrencyShort } from "@/lib/utils/formatters";
 import { calculateFinance } from "@/lib/utils/finance";
+
+function useIsLocalhost() {
+  const [yes, setYes] = useState(false);
+  useEffect(() => {
+    const h = window.location.hostname;
+    setYes(
+      h === "localhost" ||
+        h === "127.0.0.1" ||
+        h === "[::1]"
+    );
+  }, []);
+  return yes;
+}
 
 interface SaleFormProps {
   plots: any[];
@@ -55,6 +69,7 @@ export function SaleForm({
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [statusText, setStatusText] = useState("");
   const [shareModal, setShareModal] = useState<{ saleId: string; customerPhone?: string | null; customerName?: string | null } | null>(null);
+  const showFillMock = useIsLocalhost();
 
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
@@ -444,9 +459,11 @@ export function SaleForm({
           <CardTitle className="text-lg">New Sale / Booking</CardTitle>
           <CardDescription className="text-xs">Record a new plot transaction</CardDescription>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
-          Fill Mock Data
-        </Button>
+        {showFillMock ? (
+          <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
+            Fill Mock Data
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <Form {...form}>
@@ -489,20 +506,17 @@ export function SaleForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Select Customer *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a buyer" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name} ({customer.phone})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <CustomerCombobox
+                          customers={customers.map((c) => ({
+                            id: c.id,
+                            name: String(c.name ?? ""),
+                            phone: String(c.phone ?? ""),
+                          }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

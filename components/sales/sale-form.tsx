@@ -25,11 +25,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SearchableCombobox,
 } from "@/components/ui";
 import { saleSchema, type SaleFormValues } from "@/lib/validations/sale";
 import { createSale } from "@/app/actions/sales";
 import { ShareReceiptModal } from "./share-receipt-modal";
-import { CustomerCombobox } from "./customer-combobox";
 import { formatCurrency, formatCurrencyShort } from "@/lib/utils/formatters";
 import { calculateFinance } from "@/lib/utils/finance";
 
@@ -507,14 +507,16 @@ export function SaleForm({
                     <FormItem>
                       <FormLabel>Select Customer *</FormLabel>
                       <FormControl>
-                        <CustomerCombobox
-                          customers={customers.map((c) => ({
-                            id: c.id,
-                            name: String(c.name ?? ""),
-                            phone: String(c.phone ?? ""),
+                        <SearchableCombobox
+                          options={customers.map((c) => ({
+                            value: c.id,
+                            label: String(c.name ?? ""),
+                            subtitle: String(c.phone ?? ""),
                           }))}
                           value={field.value}
                           onChange={field.onChange}
+                          placeholder="Search customer by name or phone…"
+                          emptyMessage="No customer matches."
                         />
                       </FormControl>
                       <FormMessage />
@@ -554,20 +556,20 @@ export function SaleForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Select Advisor *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose channel partner" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {filteredAdvisors.map((advisor) => (
-                              <SelectItem key={advisor.id} value={advisor.id}>
-                                {advisor.name} ({advisor.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SearchableCombobox
+                            options={filteredAdvisors.map((a) => ({
+                              value: a.id,
+                              label: String(a.name ?? ""),
+                              subtitle: String(a.code ?? ""),
+                              keywords: String(a.phone ?? ""),
+                            }))}
+                            value={field.value ?? ""}
+                            onChange={(id) => field.onChange(id || null)}
+                            placeholder="Search advisor by name, code, or phone…"
+                            emptyMessage="No advisor matches."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

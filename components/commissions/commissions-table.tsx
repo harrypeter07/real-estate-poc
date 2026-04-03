@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ListSearchBar } from "@/components/shared/list-search-bar";
+import { matchesTextSearch } from "@/lib/utils/text-search";
 import { toast } from "sonner";
 import { BadgePercent, CheckCircle2, Clock, Home, User, AlertCircle } from "lucide-react";
 import {
@@ -53,6 +55,21 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const [confirmExtraOpen, setConfirmExtraOpen] = useState(false);
   const [pendingExtraAmount, setPendingExtraAmount] = useState(0);
   const [extraReason, setExtraReason] = useState("");
+  const [listQuery, setListQuery] = useState("");
+
+  const visibleCommissions = useMemo(
+    () =>
+      commissions.filter((comm) =>
+        matchesTextSearch(
+          listQuery,
+          comm.advisors?.name,
+          comm.advisors?.code,
+          comm.plot_sales?.plots?.plot_number,
+          comm.plot_sales?.plots?.projects?.name,
+        ),
+      ),
+    [commissions, listQuery],
+  );
 
   const remaining = useMemo(() => {
     if (!selected) return 0;
@@ -210,6 +227,20 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     <>
       <Card>
         <CardContent className="p-0 overflow-x-auto">
+          <div className="p-3 border-b border-zinc-100">
+            <ListSearchBar
+              value={listQuery}
+              onChange={setListQuery}
+              placeholder="Search by advisor, code, plot, project…"
+              className="max-w-xl"
+            />
+          </div>
+          {visibleCommissions.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-zinc-600">
+              No commissions match your search. Clear the box to see all {commissions.length}{" "}
+              record{commissions.length === 1 ? "" : "s"}.
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -224,7 +255,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {commissions.map((comm) => {
+              {visibleCommissions.map((comm) => {
                 const rem = Math.max(
                   0,
                   Number(comm.total_commission_amount ?? 0) - Number(comm.amount_paid ?? 0)
@@ -313,6 +344,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               })}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 

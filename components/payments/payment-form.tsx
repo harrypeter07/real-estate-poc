@@ -26,6 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SearchableCombobox,
 } from "@/components/ui";
 import { paymentSchema, type PaymentFormValues } from "@/lib/validations/payment";
 import { createPayment } from "@/app/actions/payments";
@@ -233,20 +234,21 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Sale / Plot *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!!initialSaleId}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a sale transaction" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {sales.map((sale) => (
-                        <SelectItem key={sale.id} value={sale.id}>
-                          {sale.plots.projects.name} - {sale.plots.plot_number} ({sale.customers.name})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableCombobox
+                      options={sales.map((sale) => ({
+                        value: sale.id,
+                        label: `${sale.plots?.projects?.name ?? "—"} — Plot ${sale.plots?.plot_number ?? "—"}`,
+                        subtitle: String(sale.customers?.name ?? "—"),
+                        keywords: String(sale.customers?.phone ?? ""),
+                      }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={!!initialSaleId}
+                      placeholder="Search by project, plot, customer, phone…"
+                      emptyMessage="No sale matches."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

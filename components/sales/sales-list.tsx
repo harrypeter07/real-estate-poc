@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, ShoppingCart, Calendar, User, MapPin, IndianRupee, MessageCircle } from "lucide-react";
+import { ListSearchBar } from "@/components/shared/list-search-bar";
+import { matchesTextSearch } from "@/lib/utils/text-search";
 import { openWhatsAppPaymentReminder } from "@/lib/payment-whatsapp";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
@@ -26,8 +28,23 @@ export function SalesList({
 }) {
 	const [selectedSale, setSelectedSale] = useState<any | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
+	const [listQuery, setListQuery] = useState("");
 	const router = useRouter();
 	const searchParams = useSearchParams();
+
+	const visibleSales = useMemo(() => {
+		return sales.filter((sale: any) =>
+			matchesTextSearch(
+				listQuery,
+				sale.customers?.name,
+				sale.customers?.phone,
+				sale.advisors?.name,
+				sale.advisors?.code,
+				sale.plots?.plot_number,
+				sale.plots?.projects?.name,
+			),
+		);
+	}, [sales, listQuery]);
 
 	const openSaleModal = (sale: any) => {
 		setSelectedSale(sale);
@@ -51,8 +68,23 @@ export function SalesList({
 
 	return (
 		<>
-			<div className="grid grid-cols-1 gap-4">
-				{sales.map((sale) => {
+			<div className="space-y-3">
+				<ListSearchBar
+					value={listQuery}
+					onChange={setListQuery}
+					placeholder="Search by customer, phone, advisor, plot, project…"
+					className="max-w-xl"
+				/>
+				{visibleSales.length === 0 ? (
+					<div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-8 text-center text-sm text-zinc-600">
+						No sales match your search. Clear the box to see all{" "}
+						{sales.length} record{sales.length === 1 ? "" : "s"}.
+					</div>
+				) : null}
+			</div>
+			{visibleSales.length > 0 ? (
+			<div className="grid grid-cols-1 gap-4 mt-4">
+				{visibleSales.map((sale) => {
 					const advisorName = sale.sold_by_admin
 						? "Admin (Direct)"
 						: sale.advisors?.name ?? "—";
@@ -209,6 +241,7 @@ export function SalesList({
 					);
 				})}
 			</div>
+			) : null}
 
 			{selectedSale && (
 				<SaleDetailModal

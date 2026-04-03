@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ListSearchBar } from "@/components/shared/list-search-bar";
+import { matchesTextSearch } from "@/lib/utils/text-search";
 import {
   CheckCircle2,
   Clock,
@@ -38,6 +40,21 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
   const [open, setOpen] = useState(false);
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [generateProgress, setGenerateProgress] = useState(0);
+  const [listQuery, setListQuery] = useState("");
+
+  const visiblePayments = useMemo(() => {
+    return payments.filter((payment) =>
+      matchesTextSearch(
+        listQuery,
+        payment.customers?.name,
+        payment.customers?.phone,
+        payment.plot_sales?.plots?.projects?.name,
+        payment.plot_sales?.plots?.plot_number,
+        payment.slip_number,
+        payment.payment_mode,
+      ),
+    );
+  }, [payments, listQuery]);
 
   const close = () => {
     setOpen(false);
@@ -76,6 +93,20 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
     <>
       <Card>
         <CardContent className="p-0">
+          <div className="p-3 border-b border-zinc-100">
+            <ListSearchBar
+              value={listQuery}
+              onChange={setListQuery}
+              placeholder="Search by customer, phone, plot, project, slip…"
+              className="max-w-xl"
+            />
+          </div>
+          {visiblePayments.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-zinc-600">
+              No payments match your search. Clear the box to see all {payments.length}{" "}
+              payment{payments.length === 1 ? "" : "s"}.
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -88,7 +119,7 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((payment) => (
+              {visiblePayments.map((payment) => (
                 <TableRow
                   key={payment.id}
                   className="cursor-pointer hover:bg-zinc-50"
@@ -177,6 +208,7 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 

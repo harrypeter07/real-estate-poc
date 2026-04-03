@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Pencil, Search } from "lucide-react";
+import { Pencil } from "lucide-react";
+import { ListSearchBar } from "@/components/shared/list-search-bar";
 import {
 	Button,
 	Card,
 	CardContent,
-	Input,
 	Table,
 	TableBody,
 	TableCell,
@@ -66,15 +66,13 @@ export function CustomersTableClient({
 	return (
 		<Card className="border-zinc-200 shadow-sm">
 			<CardContent className="p-3 md:p-4 space-y-3">
-				<div className="relative max-w-md">
-					<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-					<Input
-						value={query}
-						onChange={(e) => setQuery(e.target.value)}
-						placeholder="Search by name or phone…"
-						className="h-8 pl-8 text-sm"
-					/>
-				</div>
+				<ListSearchBar
+					value={query}
+					onChange={setQuery}
+					placeholder="Search by name or phone…"
+					className="max-w-md"
+					inputClassName="h-8 text-sm"
+				/>
 
 				<div className="overflow-x-auto rounded-md border border-zinc-100">
 					<Table>

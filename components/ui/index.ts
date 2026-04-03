@@ -46,6 +46,10 @@ export {
 	SelectScrollDownButton,
 } from "./select";
 export {
+	SearchableCombobox,
+	type SearchableComboboxOption,
+} from "./searchable-combobox";
+export {
 	DropdownMenu,
 	DropdownMenuTrigger,
 	DropdownMenuContent,

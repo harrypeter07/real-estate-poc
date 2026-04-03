@@ -73,12 +73,14 @@ export function SaleForm({
       emi_day: 5,
       followup_date: "",
       notes: "",
+      advisor_selling_price_per_sqft: undefined as number | undefined,
     },
   });
 
   const selectedPlotId = form.watch("plot_id");
   const soldByAdmin = form.watch("sold_by_admin");
   const selectedAdvisorId = form.watch("advisor_id");
+  const advisorSellingOverride = form.watch("advisor_selling_price_per_sqft");
   const selectedPhase = form.watch("sale_phase");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
   const downPayment = form.watch("down_payment") ?? 0;
@@ -153,7 +155,10 @@ export function SaleForm({
   }, [allowedAdvisorIdsForProject, form, selectedAdvisorId]);
 
   useEffect(() => {
-    if (soldByAdmin) form.setValue("advisor_id", null);
+    if (soldByAdmin) {
+      form.setValue("advisor_id", null);
+      form.setValue("advisor_selling_price_per_sqft", undefined);
+    }
   }, [soldByAdmin, form]);
 
   // Keep one visible date in sync when switching phase (token ↔ other phases use different form keys).
@@ -207,8 +212,30 @@ export function SaleForm({
     );
   }, [advisorAssignments, selectedAdvisorId, selectedProjectId]);
 
+  const assignmentDefaultRate = Number((advisorAssignment as any)?.commission_rate ?? 0);
+
+  useEffect(() => {
+    if (soldByAdmin) return;
+    if (!selectedAdvisorId || !selectedProjectId) {
+      form.setValue("advisor_selling_price_per_sqft", undefined);
+      return;
+    }
+    if (assignmentDefaultRate > 0) {
+      form.setValue("advisor_selling_price_per_sqft", assignmentDefaultRate);
+    }
+  }, [soldByAdmin, selectedAdvisorId, selectedProjectId, assignmentDefaultRate, form]);
+
   const assignedFaceRatePerSqft = (() => {
     if (soldByAdmin && selectedPlot) return plotBaseRatePerSqft;
+    const override = Number(advisorSellingOverride);
+    if (
+      !soldByAdmin &&
+      selectedAdvisorId &&
+      Number.isFinite(override) &&
+      override > 0
+    ) {
+      return override;
+    }
     if (!advisorAssignment) return 0;
     return Number((advisorAssignment as any).commission_rate ?? 0);
   })();
@@ -258,16 +285,23 @@ export function SaleForm({
   useEffect(() => {
     if (!selectedPlotId) return;
     if (plotSize <= 0) return;
+    if (plotBaseRatePerSqft <= 0) return;
     const rate = soldByAdmin ? plotBaseRatePerSqft : assignedFaceRatePerSqft;
     if (rate <= 0) return;
     if (!soldByAdmin && !selectedAdvisorId) return;
-    const selling = calculateFinance({
-      plotSizeSqft: plotSize,
-      baseRatePerSqft: plotBaseRatePerSqft,
-      advisorRatePerSqft: rate,
-      downPayment: 0,
-      otherPayments: 0,
-    }).sellingPrice;
+    if (!soldByAdmin && rate < plotBaseRatePerSqft) return;
+    let selling: number;
+    try {
+      selling = calculateFinance({
+        plotSizeSqft: plotSize,
+        baseRatePerSqft: plotBaseRatePerSqft,
+        advisorRatePerSqft: rate,
+        downPayment: 0,
+        otherPayments: 0,
+      }).sellingPrice;
+    } catch {
+      return;
+    }
     if (selling > 0) form.setValue("total_sale_amount", selling);
   }, [
     assignedFaceRatePerSqft,
@@ -277,6 +311,7 @@ export function SaleForm({
     selectedAdvisorId,
     selectedPlotId,
     soldByAdmin,
+    advisorSellingOverride,
   ]);
 
   const fillMockData = () => {
@@ -293,14 +328,26 @@ export function SaleForm({
       (advisorAssignments ?? []).find(
         (a) => a.advisor_id === randomAdvisor.id && a.project_id === (randomPlot.project_id ?? randomPlot.projects?.id)
       ) ?? null;
-    const randomAdvisorRate = Number((randomAssignment as any)?.commission_rate ?? 0);
-    const selling = calculateFinance({
-      plotSizeSqft: Number(randomPlot.size_sqft ?? 0),
-      baseRatePerSqft: Number(randomPlot.rate_per_sqft ?? 0),
-      advisorRatePerSqft: randomAdvisorRate,
-      downPayment: 0,
-      otherPayments: 0,
-    }).sellingPrice;
+    const plotBaseForMock = Number(randomPlot.rate_per_sqft ?? 0);
+    const plotSizeForMock = Number(randomPlot.size_sqft ?? 0);
+    let randomAdvisorRate = Number((randomAssignment as any)?.commission_rate ?? 0);
+    if (plotBaseForMock > 0) {
+      randomAdvisorRate = Math.max(randomAdvisorRate, plotBaseForMock);
+    }
+    let selling = 0;
+    try {
+      if (plotBaseForMock > 0 && plotSizeForMock > 0) {
+        selling = calculateFinance({
+          plotSizeSqft: plotSizeForMock,
+          baseRatePerSqft: plotBaseForMock,
+          advisorRatePerSqft: randomAdvisorRate,
+          downPayment: 0,
+          otherPayments: 0,
+        }).sellingPrice;
+      }
+    } catch {
+      selling = 0;
+    }
 
     form.reset({
       plot_id: randomPlot.id,
@@ -316,6 +363,8 @@ export function SaleForm({
       emi_day: 5,
       followup_date: "",
       notes: "Mock sale generated for testing Nagpur project.",
+      advisor_selling_price_per_sqft:
+        randomAdvisorRate > 0 ? randomAdvisorRate : undefined,
     });
   };
 
@@ -511,6 +560,68 @@ export function SaleForm({
                   />
                 )}
 
+                {!soldByAdmin && selectedAdvisorId ? (
+                  <FormField
+                    control={form.control}
+                    name="advisor_selling_price_per_sqft"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Advisor selling price (₹/sqft)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            placeholder="From project assignment"
+                            value={field.value ?? ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const sanitized = raw.replace(/^0+(?=\d)/, "");
+                              if (sanitized === "") {
+                                field.onChange(undefined);
+                                return;
+                              }
+                              const n = Number(sanitized);
+                              field.onChange(Number.isFinite(n) ? n : undefined);
+                            }}
+                          />
+                        </FormControl>
+                        <p className="text-[11px] text-zinc-500">
+                          Prefills from Manage on this project; edit for this plot only if needed.
+                        </p>
+                        {advisorRateInvalid ? (
+                          <p className="text-[11px] text-red-600">
+                            Cannot be less than this plot&apos;s admin rate (
+                            {formatCurrencyShort(plotBaseRatePerSqft)}/sqft). Increase the value to
+                            continue.
+                          </p>
+                        ) : null}
+                        {plotBaseRatePerSqft > 0 &&
+                        Number(field.value ?? 0) > 0 &&
+                        !advisorRateInvalid ? (
+                          <p className="text-[11px] text-zinc-600">
+                            Advisor share:{" "}
+                            {formatCurrencyShort(
+                              Number(field.value ?? 0) - plotBaseRatePerSqft
+                            )}
+                            /sqft · Commission:{" "}
+                            {(
+                              (Math.max(
+                                0,
+                                Number(field.value ?? 0) - plotBaseRatePerSqft
+                              ) /
+                                Number(field.value ?? 1)) *
+                              100
+                            ).toFixed(1)}
+                            % of selling price
+                          </p>
+                        ) : null}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
+
                 <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
                   Sale Details
                 </h3>
@@ -698,14 +809,14 @@ export function SaleForm({
                       </div>
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                          {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor Rate / sqft"}
+                          {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor selling price / sqft"}
                         </div>
                         <div className="font-semibold text-zinc-900 text-right">
                           {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
                         </div>
                         {advisorRateInvalid ? (
                           <div className="text-[11px] text-red-600 text-right">
-                            Must be ≥ base rate
+                            Below plot admin rate
                           </div>
                         ) : null}
                       </div>

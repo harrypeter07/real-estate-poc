@@ -51,6 +51,14 @@ export default async function ProjectDetailPage({
 
 	const { project, plotCounts, totalRevenue, recentSales } = data;
 
+	/** Lowest admin-set plot rate in this project (for advisor-share preview in assignments). */
+	const projectMinPlotRatePerSqft = plots.reduce<number>((acc, p: { rate_per_sqft?: number }) => {
+		const r = Number(p.rate_per_sqft ?? 0);
+		if (r <= 0) return acc;
+		if (acc <= 0 || r < acc) return r;
+		return acc;
+	}, 0);
+
 	const plannedCount = Number(project.total_plots_count ?? 0);
 	const plotByNumber = new Map(plots.map((p) => [p.plot_number, p]));
 	const layoutPlots =
@@ -179,7 +187,7 @@ export default async function ProjectDetailPage({
 			<Card className="mb-6">
 				<CardHeader className="pb-2">
 					<CardTitle className="text-sm font-medium text-zinc-500">
-						Advisor Assignment & Commission Rate (Project-wise)
+						Advisor Assignment & Selling Price (Project-wise)
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
@@ -187,6 +195,7 @@ export default async function ProjectDetailPage({
 						projectId={project.id}
 						advisors={advisors}
 						assignments={advisorAssignments}
+						minPlotRatePerSqft={projectMinPlotRatePerSqft}
 					/>
 				</CardContent>
 			</Card>

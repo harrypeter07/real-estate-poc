@@ -72,19 +72,23 @@ export async function createSale(
 			};
 		}
 
-		faceRate = Number(
+		const assignmentRate = Number(
 			(assignment as any).commission_rate ??
 				(assignment as any).commission_token ??
 				0
 		);
+		const overrideRaw = parsed.data.advisor_selling_price_per_sqft;
+		const override = Number(overrideRaw ?? NaN);
+		faceRate =
+			Number.isFinite(override) && override > 0 ? override : assignmentRate;
 		if (plotBaseRate > 0 && faceRate > 0 && faceRate < plotBaseRate) {
 			return {
 				success: false,
-				error: `Advisor rate (₹ ${faceRate.toLocaleString(
+				error: `Advisor selling price (₹ ${faceRate.toLocaleString(
 					"en-IN",
-				)}/sqft) cannot be less than this plot's base rate (₹ ${plotBaseRate.toLocaleString(
+				)}/sqft) cannot be less than this plot's admin rate (₹ ${plotBaseRate.toLocaleString(
 					"en-IN",
-				)}/sqft). Update the advisor assignment rates for this project.`,
+				)}/sqft). Raise the selling price or pick a different plot.`,
 			};
 		}
 	}

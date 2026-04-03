@@ -19,6 +19,15 @@ export const saleSchema = z
     emi_day: z.coerce.number().min(1).max(31).optional().nullable(),
     followup_date: z.string().optional().nullable(),
     notes: z.string().optional().default(""),
+    /** Per-sqft price the advisor sells at; optional override of project default from Manage. */
+    advisor_selling_price_per_sqft: z.preprocess(
+      (val) => {
+        if (val === "" || val === null || val === undefined) return undefined;
+        const n = Number(val);
+        return Number.isFinite(n) ? n : undefined;
+      },
+      z.number().min(0).optional(),
+    ),
   })
   .refine((data) => !data.sold_by_admin || data.advisor_id == null, {
     message: "Admin sale must not have advisor",

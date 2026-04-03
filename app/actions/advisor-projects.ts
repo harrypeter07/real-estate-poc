@@ -144,6 +144,28 @@ export async function upsertAdvisorAssignment(
 	const businessId =
 		String((proj as { business_id?: string | null })?.business_id ?? "").trim() || jwtBiz;
 
+	const { data: plotRows, error: plotsErr } = await supabase
+		.from("plots")
+		.select("rate_per_sqft")
+		.eq("project_id", projectId);
+	if (plotsErr) return { success: false, error: plotsErr.message };
+
+	let projectMinPlotRate = 0;
+	for (const row of plotRows ?? []) {
+		const r = Number((row as { rate_per_sqft?: number }).rate_per_sqft ?? 0);
+		if (r > 0 && (projectMinPlotRate === 0 || r < projectMinPlotRate)) {
+			projectMinPlotRate = r;
+		}
+	}
+	if (projectMinPlotRate > 0 && v + 1e-9 < projectMinPlotRate) {
+		return {
+			success: false,
+			error: `Advisor selling price cannot be below this project's lowest plot rate (₹ ${projectMinPlotRate.toLocaleString(
+				"en-IN",
+			)}/sqft). You entered ₹ ${v.toLocaleString("en-IN")}/sqft.`,
+		};
+	}
+
 	const { error } = await supabase.from("advisor_project_commissions").upsert(
 		{
 			business_id: businessId,

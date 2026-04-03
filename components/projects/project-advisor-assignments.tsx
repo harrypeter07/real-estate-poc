@@ -27,14 +27,73 @@ import { formatCurrencyShort } from "@/lib/utils/formatters";
 
 type Advisor = { id: string; name: string; code: string; phone: string };
 
+/** Stored value is advisor selling price ₹/sqft; preview share vs lowest admin plot rate in project. */
+function advisorShareMetrics(
+	sellingPerSqft: number,
+	minAdminPerSqft: number,
+) {
+	const share = sellingPerSqft - minAdminPerSqft;
+	const pctOfSelling =
+		sellingPerSqft > 0 ? (Math.max(0, share) / sellingPerSqft) * 100 : 0;
+	return { share, pctOfSelling };
+}
+
+function SellingPricePreview({
+	sellingPerSqft,
+	minPlotRatePerSqft,
+}: {
+	sellingPerSqft: number;
+	minPlotRatePerSqft: number;
+}) {
+	const { share, pctOfSelling } = advisorShareMetrics(
+		sellingPerSqft,
+		minPlotRatePerSqft,
+	);
+	const belowMin =
+		minPlotRatePerSqft > 0 && sellingPerSqft < minPlotRatePerSqft;
+
+	return (
+		<div className="mt-2 space-y-0.5 rounded-md border border-zinc-200 bg-zinc-50/80 px-2.5 py-2 text-[11px]">
+			<div className="flex justify-between gap-2">
+				<span className="text-zinc-500">Advisor share (vs min plot rate)</span>
+				<span
+					className={
+						belowMin ? "font-semibold text-amber-700" : "font-semibold text-zinc-900"
+					}
+				>
+					{formatCurrencyShort(share)}/sqft
+				</span>
+			</div>
+			<div className="flex justify-between gap-2">
+				<span className="text-zinc-500">Commission (of selling price)</span>
+				<span className="font-semibold text-zinc-900">
+					{pctOfSelling.toFixed(1)}%
+				</span>
+			</div>
+			{minPlotRatePerSqft <= 0 ? (
+				<p className="text-[10px] text-zinc-500 pt-0.5">
+					Set plot rates in this project to preview share against the lowest rate.
+				</p>
+			) : belowMin ? (
+				<p className="text-[10px] text-amber-700 pt-0.5">
+					Below this project&apos;s lowest plot rate — some plots may block the sale until
+					raised.
+				</p>
+			) : null}
+		</div>
+	);
+}
+
 export function ProjectAdvisorAssignments({
 	projectId,
 	advisors,
 	assignments,
+	minPlotRatePerSqft,
 }: {
 	projectId: string;
 	advisors: Advisor[];
 	assignments: AdvisorProjectAssignment[];
+	minPlotRatePerSqft: number;
 }) {
 	const MAX_RATE = 9_999_999_999.99;
 	const [saving, setSaving] = useState(false);
@@ -59,14 +118,25 @@ export function ProjectAdvisorAssignments({
 			return;
 		}
 		if (!Number.isFinite(commissionRate) || commissionRate < 0) {
-			toast.error("Invalid rate", {
-				description: `Commission rate must be a valid positive number`,
+			toast.error("Invalid selling price", {
+				description: `Advisor selling price must be a valid positive number (₹/sqft)`,
 			});
 			return;
 		}
 		if (commissionRate > MAX_RATE) {
 			toast.error("Rate too large", {
-				description: `Commission rate max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+				description: `Max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+			});
+			return;
+		}
+		if (
+			minPlotRatePerSqft > 0 &&
+			commissionRate + 1e-9 < minPlotRatePerSqft
+		) {
+			toast.error("Selling price below minimum plot rate", {
+				description: `Advisor selling price must be at least ₹ ${minPlotRatePerSqft.toLocaleString(
+					"en-IN",
+				)}/sqft — the lowest admin rate among plots in this project. Raise the price or lower plot rates first.`,
 			});
 			return;
 		}
@@ -115,14 +185,25 @@ export function ProjectAdvisorAssignments({
 	async function onSaveEdit() {
 		if (!editAdvisorId) return;
 		if (!Number.isFinite(editCommissionRate) || editCommissionRate < 0) {
-			toast.error("Invalid rate", {
-				description: `Commission rate must be a valid positive number`,
+			toast.error("Invalid selling price", {
+				description: `Advisor selling price must be a valid positive number (₹/sqft)`,
 			});
 			return;
 		}
 		if (editCommissionRate > MAX_RATE) {
 			toast.error("Rate too large", {
-				description: `Commission rate max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+				description: `Max allowed is ₹ ${MAX_RATE.toLocaleString("en-IN")}/sqft`,
+			});
+			return;
+		}
+		if (
+			minPlotRatePerSqft > 0 &&
+			editCommissionRate + 1e-9 < minPlotRatePerSqft
+		) {
+			toast.error("Selling price below minimum plot rate", {
+				description: `Advisor selling price must be at least ₹ ${minPlotRatePerSqft.toLocaleString(
+					"en-IN",
+				)}/sqft — the lowest admin rate among plots in this project. Raise the price or lower plot rates first.`,
 			});
 			return;
 		}
@@ -145,7 +226,7 @@ export function ProjectAdvisorAssignments({
 
 	return (
 		<div className="space-y-4">
-			<div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end">
+			<div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-start">
 				<div className="lg:col-span-2">
 					<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
 						Advisor
@@ -163,15 +244,24 @@ export function ProjectAdvisorAssignments({
 						</SelectContent>
 					</Select>
 					<p className="text-[11px] text-zinc-500 mt-1">
-						Assign a single commission rate for this advisor in this project.
+						Default per-sqft selling price for this advisor on this project (overridable when
+						recording a sale).
 					</p>
 				</div>
 
-				<RateInput
-					label="Commission Rate (₹/sqft)"
-					value={commissionRate}
-					onChange={setCommissionRate}
-				/>
+				<div className="lg:col-span-2 space-y-0">
+					<RateInput
+						label="Advisor selling price of plot (₹/sqft)"
+						value={commissionRate}
+						onChange={setCommissionRate}
+					/>
+					{commissionRate > 0 ? (
+						<SellingPricePreview
+							sellingPerSqft={commissionRate}
+							minPlotRatePerSqft={minPlotRatePerSqft}
+						/>
+					) : null}
+				</div>
 				<div className="lg:col-span-5 flex justify-end">
 					<Button onClick={onAdd} disabled={saving || !advisorId} size="sm">
 						<Plus className="h-4 w-4 mr-2" />
@@ -185,8 +275,14 @@ export function ProjectAdvisorAssignments({
 				<TableHeader>
 					<TableRow>
 						<TableHead>Advisor</TableHead>
-						<TableHead className="text-right">
-							Commission (₹/sqft)
+						<TableHead className="text-right whitespace-nowrap">
+							Selling price (₹/sqft)
+						</TableHead>
+						<TableHead className="text-right whitespace-nowrap hidden sm:table-cell">
+							Advisor share
+						</TableHead>
+						<TableHead className="text-right whitespace-nowrap hidden md:table-cell">
+							Commission %
 						</TableHead>
 						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>
@@ -194,15 +290,15 @@ export function ProjectAdvisorAssignments({
 				<TableBody>
 					{assignments.length === 0 ? (
 						<TableRow>
-							<TableCell colSpan={3} className="text-sm text-zinc-500">
+							<TableCell colSpan={5} className="text-sm text-zinc-500">
 								No advisors assigned yet.
 							</TableCell>
 						</TableRow>
 					) : (
-						assignments.map((a) => (
+						assignments.map((a) =>
 							editAdvisorId === a.advisor_id ? (
 								<TableRow key={a.id}>
-									<TableCell className="font-medium">
+									<TableCell className="font-medium align-top">
 										{a.advisor?.name ?? a.advisor_id}
 										{a.advisor?.code ? (
 											<span className="ml-2 text-xs text-zinc-500">
@@ -210,13 +306,39 @@ export function ProjectAdvisorAssignments({
 											</span>
 										) : null}
 									</TableCell>
-									<TableCell className="text-right">
+									<TableCell className="text-right align-top">
 										<InlineRateInput
 											value={editCommissionRate}
 											onChange={setEditCommissionRate}
 										/>
+										{editCommissionRate > 0 ? (
+											<div className="mt-1 sm:hidden text-[10px] text-zinc-500">
+												Share {formatCurrencyShort(
+													advisorShareMetrics(editCommissionRate, minPlotRatePerSqft).share,
+												)}
+												/sqft ·{" "}
+												{advisorShareMetrics(
+													editCommissionRate,
+													minPlotRatePerSqft,
+												).pctOfSelling.toFixed(1)}
+												%
+											</div>
+										) : null}
 									</TableCell>
-									<TableCell className="text-right">
+									<TableCell className="text-right align-top hidden sm:table-cell">
+										{formatCurrencyShort(
+											advisorShareMetrics(editCommissionRate, minPlotRatePerSqft).share,
+										)}
+										/sqft
+									</TableCell>
+									<TableCell className="text-right align-top hidden md:table-cell">
+										{advisorShareMetrics(
+											editCommissionRate,
+											minPlotRatePerSqft,
+										).pctOfSelling.toFixed(1)}
+										%
+									</TableCell>
+									<TableCell className="text-right align-top">
 										<div className="flex items-center justify-end gap-1">
 											<Button
 												variant="ghost"
@@ -240,45 +362,61 @@ export function ProjectAdvisorAssignments({
 									</TableCell>
 								</TableRow>
 							) : (
-							<TableRow key={a.id}>
-								<TableCell className="font-medium">
-									{a.advisor?.name ?? a.advisor_id}
-									{a.advisor?.code ? (
-										<span className="ml-2 text-xs text-zinc-500">
-											({a.advisor.code})
-										</span>
-									) : null}
-								</TableCell>
-								<TableCell className="text-right">
-									{formatCurrencyShort(
-										Number((a as any).commission_rate ?? 0)
-									)}
-								</TableCell>
-								<TableCell className="text-right">
-									<div className="flex items-center justify-end gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											disabled={saving || !!editAdvisorId}
-											onClick={() => onStartEdit(a)}
-											title="Edit"
-										>
-											<Pencil className="h-4 w-4 text-zinc-500" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											disabled={saving || !!editAdvisorId}
-											onClick={() => onRemove(a.advisor_id)}
-											title="Remove"
-										>
-											<Trash2 className="h-4 w-4 text-zinc-500" />
-										</Button>
-									</div>
-								</TableCell>
-							</TableRow>
-							)
-						))
+								<TableRow key={a.id}>
+									<TableCell className="font-medium">
+										{a.advisor?.name ?? a.advisor_id}
+										{a.advisor?.code ? (
+											<span className="ml-2 text-xs text-zinc-500">
+												({a.advisor.code})
+											</span>
+										) : null}
+									</TableCell>
+									<TableCell className="text-right">
+										{formatCurrencyShort(
+											Number((a as any).commission_rate ?? 0),
+										)}
+									</TableCell>
+									<TableCell className="text-right hidden sm:table-cell">
+										{formatCurrencyShort(
+											advisorShareMetrics(
+												Number((a as any).commission_rate ?? 0),
+												minPlotRatePerSqft,
+											).share,
+										)}
+										/sqft
+									</TableCell>
+									<TableCell className="text-right hidden md:table-cell">
+										{advisorShareMetrics(
+											Number((a as any).commission_rate ?? 0),
+											minPlotRatePerSqft,
+										).pctOfSelling.toFixed(1)}
+										%
+									</TableCell>
+									<TableCell className="text-right">
+										<div className="flex items-center justify-end gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												disabled={saving || !!editAdvisorId}
+												onClick={() => onStartEdit(a)}
+												title="Edit"
+											>
+												<Pencil className="h-4 w-4 text-zinc-500" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												disabled={saving || !!editAdvisorId}
+												onClick={() => onRemove(a.advisor_id)}
+												title="Remove"
+											>
+												<Trash2 className="h-4 w-4 text-zinc-500" />
+											</Button>
+										</div>
+									</TableCell>
+								</TableRow>
+							),
+						)
 					)}
 				</TableBody>
 			</Table>
@@ -341,4 +479,3 @@ function InlineRateInput({
 		/>
 	);
 }
-

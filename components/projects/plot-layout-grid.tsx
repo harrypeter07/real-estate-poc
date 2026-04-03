@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, Input, Textarea, Badge } from "@/components/ui";
@@ -79,6 +80,7 @@ export function PlotLayoutGrid({
 	const [multiSelectMode, setMultiSelectMode] = useState(false);
 	const [multiSelectedPlotIds, setMultiSelectedPlotIds] = useState<string[]>([]);
 	const [bulkSaving, setBulkSaving] = useState(false);
+	const [plotNumberSearch, setPlotNumberSearch] = useState("");
 
 	const [bulkFormState, setBulkFormState] = useState<{
 		size_sqft: number | undefined;
@@ -111,6 +113,14 @@ export function PlotLayoutGrid({
 		},
 		[plots],
 	);
+
+	const filteredPlotsForGrid = useMemo(() => {
+		const q = plotNumberSearch.trim().toLowerCase();
+		if (!q) return sortedPlots;
+		return sortedPlots.filter((p) =>
+			String(p.plot_number).toLowerCase().includes(q),
+		);
+	}, [sortedPlots, plotNumberSearch]);
 
 	const selectedPlot =
 		sortedPlots.find((plot) => plot.id === selectedPlotId) ??
@@ -206,14 +216,44 @@ export function PlotLayoutGrid({
 			</div>
 
 			<div className="flex flex-col lg:flex-row gap-4">
-				<div className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-inner">
+				<div className="flex-1 min-h-0 flex flex-col rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4 shadow-inner">
+					<div className="relative mb-2 shrink-0">
+						<label htmlFor="plot-layout-search" className="sr-only">
+							Search by plot number
+						</label>
+						<Search
+							className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
+							aria-hidden
+						/>
+						<Input
+							id="plot-layout-search"
+							type="search"
+							autoComplete="off"
+							enterKeyHint="search"
+							placeholder="Plot #…"
+							value={plotNumberSearch}
+							onChange={(e) => setPlotNumberSearch(e.target.value)}
+							className="h-8 pl-8 text-sm"
+						/>
+					</div>
+					{plotNumberSearch.trim() ? (
+						<p className="text-[10px] text-zinc-500 mb-1.5 shrink-0">
+							{filteredPlotsForGrid.length} of {sortedPlots.length} plots
+						</p>
+					) : null}
 					<div
-						className="grid gap-2 max-h-[70vh] overflow-y-auto pr-2"
+						className="grid min-h-0 max-h-[min(220px,32vh)] gap-2 overflow-y-auto overscroll-contain pr-2 sm:max-h-[min(360px,48vh)] lg:max-h-[70vh]"
 						style={{
 							gridTemplateColumns: `repeat(auto-fill, minmax(54px, 1fr))`,
 						}}
 					>
-						{sortedPlots.map((plot) => {
+						{filteredPlotsForGrid.length === 0 ? (
+							<div className="col-span-full py-6 text-center text-xs text-zinc-500">
+								No plots match &quot;{plotNumberSearch.trim()}&quot;. Clear the search to see
+								all plots.
+							</div>
+						) : null}
+						{filteredPlotsForGrid.map((plot) => {
 							const statusKey: StatusKey =
 								plot.status === "token"
 									? "token"
@@ -274,14 +314,14 @@ export function PlotLayoutGrid({
 							);
 						})}
 					</div>
-					{sortedPlots.length > 0 && (
-						<div className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-400">
+					{sortedPlots.length > 0 && filteredPlotsForGrid.length > 0 && (
+						<div className="mt-2 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-400">
 							9m Wide Road
 						</div>
 					)}
 				</div>
 
-				<div className="w-full lg:w-96 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+				<div className="w-full lg:w-96 shrink-0 rounded-xl border border-zinc-200 bg-white p-3 sm:p-4 shadow-sm">
 					{selectedPlot ? (
 						<>
 							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-1">

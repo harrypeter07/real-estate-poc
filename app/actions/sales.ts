@@ -134,10 +134,11 @@ export async function createSale(
 
 	const downToStore = isFullPayment ? finance.sellingPrice : rawDown;
 
-	// 1. Create the sale record
+	// 1. Create the sale record (business_id required for RLS: plot_sales_tenant_access)
 	const { data: sale, error: saleError } = await supabase
 		.from("plot_sales")
 		.insert({
+			business_id: businessId,
 			plot_id: parsed.data.plot_id,
 			customer_id: parsed.data.customer_id,
 			advisor_id: soldByAdmin ? null : (parsed.data.advisor_id ?? null),

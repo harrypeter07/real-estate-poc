@@ -126,7 +126,8 @@ CREATE TABLE customers (
 -- =============================================
 -- TABLE 5: plot_sales  (CORE TRANSACTION TABLE)
 -- When a plot is booked/sold to a customer
--- One plot can only have ONE active sale
+-- At most one *active* (non-cancelled) sale per plot; revoked rows stay for history.
+-- Enforced by partial unique index plot_sales_one_active_sale_per_plot (below).
 -- =============================================
 CREATE TABLE plot_sales (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -147,8 +148,7 @@ CREATE TABLE plot_sales (
   revoked_by TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(plot_id)  -- one plot = one sale at a time
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- =============================================
@@ -294,6 +294,8 @@ CREATE INDEX idx_plots_project ON plots(project_id);
 CREATE INDEX idx_plots_status ON plots(status);
 CREATE INDEX idx_customers_advisor ON customers(advisor_id);
 CREATE INDEX idx_sales_plot ON plot_sales(plot_id);
+CREATE UNIQUE INDEX plot_sales_one_active_sale_per_plot ON plot_sales (plot_id)
+  WHERE NOT COALESCE(is_cancelled, false);
 CREATE INDEX idx_sales_customer ON plot_sales(customer_id);
 CREATE INDEX idx_sales_advisor ON plot_sales(advisor_id);
 CREATE INDEX idx_payments_sale ON payments(sale_id);

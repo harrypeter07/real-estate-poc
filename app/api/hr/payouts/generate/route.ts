@@ -58,6 +58,7 @@ export async function POST(req: Request) {
 	const { data: existing } = await auth.supabase
 		.from("hr_payout_batches")
 		.select("id")
+		.eq("business_id", businessId)
 		.eq("month_label", range.label)
 		.maybeSingle();
 

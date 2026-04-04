@@ -40,7 +40,7 @@ export async function createPayment(
 	// Guard: confirmed customer payments should never exceed sale total.
 	const { data: saleRow, error: saleErr } = await supabase
 		.from("plot_sales")
-		.select("id, total_sale_amount")
+		.select("id, total_sale_amount, business_id")
 		.eq("id", parsed.data.sale_id)
 		.single();
 	if (saleErr || !saleRow) {
@@ -62,6 +62,9 @@ export async function createPayment(
 		alreadyConfirmed +
 		(parsed.data.is_confirmed ? Number(parsed.data.amount ?? 0) : 0);
 	const saleTotal = Number(saleRow.total_sale_amount ?? 0);
+	const paymentBusinessId =
+		String((saleRow as { business_id?: string | null }).business_id ?? "").trim() ||
+		businessId;
 	if (nextConfirmed > saleTotal + 0.0001) {
 		const remaining = Math.max(0, saleTotal - alreadyConfirmed);
 		return {
@@ -73,7 +76,7 @@ export async function createPayment(
 	}
 
 	const { error } = await supabase.from("payments").insert({
-		business_id: businessId,
+		business_id: paymentBusinessId,
 		sale_id: parsed.data.sale_id,
 		customer_id: parsed.data.customer_id,
 		amount: parsed.data.amount,

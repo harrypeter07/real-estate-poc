@@ -275,11 +275,15 @@ async function fetchExistingAttendanceKeys(
 	const empIds = [...new Set(chunk.map((c) => c.employee_id))];
 	if (dates.length === 0 || empIds.length === 0) return new Set();
 
-	const { data, error } = await supabase
+	const tenantId = chunk[0]?.business_id?.trim();
+	let q = supabase
 		.from("hr_attendance")
 		.select("employee_id, work_date")
 		.in("work_date", dates)
 		.in("employee_id", empIds);
+	if (tenantId) q = q.eq("business_id", tenantId);
+
+	const { data, error } = await q;
 
 	if (error || !data?.length) return new Set();
 	return new Set((data as { employee_id: string; work_date: string }[]).map((r) => attendanceRowKey(r)));
@@ -383,6 +387,7 @@ export async function upsertParsedAttendanceRows(
 			const { data: prior } = await supabase
 				.from("hr_attendance")
 				.select("id")
+				.eq("business_id", row.business_id)
 				.eq("employee_id", row.employee_id)
 				.eq("work_date", row.work_date)
 				.maybeSingle();

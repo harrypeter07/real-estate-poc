@@ -148,6 +148,24 @@ export async function POST(req: Request) {
 	}
 
 	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return NextResponse.json(
+			{
+				...basePayload,
+				inserted: 0,
+				attendanceCreated: 0,
+				attendanceUpdated: 0,
+				dryRun: false,
+				hrValidationOk: true,
+				errors: [
+					...basePayload.errors,
+					"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+				],
+			},
+			{ status: 403 },
+		);
+	}
+
 	const { inserted, attendanceCreated, attendanceUpdated, errors: upsertErrors, previewRows } =
 		await upsertParsedAttendanceRows(auth.supabase, accepted, {
 			hrEmployees: hrList,

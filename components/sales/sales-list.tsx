@@ -33,8 +33,11 @@ export function SalesList({
 	const searchParams = useSearchParams();
 
 	const visibleSales = useMemo(() => {
-		return sales.filter((sale: any) =>
-			matchesTextSearch(
+		return sales.filter((sale: any) => {
+			const teamNames = (sale.commission_participants ?? [])
+				.map((p: { name?: string }) => p?.name)
+				.filter(Boolean);
+			return matchesTextSearch(
 				listQuery,
 				sale.customers?.name,
 				sale.customers?.phone,
@@ -42,8 +45,9 @@ export function SalesList({
 				sale.advisors?.code,
 				sale.plots?.plot_number,
 				sale.plots?.projects?.name,
-			),
-		);
+				...teamNames,
+			);
+		});
 	}, [sales, listQuery]);
 
 	const openSaleModal = (sale: any) => {
@@ -86,10 +90,21 @@ export function SalesList({
 			<div className="grid grid-cols-1 gap-4 mt-4">
 				{visibleSales.map((sale) => {
 					const subN = Number(sale.sub_advisor_commission_count ?? 0);
+					const team = Array.isArray(sale.commission_participants)
+						? sale.commission_participants
+						: [];
+					const subNames = team
+						.filter((p: { is_main?: boolean }) => p.is_main === false)
+						.map((p: { name?: string }) => p.name)
+						.filter(Boolean) as string[];
 					const advisorName = sale.sold_by_admin
 						? "Admin (Direct)"
 						: `${sale.advisors?.name ?? "—"}${
-								subN > 0 ? ` + ${subN} sub-advisor${subN === 1 ? "" : "s"}` : ""
+								subNames.length > 0
+									? ` · ${subNames.join(", ")}`
+									: subN > 0
+										? ` + ${subN} sub-advisor${subN === 1 ? "" : "s"}`
+										: ""
 							}`;
 					const phase =
 						sale.is_cancelled

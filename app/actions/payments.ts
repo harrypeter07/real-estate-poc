@@ -181,6 +181,7 @@ export async function getPayments(filters?: PaymentsFilter) {
       customers(name, phone),
       plot_sales(
         id,
+        advisor_id,
         receipt_path,
         remaining_amount,
         monthly_emi,
@@ -217,23 +218,38 @@ export async function getPayments(filters?: PaymentsFilter) {
 	];
 	const lastBySale = await lastConfirmedPaymentDateBySale(supabase, saleIds);
 
+	const mainAdvisorBySale: Record<string, string | null> = {};
+	for (const p of rows as any[]) {
+		const sid = p.plot_sales?.id as string | undefined;
+		if (!sid) continue;
+		mainAdvisorBySale[sid] =
+			(p.plot_sales as { advisor_id?: string | null })?.advisor_id ?? null;
+	}
+
 	const participantsBySale: Record<
 		string,
-		{ name: string; phone: string; amount: number }[]
+		{ name: string; phone: string; amount: number; is_main: boolean }[]
 	> = {};
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
 			.from("advisor_commissions")
-			.select("sale_id, total_commission_amount, advisors(name, phone)")
+			.select("sale_id, advisor_id, total_commission_amount, advisors(name, phone)")
 			.in("sale_id", saleIds);
 		for (const sid of saleIds) {
-			participantsBySale[sid] = (comms ?? [])
+			const mainId = mainAdvisorBySale[sid];
+			const mapped = (comms ?? [])
 				.filter((c: any) => c.sale_id === sid)
 				.map((c: any) => ({
 					name: String(c.advisors?.name ?? "—"),
 					phone: String(c.advisors?.phone ?? "—"),
 					amount: Number(c.total_commission_amount ?? 0),
+					is_main: Boolean(mainId && c.advisor_id === mainId),
 				}));
+			mapped.sort((a, b) => {
+				if (a.is_main !== b.is_main) return a.is_main ? -1 : 1;
+				return a.name.localeCompare(b.name);
+			});
+			participantsBySale[sid] = mapped;
 		}
 	}
 

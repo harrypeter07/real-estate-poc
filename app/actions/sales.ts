@@ -231,6 +231,9 @@ export async function createSale(
 				}
 				const seen = new Set<string>();
 				for (const row of splits) {
+					if (row.amount < -0.0001) {
+						return { success: false, error: "Commission amounts cannot be negative." };
+					}
 					if (seen.has(row.advisor_id)) {
 						return { success: false, error: "Duplicate advisor in commission split." };
 					}
@@ -321,21 +324,38 @@ export async function getSales() {
 	const lastBySale = await lastConfirmedPaymentDateBySaleId(supabase, saleIds);
 
 	const subCountBySale: Record<string, number> = {};
-	const commissionParticipantsBySale: Record<string, { name: string; phone: string }[]> = {};
+	const commissionParticipantsBySale: Record<
+		string,
+		{
+			advisor_id: string;
+			name: string;
+			phone: string;
+			amount: number;
+			is_main: boolean;
+		}[]
+	> = {};
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
 			.from("advisor_commissions")
-			.select("sale_id, advisor_id, advisors(name, phone)")
+			.select("sale_id, advisor_id, total_commission_amount, advisors(name, phone)")
 			.in("sale_id", saleIds);
 		for (const sale of rows as { id: string; advisor_id?: string | null }[]) {
 			const list = (comms ?? []).filter((c: any) => c.sale_id === sale.id);
 			const mainId = sale.advisor_id;
 			const subs = list.filter((c: any) => c.advisor_id && c.advisor_id !== mainId);
 			subCountBySale[sale.id] = subs.length;
-			commissionParticipantsBySale[sale.id] = list.map((c: any) => ({
+			const mapped = list.map((c: any) => ({
+				advisor_id: String(c.advisor_id ?? ""),
 				name: String(c.advisors?.name ?? "—"),
 				phone: String(c.advisors?.phone ?? "—"),
+				amount: Number(c.total_commission_amount ?? 0),
+				is_main: Boolean(mainId && c.advisor_id === mainId),
 			}));
+			mapped.sort((a, b) => {
+				if (a.is_main !== b.is_main) return a.is_main ? -1 : 1;
+				return a.name.localeCompare(b.name);
+			});
+			commissionParticipantsBySale[sale.id] = mapped;
 		}
 	}
 

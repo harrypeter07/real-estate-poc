@@ -34,7 +34,12 @@ interface SaleDetailModalProps {
 		plots: { plot_number: string; projects?: { name: string } | null };
 		customers: { name: string };
 		advisors: { name: string; code?: string };
-		commission_participants?: { name: string; phone: string }[];
+		commission_participants?: {
+			name: string;
+			phone: string;
+			amount?: number;
+			is_main?: boolean;
+		}[];
 	};
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -149,16 +154,35 @@ export function SaleDetailModal({
 						</div>
 					</div>
 
-					{sale.commission_participants && sale.commission_participants.length > 1 ? (
+					{sale.commission_participants && sale.commission_participants.length > 0 ? (
 						<div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-3">
 							<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
-								Sales team (commission)
+								Commission split (this sale)
 							</p>
-							<ul className="space-y-1.5 text-sm">
+							<ul className="space-y-2 text-sm">
 								{sale.commission_participants.map((p, i) => (
-									<li key={i} className="flex flex-col border-b border-zinc-100 pb-1.5 last:border-0 last:pb-0">
-										<span className="font-medium">{p.name}</span>
-										<span className="text-xs text-zinc-500">{p.phone}</span>
+									<li
+										key={i}
+										className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-100 pb-2 last:border-0 last:pb-0"
+									>
+										<div className="min-w-0">
+											<div className="flex flex-wrap items-center gap-1.5">
+												<span className="font-medium">{p.name}</span>
+												{p.is_main === true ? (
+													<span className="rounded bg-zinc-200 px-1.5 py-0 text-[10px] font-semibold uppercase text-zinc-700">
+														Main
+													</span>
+												) : p.is_main === false ? (
+													<span className="rounded bg-amber-100 px-1.5 py-0 text-[10px] font-semibold uppercase text-amber-900">
+														Sub
+													</span>
+												) : null}
+											</div>
+											<span className="text-xs text-zinc-500">{p.phone}</span>
+										</div>
+										<span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-zinc-900">
+											{typeof p.amount === "number" ? formatCurrency(p.amount) : "—"}
+										</span>
 									</li>
 								))}
 							</ul>

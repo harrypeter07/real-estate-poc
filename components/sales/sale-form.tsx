@@ -344,6 +344,17 @@ export function SaleForm({
     commissionParticipantIds.length > 1
       ? Math.max(0, finance.profit - splitSumManual)
       : 0;
+  const SPLIT_EPS = 0.02;
+  const commissionSplitOverflow =
+    commissionParticipantIds.length > 1 &&
+    finance.profit > 0.001 &&
+    splitSumManual > finance.profit + SPLIT_EPS;
+  const commissionSplitTotal =
+    commissionParticipantIds.length > 1 && finance.profit > 0.001
+      ? splitSumManual + splitLastAuto
+      : commissionParticipantIds.length === 1 && finance.profit > 0.001
+        ? finance.profit
+        : 0;
 
   // Auto-fill selling price when plot/advisor/phase changes
   useEffect(() => {
@@ -461,6 +472,12 @@ export function SaleForm({
   };
 
   async function onSubmit(values: SaleFormValues) {
+    if (commissionSplitOverflow) {
+      toast.error("Commission split too high", {
+        description: `Entered amounts cannot exceed total profit (${formatCurrency(finance.profit)}).`,
+      });
+      return;
+    }
     setLoading(true);
     setSubmitStatus("idle");
     setStatusText("");
@@ -742,10 +759,26 @@ export function SaleForm({
                         </div>
                       );
                     })}
-                    <p className="text-[11px] text-amber-800">
-                      Left after your entries:{" "}
-                      <strong>{formatCurrency(splitLastAuto)}</strong> → last advisor (auto)
-                    </p>
+                    <div className="space-y-1 text-[11px] text-amber-800">
+                      <p>
+                        Total split:{" "}
+                        <strong className="tabular-nums">{formatCurrency(commissionSplitTotal)}</strong>
+                        {" / "}
+                        <span className="tabular-nums">{formatCurrency(finance.profit)}</span>{" "}
+                        (total profit)
+                      </p>
+                      <p>
+                        Left after your entries:{" "}
+                        <strong className="tabular-nums">{formatCurrency(splitLastAuto)}</strong>{" "}
+                        → last advisor (auto)
+                      </p>
+                    </div>
+                    {commissionSplitOverflow ? (
+                      <p className="text-[11px] font-medium text-red-700">
+                        Entered amounts exceed total profit. Reduce earlier rows so the last
+                        advisor&apos;s share is not negative.
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -1152,7 +1185,7 @@ export function SaleForm({
               <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
               <Button
                 type="submit"
-                disabled={loading || advisorRateInvalid}
+                disabled={loading || advisorRateInvalid || commissionSplitOverflow}
                 className={`min-w-[130px] transition-all duration-300 ${
                   loading
                     ? "scale-[1.02] shadow-md"

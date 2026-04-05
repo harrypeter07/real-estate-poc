@@ -142,6 +142,13 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                         {payment.plot_sales?.plots?.projects?.name ?? "—"} -{" "}
                         {payment.plot_sales?.plots?.plot_number ?? "—"}
                       </span>
+                      {Array.isArray(payment.sale_commission_team) &&
+                      payment.sale_commission_team.length > 1 ? (
+                        <span className="text-[10px] text-zinc-400">
+                          Commission: {payment.sale_commission_team.length} advisors — open for
+                          amounts
+                        </span>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell className="font-bold text-zinc-900">
@@ -231,24 +238,69 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
           {selected && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {Array.isArray(selected.sale_commission_team) &&
-                selected.sale_commission_team.length > 1 && (
-                  <div className="lg:col-span-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-[10px] font-bold uppercase text-zinc-500 mb-2">
-                      Advisor commission split (this sale)
+                selected.sale_commission_team.length > 0 && (
+                  <div className="lg:col-span-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 space-y-2">
+                    <p className="text-[10px] font-bold uppercase text-zinc-500">
+                      Advisor commission (this sale)
                     </p>
-                    <ul className="space-y-1 text-xs">
-                      {selected.sale_commission_team.map((m: any, i: number) => (
-                        <li key={i} className="flex justify-between gap-2">
-                          <span>
-                            {m.name}{" "}
-                            <span className="text-zinc-500 tabular-nums">{m.phone}</span>
-                          </span>
-                          <span className="font-mono tabular-nums">
-                            {formatCurrency(m.amount)}
-                          </span>
-                        </li>
-                      ))}
+                    <ul className="space-y-2 text-xs">
+                      {(() => {
+                        const team = selected.sale_commission_team as {
+                          name: string;
+                          phone: string;
+                          amount: number;
+                          is_main?: boolean;
+                        }[];
+                        const totalComm = team.reduce(
+                          (s, m) => s + Number(m.amount ?? 0),
+                          0,
+                        );
+                        const payAmt = Number(selected.amount ?? 0);
+                        return team.map((m, i: number) => {
+                          const share =
+                            totalComm > 0 && payAmt > 0
+                              ? (Number(m.amount ?? 0) / totalComm) * payAmt
+                              : 0;
+                          return (
+                            <li
+                              key={i}
+                              className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-200/80 pb-2 last:border-0 last:pb-0"
+                            >
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5 font-medium text-zinc-900">
+                                  <span>{m.name}</span>
+                                  {m.is_main ? (
+                                    <span className="rounded bg-zinc-200 px-1 py-0 text-[9px] font-bold uppercase text-zinc-700">
+                                      Main
+                                    </span>
+                                  ) : m.is_main === false ? (
+                                    <span className="rounded bg-amber-100 px-1 py-0 text-[9px] font-bold uppercase text-amber-900">
+                                      Sub
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <span className="text-zinc-500 tabular-nums">{m.phone}</span>
+                              </div>
+                              <div className="shrink-0 text-right font-mono tabular-nums">
+                                <div className="font-semibold text-zinc-900">
+                                  {formatCurrency(m.amount)}
+                                </div>
+                                {totalComm > 0 && payAmt > 0 ? (
+                                  <div className="text-[10px] font-normal text-zinc-500">
+                                    ~{formatCurrency(share)} of this receipt
+                                  </div>
+                                ) : null}
+                              </div>
+                            </li>
+                          );
+                        });
+                      })()}
                     </ul>
+                    <p className="text-[10px] leading-relaxed text-zinc-500">
+                      Totals are each advisor&apos;s commission on the sale. &quot;Of this
+                      receipt&quot; splits the payment amount by the same proportions (reference
+                      only).
+                    </p>
                   </div>
                 )}
               <div className="space-y-2 text-sm">

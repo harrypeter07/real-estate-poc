@@ -367,6 +367,48 @@ export async function getSales() {
 	}));
 }
 
+export type SaleCommissionParticipant = {
+	advisor_id: string;
+	name: string;
+	phone: string;
+	amount: number;
+	is_main: boolean;
+};
+
+/** Loads advisor_commissions for a sale (for older rows after backfill, or live data). */
+export async function getSaleCommissionParticipants(
+	saleId: string,
+): Promise<SaleCommissionParticipant[]> {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data: sale } = await supabase
+		.from("plot_sales")
+		.select("advisor_id")
+		.eq("id", saleId)
+		.maybeSingle();
+	const mainId = (sale as { advisor_id?: string | null } | null)?.advisor_id ?? null;
+
+	const { data: rows, error } = await supabase
+		.from("advisor_commissions")
+		.select("advisor_id, total_commission_amount, advisors(name, phone)")
+		.eq("sale_id", saleId);
+	if (error) return [];
+
+	const mapped = (rows ?? []).map((c: any) => ({
+		advisor_id: String(c.advisor_id ?? ""),
+		name: String(c.advisors?.name ?? "—"),
+		phone: String(c.advisors?.phone ?? "—"),
+		amount: Number(c.total_commission_amount ?? 0),
+		is_main: Boolean(mainId && c.advisor_id === mainId),
+	}));
+	mapped.sort((a, b) => {
+		if (a.is_main !== b.is_main) return a.is_main ? -1 : 1;
+		return a.name.localeCompare(b.name);
+	});
+	return mapped;
+}
+
 export async function getSaleById(id: string) {
 	const supabase = await createClient();
 	if (!supabase) return null;

@@ -28,6 +28,7 @@ import {
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
 import { createAdvisor, createSubAdvisor, updateAdvisor } from "@/app/actions/advisors";
+import { isDev } from "@/lib/is-dev";
 
 interface AdvisorFormProps {
 	mode: "create" | "edit";
@@ -210,14 +211,16 @@ export function AdvisorForm({
 							: "Enter details for the channel partner"}
 					</CardDescription>
 				</div>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={fillMockData}
-				>
-					Fill Mock Data
-				</Button>
+				{isDev ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={fillMockData}
+					>
+						Fill Mock Data
+					</Button>
+				) : null}
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>

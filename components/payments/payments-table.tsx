@@ -246,6 +246,7 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                     <ul className="space-y-2 text-xs">
                       {(() => {
                         const team = selected.sale_commission_team as {
+                          advisor_id?: string;
                           name: string;
                           phone: string;
                           amount: number;
@@ -314,6 +315,34 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                   value={formatCurrency(selected.amount)}
                   strong
                 />
+                {Array.isArray(selected.advisor_distribution) &&
+                (selected.advisor_distribution as { advisor_id: string; amount: number }[]).length >
+                  0 ? (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50/60 p-3 text-xs">
+                    <div className="font-semibold text-emerald-900 mb-2 uppercase tracking-wide text-[10px]">
+                      Receipt split (recorded)
+                    </div>
+                    <ul className="space-y-1.5">
+                      {(selected.advisor_distribution as { advisor_id: string; amount: number }[]).map(
+                        (row, i) => {
+                          const team = (selected.sale_commission_team ?? []) as {
+                            advisor_id?: string;
+                            name?: string;
+                          }[];
+                          const name =
+                            team.find((t) => t.advisor_id === row.advisor_id)?.name ??
+                            `Advisor ${String(row.advisor_id).slice(0, 8)}…`;
+                          return (
+                            <li key={i} className="flex justify-between gap-2 font-mono tabular-nums">
+                              <span className="font-sans font-medium text-zinc-800">{name}</span>
+                              <span>{formatCurrency(row.amount)}</span>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </div>
+                ) : null}
                 <DetailRow
                   label="Mode"
                   value={String(selected.payment_mode ?? "—")}

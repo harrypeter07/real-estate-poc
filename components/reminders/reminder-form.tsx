@@ -35,6 +35,7 @@ import {
 } from "@/lib/validations/reminder";
 import { createReminder, updateReminder } from "@/app/actions/reminders";
 import { cn } from "@/lib/utils";
+import { isDev } from "@/lib/is-dev";
 
 interface ReminderFormProps {
 	customers: any[];
@@ -209,7 +210,7 @@ export function ReminderForm({
 							: "Schedule a follow-up or task"}
 					</CardDescription>
 				</div>
-				{mode === "create" && (
+				{mode === "create" && isDev ? (
 					<Button
 						type="button"
 						variant="outline"
@@ -218,7 +219,7 @@ export function ReminderForm({
 					>
 						Fill Mock Data
 					</Button>
-				)}
+				) : null}
 			</CardHeader>
 			<CardContent className={cn(mode === "edit" && "p-0")}>
 				<Form {...form}>

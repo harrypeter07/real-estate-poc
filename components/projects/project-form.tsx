@@ -27,6 +27,7 @@ import {
 	type ProjectFormValues,
 } from "@/lib/validations/project";
 import { createProject, updateProject } from "@/app/actions/project-actions";
+import { isDev } from "@/lib/is-dev";
 
 interface ProjectFormProps {
 	mode: "create" | "edit";
@@ -176,15 +177,17 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 							: "Fill in the details to create a new land project"}
 					</CardDescription>
 				</div>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={fillMockData}
-					className="text-xs h-8"
-				>
-					Fill Mock Data
-				</Button>
+				{isDev ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={fillMockData}
+						className="text-xs h-8"
+					>
+						Fill Mock Data
+					</Button>
+				) : null}
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>

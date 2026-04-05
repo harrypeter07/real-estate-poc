@@ -30,7 +30,12 @@ import {
 } from "@/components/ui";
 import { paymentSchema, type PaymentFormValues } from "@/lib/validations/payment";
 import { createPayment } from "@/app/actions/payments";
+import {
+  getSaleCommissionParticipants,
+  type SaleCommissionParticipant,
+} from "@/app/actions/sales";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { isDev } from "@/lib/is-dev";
 import { ReceiptUpload } from "@/components/shared/receipt-upload";
 import { ShareReceiptModal } from "@/components/sales/share-receipt-modal";
 
@@ -54,6 +59,9 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       : String(Date.now())
   );
 
+  const [teamParticipants, setTeamParticipants] = useState<SaleCommissionParticipant[]>([]);
+  const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
+
   const selectedSale = sales.find(s => s.id === initialSaleId);
 
   const form = useForm<PaymentFormValues>({
@@ -69,6 +77,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       // Payments recorded through this form are always treated as confirmed
       is_confirmed: true,
       notes: "",
+      advisor_distribution: undefined,
     },
   });
 
@@ -81,6 +90,75 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
   const saleTotal = Number(activeSale?.total_sale_amount ?? 0);
   const salePaid = Number(activeSale?.amount_paid ?? 0);
   const saleRemaining = Math.max(0, saleTotal - salePaid);
+
+  const PAYMENT_SPLIT_EPS = 0.02;
+
+  useEffect(() => {
+    if (!currentSaleId) {
+      setTeamParticipants([]);
+      setSplitByAdvisor({});
+      return;
+    }
+    const sale = sales.find((s) => s.id === currentSaleId);
+    if (sale?.sold_by_admin) {
+      setTeamParticipants([]);
+      setSplitByAdvisor({});
+      return;
+    }
+    const embedded = sale?.commission_participants;
+    if (Array.isArray(embedded) && embedded.length > 0) {
+      setTeamParticipants(embedded as SaleCommissionParticipant[]);
+      return;
+    }
+    let cancelled = false;
+    void getSaleCommissionParticipants(currentSaleId).then((rows) => {
+      if (!cancelled) setTeamParticipants(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSaleId, sales]);
+
+  const teamAdvisorKey = useMemo(
+    () => teamParticipants.map((p) => p.advisor_id).join(","),
+    [teamParticipants],
+  );
+
+  useEffect(() => {
+    setSplitByAdvisor({});
+  }, [currentSaleId, teamAdvisorKey]);
+
+  const commissionParticipantIds = teamParticipants.map((p) => p.advisor_id);
+  const splitSumManual =
+    commissionParticipantIds.length > 1
+      ? commissionParticipantIds.slice(0, -1).reduce(
+          (s, id) =>
+            s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
+          0,
+        )
+      : 0;
+  const splitLastAuto =
+    commissionParticipantIds.length > 1
+      ? Math.max(0, amountValue - splitSumManual)
+      : commissionParticipantIds.length === 1
+        ? amountValue
+        : 0;
+  const paymentSplitOverflow =
+    commissionParticipantIds.length > 1 &&
+    amountValue > PAYMENT_SPLIT_EPS &&
+    splitSumManual > amountValue + PAYMENT_SPLIT_EPS;
+
+  function applyProportionalPaymentSplit() {
+    if (teamParticipants.length <= 1 || amountValue <= 0) return;
+    const pool = teamParticipants.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    if (pool <= 0) return;
+    const mids = teamParticipants.slice(0, -1);
+    const next: Record<string, string> = {};
+    for (const p of mids) {
+      next[p.advisor_id] = ((amountValue * (Number(p.amount) || 0)) / pool).toFixed(2);
+    }
+    setSplitByAdvisor(next);
+  }
 
   // Payment phase selector (UI-only). DB triggers keep plot status/sale_phase consistent
   // based on remaining_amount, but this helps the operator choose "sold/full payment".
@@ -140,6 +218,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       receipt_path: "",
       is_confirmed: true,
       notes: "Mock payment for testing Nagpur project installment.",
+      advisor_distribution: undefined,
     });
   };
 
@@ -178,6 +257,31 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
     if (Number(values.amount ?? 0) > saleRemaining) {
       toast.error("Payment exceeds remaining sale amount");
       return;
+    }
+    const amt = Number(values.amount ?? 0);
+    if (paymentSplitOverflow) {
+      toast.error("Payment split too high", {
+        description: `Allocated amounts cannot exceed this receipt (${formatCurrency(amt)}).`,
+      });
+      return;
+    }
+
+    let advisor_distribution: PaymentFormValues["advisor_distribution"] = undefined;
+    if (!activeSale?.sold_by_admin && teamParticipants.length === 1 && amt > 0) {
+      advisor_distribution = [
+        { advisor_id: teamParticipants[0].advisor_id, amount: amt },
+      ];
+    } else if (!activeSale?.sold_by_admin && teamParticipants.length > 1 && amt > 0) {
+      const pid = commissionParticipantIds;
+      const sumMid = pid.slice(0, -1).reduce(
+        (s, id) => s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
+        0,
+      );
+      const lastAmt = Math.max(0, amt - sumMid);
+      advisor_distribution = pid.map((id, i) => ({
+        advisor_id: id,
+        amount: i === pid.length - 1 ? lastAmt : Number(splitByAdvisor[id] || 0),
+      }));
     }
 
     setLoading(true);
@@ -221,9 +325,11 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
             Add a new payment installment against a sale
           </CardDescription>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
-          Fill Mock Data
-        </Button>
+        {isDev ? (
+          <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
+            Fill Mock Data
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <Form {...form}>
@@ -356,6 +462,95 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
               </div>
             )}
 
+            {currentSaleId &&
+            !activeSale?.sold_by_admin &&
+            teamParticipants.length > 0 &&
+            amountValue > 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-semibold text-amber-900">
+                    Receipt split by advisor (reference)
+                  </div>
+                  {teamParticipants.length > 1 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={applyProportionalPaymentSplit}
+                    >
+                      Match commission shares
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-[11px] text-amber-900/90">
+                  Allocate this receipt across the same advisors as on the sale. Amounts must total{" "}
+                  <span className="font-mono font-semibold">{formatCurrency(amountValue)}</span>.
+                </p>
+                {teamParticipants.length === 1 ? (
+                  <p className="text-sm font-mono font-semibold text-zinc-900">
+                    {teamParticipants[0].name}: {formatCurrency(amountValue)}
+                  </p>
+                ) : (
+                  <>
+                    {teamParticipants.map((p, idx) => {
+                      const isLast = idx === teamParticipants.length - 1;
+                      return (
+                        <div key={p.advisor_id} className="flex items-center gap-2 text-sm">
+                          <span className="min-w-0 flex-1 truncate text-zinc-700">
+                            {p.name}
+                            {p.is_main ? (
+                              <span className="text-zinc-400 text-xs"> (main)</span>
+                            ) : (
+                              <span className="text-amber-800 text-xs"> (sub)</span>
+                            )}
+                          </span>
+                          {isLast ? (
+                            <span className="font-mono tabular-nums font-semibold text-zinc-900 w-28 text-right">
+                              {formatCurrency(splitLastAuto)}
+                            </span>
+                          ) : (
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              className="h-8 w-28 text-right font-mono text-xs"
+                              value={splitByAdvisor[p.advisor_id] ?? ""}
+                              onChange={(e) =>
+                                setSplitByAdvisor((prev) => ({
+                                  ...prev,
+                                  [p.advisor_id]: e.target.value,
+                                }))
+                              }
+                              placeholder="0"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div className="text-[11px] text-amber-800 space-y-1">
+                      <p>
+                        Total allocated:{" "}
+                        <strong className="tabular-nums">
+                          {formatCurrency(splitSumManual + (paymentSplitOverflow ? 0 : splitLastAuto))}
+                        </strong>{" "}
+                        / {formatCurrency(amountValue)}
+                      </p>
+                      <p>
+                        Remainder → last advisor:{" "}
+                        <strong className="tabular-nums">{formatCurrency(splitLastAuto)}</strong>
+                      </p>
+                    </div>
+                    {paymentSplitOverflow ? (
+                      <p className="text-[11px] font-medium text-red-700">
+                        Entered rows exceed this receipt. Lower earlier amounts.
+                      </p>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <FormField
                 control={form.control}
@@ -427,7 +622,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || paymentSplitOverflow}
                 className={`min-w-[140px] transition-all duration-300 ${
                   loading
                     ? "scale-[1.02] shadow-md"

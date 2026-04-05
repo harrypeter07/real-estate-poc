@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui";
 import { expenseSchema, type ExpenseFormValues } from "@/lib/validations/expense";
+import { isDev } from "@/lib/is-dev";
 import { createExpense } from "@/app/actions/expenses";
 import { ReceiptUpload } from "@/components/shared/receipt-upload";
 
@@ -148,9 +149,11 @@ export function ExpenseForm({
           <CardTitle>Add Expense</CardTitle>
           <CardDescription>Record office or site related expenses</CardDescription>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
-          Fill Mock Data
-        </Button>
+        {isDev ? (
+          <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
+            Fill Mock Data
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent>
         <Form {...form}>

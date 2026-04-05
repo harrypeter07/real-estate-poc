@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui";
 import { customerSchema, type CustomerFormValues } from "@/lib/validations/customer";
+import { isDev } from "@/lib/is-dev";
 import { createCustomer, updateCustomer } from "@/app/actions/customers";
 
 interface CustomerFormProps {
@@ -156,9 +157,11 @@ export function CustomerForm({
           <CardTitle>{mode === "edit" ? "Edit Customer" : "New Customer"}</CardTitle>
           <CardDescription>Enter details for the plot buyer</CardDescription>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
-          Fill Mock Data
-        </Button>
+        {isDev ? (
+          <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
+            Fill Mock Data
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent>
         <Form {...form}>

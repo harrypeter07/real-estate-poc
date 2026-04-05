@@ -33,19 +33,7 @@ import { listSubAdvisors } from "@/app/actions/advisors";
 import { ShareReceiptModal } from "./share-receipt-modal";
 import { formatCurrency, formatCurrencyShort } from "@/lib/utils/formatters";
 import { calculateFinance } from "@/lib/utils/finance";
-
-function useIsLocalhost() {
-  const [yes, setYes] = useState(false);
-  useEffect(() => {
-    const h = window.location.hostname;
-    setYes(
-      h === "localhost" ||
-        h === "127.0.0.1" ||
-        h === "[::1]"
-    );
-  }, []);
-  return yes;
-}
+import { isDev } from "@/lib/is-dev";
 
 interface SaleFormProps {
   plots: any[];
@@ -74,7 +62,7 @@ export function SaleForm({
   const [subOptions, setSubOptions] = useState<{ id: string; name: string; code: string; phone: string }[]>([]);
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
   const [subComboKey, setSubComboKey] = useState(0);
-  const showFillMock = useIsLocalhost();
+  const showFillMock = isDev;
 
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,

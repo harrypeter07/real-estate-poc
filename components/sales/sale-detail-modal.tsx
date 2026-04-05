@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,6 +19,10 @@ import {
 	CreditCard,
 	ArrowUpRight,
 } from "lucide-react";
+import {
+	getSaleCommissionParticipants,
+	type SaleCommissionParticipant,
+} from "@/app/actions/sales";
 
 interface SaleDetailModalProps {
 	sale: {
@@ -58,7 +63,36 @@ export function SaleDetailModal({
 	canCollectPayments = true,
 }: SaleDetailModalProps) {
 	const router = useRouter();
-	const commissionParticipantTotal = (sale.commission_participants ?? []).reduce(
+	const [fetchedParticipants, setFetchedParticipants] = useState<
+		SaleCommissionParticipant[] | undefined
+	>(undefined);
+
+	useEffect(() => {
+		if (!open) {
+			setFetchedParticipants(undefined);
+			return;
+		}
+		if (sale.commission_participants && sale.commission_participants.length > 0) {
+			setFetchedParticipants(undefined);
+			return;
+		}
+		let cancelled = false;
+		void getSaleCommissionParticipants(sale.id).then((rows) => {
+			if (!cancelled) setFetchedParticipants(rows);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [open, sale.id, sale.commission_participants?.length]);
+
+	const participants = useMemo(() => {
+		if (sale.commission_participants && sale.commission_participants.length > 0) {
+			return sale.commission_participants;
+		}
+		return fetchedParticipants ?? [];
+	}, [sale.commission_participants, fetchedParticipants]);
+
+	const commissionParticipantTotal = participants.reduce(
 		(sum, p) => sum + (typeof p.amount === "number" ? p.amount : 0),
 		0,
 	);
@@ -158,13 +192,18 @@ export function SaleDetailModal({
 						</div>
 					</div>
 
-					{sale.commission_participants && sale.commission_participants.length > 0 ? (
+					{fetchedParticipants === undefined &&
+					(!sale.commission_participants || sale.commission_participants.length === 0) ? (
+						<p className="text-[11px] text-zinc-500">Loading commission details…</p>
+					) : null}
+
+					{participants.length > 0 ? (
 						<div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-3">
 							<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
 								Commission split (this sale)
 							</p>
 							<ul className="space-y-2 text-sm">
-								{sale.commission_participants.map((p, i) => (
+								{participants.map((p, i) => (
 									<li
 										key={i}
 										className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-100 pb-2 last:border-0 last:pb-0"
@@ -198,6 +237,14 @@ export function SaleDetailModal({
 									</span>
 								</p>
 							) : null}
+						</div>
+					) : fetchedParticipants !== undefined &&
+					  fetchedParticipants.length === 0 &&
+					  (!sale.commission_participants || sale.commission_participants.length === 0) ? (
+						<div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-[11px] text-amber-950">
+							No commission rows on file for this sale. If it should show advisor splits, run the
+							backfill script in <code className="text-[10px]">scripts/sql/backfill_advisor_commissions_main_from_sales.sql</code>{" "}
+							(or create commission rows from the Commissions page after migrating).
 						</div>
 					) : null}
 

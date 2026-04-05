@@ -25,6 +25,7 @@ import {
 import { formatCurrency } from "@/lib/utils/formatters";
 import { plotSchema, type PlotFormValues } from "@/lib/validations/plot";
 import { createPlot, updatePlot } from "@/app/actions/plots";
+import { isDev } from "@/lib/is-dev";
 
 /** Treat 0 as empty so numeric fields do not show leading/placeholder zeros. */
 function initialPlotNumeric(n: number | undefined | null) {
@@ -175,15 +176,17 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 							: "Fill in the details to add a new plot to this project"}
 					</CardDescription>
 				</div>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={fillMockData}
-					className="text-xs h-8"
-				>
-					Fill Mock Data
-				</Button>
+				{isDev ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={fillMockData}
+						className="text-xs h-8"
+					>
+						Fill Mock Data
+					</Button>
+				) : null}
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>

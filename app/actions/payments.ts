@@ -75,6 +75,33 @@ export async function createPayment(
 		};
 	}
 
+	const payAmt = Number(parsed.data.amount);
+	const dist = parsed.data.advisor_distribution;
+	if (dist && dist.length > 0) {
+		const sum = dist.reduce((s, r) => s + Number(r.amount ?? 0), 0);
+		if (Math.abs(sum - payAmt) > 0.05) {
+			return {
+				success: false,
+				error: "Advisor distribution amounts must add up to the payment amount.",
+			};
+		}
+		const { data: commRows, error: commErr } = await supabase
+			.from("advisor_commissions")
+			.select("advisor_id")
+			.eq("sale_id", parsed.data.sale_id);
+		if (commErr) return { success: false, error: commErr.message };
+		const allowed = new Set((commRows ?? []).map((r: { advisor_id: string }) => r.advisor_id));
+		for (const row of dist) {
+			if (!allowed.has(row.advisor_id)) {
+				return {
+					success: false,
+					error:
+						"Distribution includes an advisor that is not on this sale's commission records.",
+				};
+			}
+		}
+	}
+
 	const { error } = await supabase.from("payments").insert({
 		business_id: paymentBusinessId,
 		sale_id: parsed.data.sale_id,
@@ -86,6 +113,7 @@ export async function createPayment(
 		receipt_path: parsed.data.receipt_path || null,
 		is_confirmed: parsed.data.is_confirmed,
 		notes: parsed.data.notes || null,
+		advisor_distribution: dist && dist.length > 0 ? dist : null,
 	});
 
 	if (error) {
@@ -228,7 +256,13 @@ export async function getPayments(filters?: PaymentsFilter) {
 
 	const participantsBySale: Record<
 		string,
-		{ name: string; phone: string; amount: number; is_main: boolean }[]
+		{
+			advisor_id: string;
+			name: string;
+			phone: string;
+			amount: number;
+			is_main: boolean;
+		}[]
 	> = {};
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
@@ -240,6 +274,7 @@ export async function getPayments(filters?: PaymentsFilter) {
 			const mapped = (comms ?? [])
 				.filter((c: any) => c.sale_id === sid)
 				.map((c: any) => ({
+					advisor_id: String(c.advisor_id ?? ""),
 					name: String(c.advisors?.name ?? "—"),
 					phone: String(c.advisors?.phone ?? "—"),
 					amount: Number(c.total_commission_amount ?? 0),

@@ -21,6 +21,7 @@ import {
 import type { EnquiryCustomerFormValues } from "@/lib/validations/enquiry";
 import { createEnquiryCustomer, getTempCustomersByPhone } from "@/app/actions/enquiries";
 import { cn } from "@/lib/utils";
+import { isDev } from "@/lib/is-dev";
 
 const CATEGORY_OPTIONS = [
 	"General",
@@ -231,6 +232,7 @@ export function EnquiryCreateModal({
 						New Enquiry
 					</DialogTitle>
 					<div className="flex items-center gap-2">
+						{isDev ? (
 						<Button
 							type="button"
 							size="sm"
@@ -285,6 +287,7 @@ export function EnquiryCreateModal({
 						>
 							Fill Mock Data
 						</Button>
+						) : null}
 						<Button
 							type="button"
 							size="sm"

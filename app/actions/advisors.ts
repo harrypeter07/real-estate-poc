@@ -410,6 +410,8 @@ export async function getAdvisorById(id: string) {
 
 export type AdvisorAnalytics = {
 	advisor: NonNullable<Awaited<ReturnType<typeof getAdvisorById>>>;
+	/** Present when this advisor is a sub-advisor. */
+	parentAdvisor: { id: string; name: string; code: string; phone: string } | null;
 	salesCount: number;
 	totalRevenue: number;
 	totalCommission: number;
@@ -536,8 +538,23 @@ export async function getAdvisorAnalytics(
 	const commissionPaid = commList.reduce((s, x) => s + x.amount_paid, 0);
 	const commissionPending = commList.reduce((s, x) => s + x.remaining_commission, 0);
 
+	let parentAdvisor: { id: string; name: string; code: string; phone: string } | null = null;
+	const parentId = (advisor as { parent_advisor_id?: string | null }).parent_advisor_id;
+	if (parentId) {
+		const p = await getAdvisorById(parentId);
+		if (p) {
+			parentAdvisor = {
+				id: p.id,
+				name: String(p.name ?? ""),
+				code: String(p.code ?? ""),
+				phone: String(p.phone ?? ""),
+			};
+		}
+	}
+
 	return {
 		advisor,
+		parentAdvisor,
 		salesCount,
 		totalRevenue,
 		totalCommission,

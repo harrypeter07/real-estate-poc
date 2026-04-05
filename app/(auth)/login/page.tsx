@@ -27,8 +27,6 @@ import { signInWithEmailOrPhone } from "@/app/actions/auth";
 const loginSchema = z.object({
 	identifier: z.string().trim().min(3, "Enter email or phone"),
 	password: z.string().optional(),
-	/** Super admin: TOTP or second password (same submit as step 1). */
-	secondFactor: z.string().optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -40,7 +38,12 @@ function LoginQueryToasts() {
 		if (reason === "timeout" || reason === "session") {
 			toast.message("Super admin session ended", {
 				description:
-					"Console access is limited to 15 minutes per sign-in. Enter password and security code again.",
+					"Console access is limited to 15 minutes. Sign in again — you will be asked for your second step after the password.",
+			});
+		}
+		if (reason === "stale") {
+			toast.message("Session reset", {
+				description: "Please sign in again from the beginning.",
 			});
 		}
 	}, [searchParams]);
@@ -53,7 +56,7 @@ export default function LoginPage() {
 
 	const form = useForm<LoginFormValues>({
 		resolver: zodResolver(loginSchema),
-		defaultValues: { identifier: "", password: "", secondFactor: "" },
+		defaultValues: { identifier: "", password: "" },
 	});
 
 	async function onSubmit(values: LoginFormValues) {
@@ -62,13 +65,11 @@ export default function LoginPage() {
 			const result = await signInWithEmailOrPhone(
 				values.identifier,
 				(values.password ?? "").trim(),
-				(values.secondFactor ?? "").trim(),
 			);
 			if (!result.success) {
 				toast.error("Login failed", { description: result.error });
 				return;
 			}
-			// On success, server action redirects based on role/middleware.
 		} finally {
 			setLoading(false);
 		}
@@ -82,7 +83,6 @@ export default function LoginPage() {
 			<Suspense fallback={null}>
 				<LoginQueryToasts />
 			</Suspense>
-			{/* Background image (login screen only) */}
 			<div
 				suppressHydrationWarning
 				aria-hidden
@@ -95,107 +95,84 @@ export default function LoginPage() {
 						suppressHydrationWarning
 						className="w-full max-w-md bg-zinc-100/90 border border-zinc-200/70 shadow-xl"
 					>
-				<CardHeader className="text-center space-y-4">
-					<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100">
-						<Building2 className="h-8 w-8 text-white dark:text-zinc-900" />
-					</div>
-					<div>
-						<CardTitle className="text-2xl font-bold">S-INFRA</CardTitle>
-						<CardDescription className="text-sm mt-1">
-							Estate Management + CRM
-						</CardDescription>
-					</div>
-				</CardHeader>
-				<CardContent>
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-							<FormField
-								control={form.control}
-								name="identifier"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Email or Phone</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="admin@mginfra.com or 9876543210"
-												type="text"
-												autoComplete="username"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="password"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Password</FormLabel>
-										<FormControl>
-											<div className="relative">
-												<Input
-													placeholder="••••••••"
-													type={showPassword ? "text" : "password"}
-													autoComplete="current-password"
-													className="pr-10"
-													{...field}
-												/>
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-													onClick={() => setShowPassword((v) => !v)}
-													aria-label={showPassword ? "Hide password" : "Show password"}
-												>
-													{showPassword ? (
-														<EyeOff className="h-4 w-4" />
-													) : (
-														<Eye className="h-4 w-4" />
-													)}
-												</Button>
-											</div>
-										</FormControl>
-										<p className="text-[10px] text-zinc-500">
-											Advisors: blank password uses the default from name + phone (see advisors list).
-										</p>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="secondFactor"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Security code (super admin only)</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Authenticator 6-digit code or second password"
-												type="text"
-												autoComplete="one-time-code"
-												inputMode="numeric"
-												className="font-mono tracking-widest"
-												{...field}
-											/>
-										</FormControl>
-										<p className="text-[10px] text-zinc-500">
-											Leave empty for tenant users. Super admin accounts require a second step
-											(TOTP or passphrase from your operator).
-										</p>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<Button type="submit" className="w-full" disabled={loading}>
-								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								Sign In
-							</Button>
-						</form>
-					</Form>
-				</CardContent>
+						<CardHeader className="text-center space-y-4">
+							<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100">
+								<Building2 className="h-8 w-8 text-white dark:text-zinc-900" />
+							</div>
+							<div>
+								<CardTitle className="text-2xl font-bold">S-INFRA</CardTitle>
+								<CardDescription className="text-sm mt-1">
+									Estate Management + CRM
+								</CardDescription>
+							</div>
+						</CardHeader>
+						<CardContent>
+							<Form {...form}>
+								<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+									<FormField
+										control={form.control}
+										name="identifier"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Email or Phone</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="admin@mginfra.com or 9876543210"
+														type="text"
+														autoComplete="username"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="password"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Password</FormLabel>
+												<FormControl>
+													<div className="relative">
+														<Input
+															placeholder="••••••••"
+															type={showPassword ? "text" : "password"}
+															autoComplete="current-password"
+															className="pr-10"
+															{...field}
+														/>
+														<Button
+															type="button"
+															variant="ghost"
+															size="sm"
+															className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+															onClick={() => setShowPassword((v) => !v)}
+															aria-label={showPassword ? "Hide password" : "Show password"}
+														>
+															{showPassword ? (
+																<EyeOff className="h-4 w-4" />
+															) : (
+																<Eye className="h-4 w-4" />
+															)}
+														</Button>
+													</div>
+												</FormControl>
+												<p className="text-[10px] text-zinc-500">
+													Advisors: blank password uses the default from name + phone (see advisors
+													list).
+												</p>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<Button type="submit" className="w-full" disabled={loading}>
+										{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+										Sign In
+									</Button>
+								</form>
+							</Form>
+						</CardContent>
 					</Card>
 				</div>
 			</div>

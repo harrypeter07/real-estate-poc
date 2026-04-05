@@ -16,8 +16,10 @@ export default async function AdvisorsAnalyticsPage() {
 
 	const { data: advisors } = await supabase
 		.from("advisors")
-		.select("id, name, code, phone, is_active")
+		.select("id, name, code, phone, is_active, parent_advisor_id")
 		.order("name", { ascending: true });
+
+	const byId = new Map((advisors ?? []).map((a: { id: string }) => [a.id, a]));
 
 	const advisorIds = (advisors ?? []).map((a) => a.id);
 
@@ -60,7 +62,7 @@ export default async function AdvisorsAnalyticsPage() {
 		<div className="space-y-6">
 			<PageHeader
 				title="Advisor Analytics"
-				subtitle="Sales, dues, and commission status by advisor. Click a row for details."
+				subtitle="All advisors (main and sub). Sub-advisors show their main advisor in the table; open a row for full details."
 				action={
 					<Link href="/advisors">
 						<Button size="sm" variant="outline">
@@ -71,13 +73,25 @@ export default async function AdvisorsAnalyticsPage() {
 			/>
 
 			<AdvisorAnalyticsTable
-				advisors={(advisors ?? []).map((a: any) => ({
-					id: a.id,
-					name: a.name,
-					code: a.code,
-					phone: a.phone,
-					is_active: a.is_active,
-				}))}
+				advisors={(advisors ?? []).map((a: any) => {
+					const pid = a.parent_advisor_id as string | null | undefined;
+					const p = pid ? (byId.get(pid) as { name?: string; code?: string; phone?: string } | undefined) : null;
+					return {
+						id: a.id,
+						name: a.name,
+						code: a.code,
+						phone: a.phone,
+						is_active: a.is_active,
+						parent: pid
+							? {
+									id: pid,
+									name: p?.name ?? "(unknown)",
+									code: p?.code ?? "—",
+									phone: p?.phone ?? "—",
+								}
+							: null,
+					};
+				})}
 				salesAgg={salesAgg}
 				commAgg={commAgg}
 			/>

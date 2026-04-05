@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Plus, Search, Pencil, Eye, ChevronDown } from "lucide-react";
+import { Search, Pencil, Eye, ChevronDown } from "lucide-react";
 import {
 	Button,
 	Card,
@@ -42,7 +41,6 @@ export type MainAdvisorRow = AdvisorSubRow & {
 export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 	const [query, setQuery] = useState("");
 	const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-	const [openCreate, setOpenCreate] = useState(false);
 	const [openEdit, setOpenEdit] = useState(false);
 	const [openView, setOpenView] = useState(false);
 	const [selected, setSelected] = useState<AdvisorSubRow | null>(null);
@@ -84,28 +82,15 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 	return (
 		<Card className="border-zinc-200 shadow-sm">
 			<CardContent className="p-3 md:p-4 space-y-3">
-				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-					<div className="flex items-center gap-2 flex-1">
-						<div className="relative flex-1 max-w-md">
-							<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-							<Input
-								value={query}
-								onChange={(e) => setQuery(e.target.value)}
-								placeholder="Search by name, code, phone, password hint…"
-								className="pl-8 h-8 text-sm"
-							/>
-						</div>
-					</div>
-					<div className="flex flex-wrap gap-2">
-						<Link href="/advisors/new-sub">
-							<Button size="sm" variant="outline" className="h-8">
-								New Sub-advisor
-							</Button>
-						</Link>
-						<Button size="sm" onClick={() => setOpenCreate(true)} className="h-8">
-							<Plus className="h-4 w-4 mr-2" />
-							New Advisor
-						</Button>
+				<div className="flex flex-col sm:flex-row sm:items-center gap-3">
+					<div className="relative flex-1 max-w-md">
+						<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+						<Input
+							value={query}
+							onChange={(e) => setQuery(e.target.value)}
+							placeholder="Search by name, code, phone, password hint…"
+							className="pl-8 h-8 text-sm"
+						/>
 					</div>
 				</div>
 
@@ -387,27 +372,6 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 								</div>
 							</>
 						)}
-					</div>
-				</DialogContent>
-			</Dialog>
-
-			<Dialog open={openCreate} onOpenChange={setOpenCreate}>
-				<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-3xl flex-col gap-0 overflow-hidden p-0">
-					<DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5 pb-3 sm:pb-4 text-left">
-						<DialogTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-base sm:text-lg">
-							<span>New Advisor</span>
-							<Button type="button" size="sm" variant="outline" onClick={() => setOpenCreate(false)} className="w-fit shrink-0">
-								Close
-							</Button>
-						</DialogTitle>
-					</DialogHeader>
-					<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
-						<AdvisorForm
-							mode="create"
-							redirectToList={false}
-							onSuccess={() => setOpenCreate(false)}
-							onCancel={() => setOpenCreate(false)}
-						/>
 					</div>
 				</DialogContent>
 			</Dialog>

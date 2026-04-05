@@ -14,7 +14,11 @@ import {
 	isSuperadminMfaConfigured,
 	verifySuperadminSecondFactor,
 } from "@/lib/auth/superadmin-mfa";
-import { setSuperAdminSessionCookie } from "@/lib/auth/superadmin-session-cookie";
+import {
+	setSuperAdminSessionCookie,
+	setSuperAdminMfaPendingCookie,
+	clearSuperAdminMfaPendingCookie,
+} from "@/lib/auth/superadmin-session-cookie";
 import { redirect } from "next/navigation";
 
 export type AuthResult = { success: boolean; error?: string };
@@ -31,13 +35,9 @@ function readRole(user: { user_metadata?: unknown; app_metadata?: unknown } | nu
 	return String(md.role ?? appMd.role ?? "").trim().toLowerCase();
 }
 
-async function finalizeSuperAdminLogin(
-	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-	keyHash: string,
-): Promise<never> {
-	await clearLoginThrottle(keyHash);
-	await setSuperAdminSessionCookie();
-	redirect("/superadmin");
+function throttleKeyForUser(user: { email?: string | null } | null): string | null {
+	const e = (user?.email || "").trim().toLowerCase();
+	return e ? hashLoginThrottleKey(`email:${e}`) : null;
 }
 
 async function finalizeNonSuperAdminLogin(
@@ -50,10 +50,10 @@ async function finalizeNonSuperAdminLogin(
 	redirect("/dashboard");
 }
 
+/** Step 1 only: email/phone + password. Super admins continue at /login/superadmin-mfa */
 export async function signInWithEmailOrPhone(
 	identifier: string,
 	password: string,
-	secondFactor?: string,
 ): Promise<AuthResult> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
@@ -64,7 +64,6 @@ export async function signInWithEmailOrPhone(
 	}
 
 	const rawPassword = typeof password === "string" ? password.trim() : "";
-	const second = typeof secondFactor === "string" ? secondFactor.trim() : "";
 
 	if (rawPassword.length > 500) {
 		return { success: false, error: "Invalid credentials." };
@@ -166,14 +165,8 @@ export async function signInWithEmailOrPhone(
 						"Super admin two-step sign-in is not configured. Set SUPERADMIN_TOTP_SECRET or SUPERADMIN_SECOND_PASSWORD.",
 				};
 			}
-			const mfa = verifySuperadminSecondFactor(second);
-			if (!mfa.ok) {
-				await supabase.auth.signOut();
-				await recordLoginFailure(keyHash);
-				return { success: false, error: mfa.error };
-			}
-			await finalizeSuperAdminLogin(supabase, keyHash);
-			return { success: true };
+			await setSuperAdminMfaPendingCookie();
+			redirect("/login/superadmin-mfa");
 		}
 
 		await finalizeNonSuperAdminLogin(supabase, keyHash, role);
@@ -208,16 +201,40 @@ export async function signInWithEmailOrPhone(
 					"Super admin two-step sign-in is not configured. Set SUPERADMIN_TOTP_SECRET or SUPERADMIN_SECOND_PASSWORD.",
 			};
 		}
-		const mfa = verifySuperadminSecondFactor(second);
-		if (!mfa.ok) {
-			await supabase.auth.signOut();
-			await recordLoginFailure(keyHash);
-			return { success: false, error: mfa.error };
-		}
-		await finalizeSuperAdminLogin(supabase, keyHash);
-		return { success: true };
+		await setSuperAdminMfaPendingCookie();
+		redirect("/login/superadmin-mfa");
 	}
 
 	await finalizeNonSuperAdminLogin(supabase, keyHash, role);
+	return { success: true };
+}
+
+/** Step 2: only after password sign-in + sa_mfa_pending cookie */
+export async function completeSuperAdminMfa(code: string): Promise<AuthResult> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: authData } = await supabase.auth.getUser();
+	const user = authData.user;
+	if (!user) {
+		return { success: false, error: "Session expired. Sign in again." };
+	}
+
+	if (readRole(user) !== "superadmin") {
+		return { success: false, error: "This step is only for super admin accounts." };
+	}
+
+	const keyHash = throttleKeyForUser(user);
+	const trimmed = typeof code === "string" ? code.trim() : "";
+	const mfa = verifySuperadminSecondFactor(trimmed);
+	if (!mfa.ok) {
+		if (keyHash) await recordLoginFailure(keyHash);
+		return { success: false, error: mfa.error };
+	}
+
+	if (keyHash) await clearLoginThrottle(keyHash);
+	await clearSuperAdminMfaPendingCookie();
+	await setSuperAdminSessionCookie();
+	redirect("/superadmin");
 	return { success: true };
 }

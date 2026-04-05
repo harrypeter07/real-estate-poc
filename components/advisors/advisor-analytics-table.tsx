@@ -32,6 +32,7 @@ import {
 	FileText,
 } from "lucide-react";
 import { getAdvisorAnalytics } from "@/app/actions/advisors";
+import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
 
 type AdvisorRow = {
 	id: string;
@@ -39,6 +40,7 @@ type AdvisorRow = {
 	code: string;
 	phone: string;
 	is_active: boolean;
+	parent: { id: string; name: string; code: string; phone: string } | null;
 };
 
 type SalesAgg = { salesCount: number; revenue: number; due: number };
@@ -64,7 +66,15 @@ export function AdvisorAnalyticsTable({
 		if (!q) return advisors;
 		return advisors.filter((a) => {
 			const phoneDigits = digitsOnly(a.phone);
+			const par = a.parent;
+			const parentHit =
+				par &&
+				(par.name.toLowerCase().includes(q) ||
+					par.code.toLowerCase().includes(q) ||
+					par.phone.includes(q) ||
+					(qDigits.length > 0 && digitsOnly(par.phone).includes(qDigits)));
 			return (
+				parentHit ||
 				a.name.toLowerCase().includes(q) ||
 				a.code.toLowerCase().includes(q) ||
 				a.phone.includes(q) ||
@@ -96,7 +106,7 @@ export function AdvisorAnalyticsTable({
 						<Input
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
-							placeholder="Search by name, code, or phone…"
+							placeholder="Search by name, code, phone, or main advisor…"
 							className="h-8 pl-8 text-sm"
 						/>
 					</div>
@@ -106,6 +116,7 @@ export function AdvisorAnalyticsTable({
 						<TableHeader>
 							<TableRow>
 								<TableHead>Advisor</TableHead>
+								<TableHead>Parent / role</TableHead>
 								<TableHead>Phone</TableHead>
 								<TableHead>Status</TableHead>
 								<TableHead className="text-right">Sales</TableHead>
@@ -119,13 +130,13 @@ export function AdvisorAnalyticsTable({
 						<TableBody>
 							{advisors.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={9} className="py-10 text-center text-sm text-zinc-500">
+									<TableCell colSpan={10} className="py-10 text-center text-sm text-zinc-500">
 										No advisors yet.
 									</TableCell>
 								</TableRow>
 							) : filteredAdvisors.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={9} className="py-10 text-center text-sm text-zinc-500">
+									<TableCell colSpan={10} className="py-10 text-center text-sm text-zinc-500">
 										No advisors match your search.
 									</TableCell>
 								</TableRow>
@@ -145,6 +156,22 @@ export function AdvisorAnalyticsTable({
 													<span className="font-semibold">{a.name}</span>
 													<span className="text-xs text-zinc-500 font-mono">{a.code}</span>
 												</div>
+											</TableCell>
+											<TableCell className="max-w-[200px]">
+												{a.parent ? (
+													<div className="text-xs space-y-0.5">
+														<Badge variant="secondary" className="text-[10px] font-normal">
+															Sub-advisor
+														</Badge>
+														<div className="text-zinc-700 font-medium leading-tight">{a.parent.name}</div>
+														<div className="text-[11px] text-zinc-500 font-mono">{a.parent.code}</div>
+														<div className="text-[11px] text-zinc-500 tabular-nums">{a.parent.phone}</div>
+													</div>
+												) : (
+													<Badge variant="outline" className="text-[10px] font-normal bg-zinc-50">
+														Main advisor
+													</Badge>
+												)}
 											</TableCell>
 											<TableCell>{a.phone}</TableCell>
 											<TableCell>
@@ -232,6 +259,24 @@ export function AdvisorAnalyticsTable({
 												{analytics.advisor.is_active ? "Active" : "Inactive"}
 											</Badge>
 										</div>
+										{analytics.parentAdvisor ? (
+											<div className="mt-3 pt-3 border-t border-zinc-100 space-y-1">
+												<p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+													Main advisor
+												</p>
+												<p className="font-medium text-zinc-900">{analytics.parentAdvisor.name}</p>
+												<p className="text-xs text-zinc-500 font-mono">{analytics.parentAdvisor.code}</p>
+												<p className="text-xs text-zinc-600 tabular-nums">{analytics.parentAdvisor.phone}</p>
+												<Link
+													href={`/advisors/${analytics.parentAdvisor.id}`}
+													className="text-xs text-sky-700 hover:underline inline-block pt-1"
+												>
+													View main advisor page
+												</Link>
+											</div>
+										) : (
+											<p className="text-[11px] text-zinc-500 pt-1">Top-level channel partner (no parent).</p>
+										)}
 									</div>
 								</div>
 								<div className="rounded-lg border border-zinc-200 p-4 space-y-3">
@@ -243,7 +288,13 @@ export function AdvisorAnalyticsTable({
 											<span className="font-mono text-xs break-all">{analytics.advisor.email ?? "—"}</span>
 										</p>
 										<p className="text-[11px] text-zinc-500">
-											Default password: last 10 digits of phone
+											Default password (derived):{" "}
+											<span className="font-mono text-zinc-700">
+												{buildAdvisorPasswordFromNameAndPhone(
+													String(analytics.advisor.name ?? ""),
+													String(analytics.advisor.phone ?? ""),
+												)}
+											</span>
 										</p>
 										<PasswordResetButton advisorId={selected.id} advisorPhone={selected.phone} />
 									</div>

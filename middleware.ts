@@ -1,10 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { SA_SESSION_COOKIE, SA_SESSION_MAX_MS } from "@/lib/auth/superadmin-session-constants";
+import {
+  SA_SESSION_COOKIE,
+  SA_SESSION_MAX_MS,
+  SA_MFA_PENDING_COOKIE,
+} from "@/lib/auth/superadmin-session-constants";
+
+function isFreshSuperAdminSession(saVal: string | undefined): boolean {
+  const started = saVal ? parseInt(saVal, 10) : NaN;
+  return Number.isFinite(started) && Date.now() - started <= SA_SESSION_MAX_MS;
+}
 
 function getModuleKeyForPath(pathname: string): string | null {
-  // Super admin /auth excluded from gating.
-  if (pathname.startsWith("/superadmin") || pathname === "/login") return null;
+  if (pathname.startsWith("/superadmin") || pathname.startsWith("/login")) return null;
 
   if (
     pathname.startsWith("/projects") ||
@@ -75,7 +83,6 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // If user is NOT logged in and trying to access dashboard routes
   if (!user && pathname !== "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -86,14 +93,15 @@ export async function middleware(request: NextRequest) {
     (user?.user_metadata as any)?.role ?? (user?.app_metadata as any)?.role;
   const roleLower = String(role || "").toLowerCase();
 
-  // Tenant users cannot open super admin routes (layout also checks; this fails fast).
   if (user && roleLower !== "superadmin" && pathname.startsWith("/superadmin")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Super admin: 15-minute console session (absolute); missing/expired cookie ends session.
+  const saCookie = request.cookies.get(SA_SESSION_COOKIE)?.value;
+  const mfaPending = !!request.cookies.get(SA_MFA_PENDING_COOKIE)?.value;
+
   if (
     user &&
     roleLower === "superadmin" &&
@@ -101,11 +109,13 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/auth/superadmin-session-end") &&
     !pathname.startsWith("/api/auth/superadmin-signout")
   ) {
-    const sa = request.cookies.get(SA_SESSION_COOKIE)?.value;
-    const started = sa ? parseInt(sa, 10) : NaN;
-    const fresh =
-      Number.isFinite(started) && Date.now() - started <= SA_SESSION_MAX_MS;
-    if (!fresh) {
+    if (isFreshSuperAdminSession(saCookie)) {
+      /* allow */
+    } else if (mfaPending) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login/superadmin-mfa";
+      return NextResponse.redirect(url);
+    } else {
       const url = request.nextUrl.clone();
       url.pathname = "/api/auth/superadmin-session-end";
       url.searchParams.set("reason", "timeout");
@@ -113,12 +123,25 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Superadmin: only the superadmin console — no tenant CRM routes (/dashboard, /payments, etc.)
+  if (user && pathname.startsWith("/login/superadmin-mfa")) {
+    if (roleLower !== "superadmin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+    if (!mfaPending) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (user && roleLower === "superadmin") {
     const allowed =
+      pathname === "/login" ||
+      pathname.startsWith("/login/superadmin-mfa") ||
       pathname === "/superadmin" ||
       pathname.startsWith("/superadmin/") ||
-      pathname === "/login" ||
       pathname.startsWith("/_next") ||
       pathname.startsWith("/api/auth/superadmin-session-end") ||
       pathname.startsWith("/api/auth/superadmin-signout");
@@ -130,7 +153,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If advisor is logged in, keep them inside /advisor routes or allow dashboard/enquiries
   if (user && roleLower === "advisor") {
     const allowed =
       pathname === "/advisor" ||
@@ -146,12 +168,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Module entitlement gating (real-time via business_modules)
   if (user) {
     const moduleKey = getModuleKeyForPath(pathname);
 
     if (moduleKey && roleLower !== "superadmin") {
-      // If entitlement row doesn't exist yet for this tenant, treat it as enabled for backward compatibility.
       const { data: modRow } = await supabase
         .from("business_modules")
         .select("enabled")
@@ -167,16 +187,29 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If user IS logged in and on /login, redirect to dashboard
   if (user && pathname === "/login") {
+    if (roleLower === "superadmin") {
+      if (isFreshSuperAdminSession(saCookie)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/superadmin";
+        return NextResponse.redirect(url);
+      }
+      if (mfaPending) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login/superadmin-mfa";
+        return NextResponse.redirect(url);
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = "/api/auth/superadmin-session-end";
+      url.searchParams.set("reason", "stale");
+      return NextResponse.redirect(url);
+    }
+
     const url = request.nextUrl.clone();
-    const rr = String(role || "").toLowerCase();
     url.pathname =
-      rr === "advisor"
+      roleLower === "advisor"
         ? "/advisor"
-        : rr === "superadmin"
-          ? "/superadmin"
-          : "/dashboard";
+        : "/dashboard";
     return NextResponse.redirect(url);
   }
 

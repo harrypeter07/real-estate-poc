@@ -58,6 +58,10 @@ export function SaleDetailModal({
 	canCollectPayments = true,
 }: SaleDetailModalProps) {
 	const router = useRouter();
+	const commissionParticipantTotal = (sale.commission_participants ?? []).reduce(
+		(sum, p) => sum + (typeof p.amount === "number" ? p.amount : 0),
+		0,
+	);
 	const phase = sale.is_cancelled
 		? { label: "Plot revoked", className: "bg-zinc-200 text-zinc-700" }
 		: sale.sale_phase === "token"
@@ -186,6 +190,14 @@ export function SaleDetailModal({
 									</li>
 								))}
 							</ul>
+							{commissionParticipantTotal > 0 ? (
+								<p className="mt-2 pt-2 border-t border-zinc-200 text-xs font-semibold text-zinc-800 flex justify-between gap-2">
+									<span>Total commission (team)</span>
+									<span className="font-mono tabular-nums">
+										{formatCurrency(commissionParticipantTotal)}
+									</span>
+								</p>
+							) : null}
 						</div>
 					) : null}
 

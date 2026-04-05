@@ -4,6 +4,32 @@ import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+function attachSaleCommissionTeams(rows: any[]) {
+	const bySale = new Map<string, any[]>();
+	for (const r of rows) {
+		const sid = r.sale_id as string | undefined | null;
+		if (!sid) continue;
+		const list = bySale.get(sid) ?? [];
+		list.push(r);
+		bySale.set(sid, list);
+	}
+	for (const r of rows) {
+		const sid = r.sale_id as string | undefined | null;
+		if (!sid) {
+			r.sale_commission_team_rows = [r];
+			continue;
+		}
+		const team = bySale.get(sid) ?? [r];
+		const mainAid = r.plot_sales?.advisor_id ?? null;
+		r.sale_commission_team_rows = [...team].sort((a, b) => {
+			const aMain = mainAid && a.advisor_id === mainAid ? 1 : 0;
+			const bMain = mainAid && b.advisor_id === mainAid ? 1 : 0;
+			return bMain - aMain;
+		});
+	}
+	return rows;
+}
+
 export async function getCommissions() {
 	const supabase = await createClient();
 	if (!supabase) return [];
@@ -12,6 +38,8 @@ export async function getCommissions() {
       *,
       advisors(name, code),
       plot_sales(
+        id,
+        advisor_id,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, rate_per_sqft, projects(name))
@@ -31,6 +59,8 @@ export async function getCommissions() {
       *,
       advisors(name, code),
       plot_sales(
+        id,
+        advisor_id,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, rate_per_sqft, projects(name))
@@ -52,7 +82,7 @@ export async function getCommissions() {
 		.from("advisor_commissions")
 		.select(extraSelect)
 		.order("created_at", { ascending: false });
-	if (!errWithExtra) return dataWithExtra || [];
+	if (!errWithExtra) return attachSaleCommissionTeams(dataWithExtra || []);
 
 	const msg = (errWithExtra.message || "").toLowerCase();
 	if (!msg.includes("extra_paid_amount")) throw new Error(errWithExtra.message);
@@ -62,12 +92,14 @@ export async function getCommissions() {
 		.select(baseSelect)
 		.order("created_at", { ascending: false });
 	if (error) throw new Error(error.message);
-	return (data || []).map((row: any) => ({
-		...row,
-		advisor_commission_payments: (row.advisor_commission_payments ?? []).map(
-			(p: any) => ({ ...p, extra_paid_amount: 0 })
-		),
-	}));
+	return attachSaleCommissionTeams(
+		(data || []).map((row: any) => ({
+			...row,
+			advisor_commission_payments: (row.advisor_commission_payments ?? []).map(
+				(p: any) => ({ ...p, extra_paid_amount: 0 })
+			),
+		}))
+	);
 }
 
 export async function getAdvisorCommissions(advisorId: string) {

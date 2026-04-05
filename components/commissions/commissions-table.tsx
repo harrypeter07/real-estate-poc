@@ -34,6 +34,13 @@ import { ReceiptUpload } from "@/components/shared/receipt-upload";
 import { ReceiptViewButton } from "@/components/shared/receipt-view-button";
 import { useRouter } from "next/navigation";
 
+function commissionRemaining(comm: any) {
+  return Math.max(
+    0,
+    Number(comm?.total_commission_amount ?? 0) - Number(comm?.amount_paid ?? 0)
+  );
+}
+
 export function CommissionsTable({ commissions }: { commissions: any[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<any | null>(null);
@@ -59,17 +66,56 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 
   const visibleCommissions = useMemo(
     () =>
-      commissions.filter((comm) =>
-        matchesTextSearch(
+      commissions.filter((comm) => {
+        const team = Array.isArray(comm.sale_commission_team_rows)
+          ? comm.sale_commission_team_rows
+          : [comm];
+        const teamParts = team.flatMap((t: any) => [
+          t.advisors?.name,
+          t.advisors?.code,
+        ]);
+        return matchesTextSearch(
           listQuery,
-          comm.advisors?.name,
-          comm.advisors?.code,
+          ...teamParts,
           comm.plot_sales?.plots?.plot_number,
           comm.plot_sales?.plots?.projects?.name,
-        ),
-      ),
+        );
+      }),
     [commissions, listQuery],
   );
+
+  /** One row per sale when the sale has a main advisor; due columns use main advisor only. */
+  const tableDisplayRows = useMemo(() => {
+    const seenSale = new Set<string>();
+    const out: { key: string; main: any; subs: any[] }[] = [];
+    for (const c of visibleCommissions) {
+      const sid = String(c.sale_id ?? "");
+      const mainAid = c.plot_sales?.advisor_id ?? null;
+      const team = Array.isArray(c.sale_commission_team_rows)
+        ? c.sale_commission_team_rows
+        : [c];
+
+      if (!sid || !mainAid) {
+        out.push({ key: `single-${c.id}`, main: c, subs: [] });
+        continue;
+      }
+      if (seenSale.has(sid)) continue;
+
+      const mainRow = team.find((t: any) => t.advisor_id === mainAid);
+      if (!mainRow) {
+        seenSale.add(sid);
+        for (const t of team) {
+          out.push({ key: `orphan-${t.id}`, main: t, subs: [] });
+        }
+        continue;
+      }
+
+      seenSale.add(sid);
+      const subs = team.filter((t: any) => t.advisor_id !== mainAid);
+      out.push({ key: `sale-${sid}`, main: mainRow, subs });
+    }
+    return out;
+  }, [visibleCommissions]);
 
   const remaining = useMemo(() => {
     if (!selected) return 0;
@@ -235,7 +281,9 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               className="max-w-xl"
             />
             <p className="text-[11px] text-zinc-500 max-w-2xl">
-              Team commission splits: the same sale can appear once per advisor — pay out each row separately.
+              Each sale is one row for the main advisor. Sub-advisors on that sale are listed under them with
+              their own totals. Paid, Remaining, Extra, and Status in the row refer to the main advisor&apos;s
+              commission only (due logic unchanged).
             </p>
           </div>
           {visibleCommissions.length === 0 ? (
@@ -249,42 +297,119 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               <TableRow>
                 <TableHead>Advisor</TableHead>
                 <TableHead>Plot / Project</TableHead>
-                <TableHead>Total Commission</TableHead>
-                <TableHead>Paid</TableHead>
-                <TableHead>Remaining</TableHead>
-                <TableHead>Extra Paid</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Main commission</TableHead>
+                <TableHead>Paid (main)</TableHead>
+                <TableHead>Due (main)</TableHead>
+                <TableHead>Extra (main)</TableHead>
+                <TableHead>Status (main)</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleCommissions.map((comm) => {
-                const rem = Math.max(
-                  0,
-                  Number(comm.total_commission_amount ?? 0) - Number(comm.amount_paid ?? 0)
-                );
+              {tableDisplayRows.map(({ key, main: comm, subs }) => {
+                const rem = commissionRemaining(comm);
                 const isPaid = rem <= 0;
+                const extraCol =
+                  Number(comm.amount_paid ?? 0) > Number(comm.total_commission_amount ?? 0)
+                    ? Number(comm.amount_paid ?? 0) - Number(comm.total_commission_amount ?? 0)
+                    : 0;
                 return (
                   <TableRow
-                    key={comm.id}
-                    className="hover:bg-zinc-50"
+                    key={key}
+                    className="hover:bg-zinc-50 align-top"
                   >
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm flex items-center gap-1">
-                          <User className="h-3 w-3 text-zinc-400" /> {comm.advisors?.name ?? "—"}
-                        </span>
-                        <span className="text-xs text-zinc-500 font-mono">
-                          CODE: {comm.advisors?.code ?? "—"}
-                        </span>
+                    <TableCell className="min-w-[200px]">
+                      <div className="flex flex-col gap-2">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                            Main
+                          </div>
+                          <span className="font-semibold text-sm flex items-center gap-1">
+                            <User className="h-3 w-3 text-zinc-400 shrink-0" />{" "}
+                            {comm.advisors?.name ?? "—"}
+                          </span>
+                          <span className="text-xs text-zinc-500 font-mono">
+                            CODE: {comm.advisors?.code ?? "—"}
+                          </span>
+                        </div>
+                        {subs.length > 0 ? (
+                          <div className="rounded-md border border-amber-200/80 bg-amber-50/40 px-2 py-2 space-y-1.5">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-900/80">
+                              Sub-advisors (same sale)
+                            </div>
+                            {subs.map((sub: any) => {
+                              const srem = commissionRemaining(sub);
+                              return (
+                                <div
+                                  key={sub.id}
+                                  className="flex flex-col gap-1 border-b border-amber-100 pb-1.5 last:border-0 last:pb-0 text-xs"
+                                >
+                                  <div className="font-medium text-zinc-800">
+                                    {sub.advisors?.name ?? "—"}
+                                    <span className="text-zinc-500 font-normal ml-1 font-mono text-[10px]">
+                                      {sub.advisors?.code ?? ""}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-x-2 text-[10px] tabular-nums text-zinc-600">
+                                    <span title="Their commission on this sale">
+                                      Total{" "}
+                                      <span className="block font-semibold text-zinc-900">
+                                        {formatCurrency(sub.total_commission_amount)}
+                                      </span>
+                                    </span>
+                                    <span title="Paid out to this sub-advisor">
+                                      Paid{" "}
+                                      <span className="block font-semibold text-green-700">
+                                        {formatCurrency(sub.amount_paid)}
+                                      </span>
+                                    </span>
+                                    <span title="Their remaining">
+                                      Due{" "}
+                                      <span className="block font-semibold text-red-600">
+                                        {formatCurrency(srem)}
+                                      </span>
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 justify-end">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-[10px] px-2"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openRow(sub, "manage");
+                                      }}
+                                    >
+                                      Manage
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 text-[10px] px-2"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openRow(sub, "history");
+                                      }}
+                                    >
+                                      History
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col text-xs">
                         <span className="font-semibold text-zinc-700 flex items-center gap-1">
-                          <Home className="h-3 w-3 text-zinc-400" /> {comm.plot_sales?.plots?.plot_number ?? "—"}
+                          <Home className="h-3 w-3 text-zinc-400 shrink-0" />{" "}
+                          {comm.plot_sales?.plots?.plot_number ?? "—"}
                         </span>
-                        <span className="text-zinc-500 truncate">
+                        <span className="text-zinc-500 truncate max-w-[160px]">
                           {comm.plot_sales?.plots?.projects?.name ?? "—"}
                         </span>
                       </div>
@@ -299,11 +424,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                       {formatCurrency(rem)}
                     </TableCell>
                     <TableCell className="font-semibold text-amber-600">
-                      {formatCurrency(
-                        Number(comm.amount_paid ?? 0) > Number(comm.total_commission_amount ?? 0)
-                          ? Number(comm.amount_paid ?? 0) - Number(comm.total_commission_amount ?? 0)
-                          : 0
-                      )}
+                      {formatCurrency(extraCol)}
                     </TableCell>
                     <TableCell>
                       {isPaid ? (
@@ -373,6 +494,40 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               }
             >
               <div className="space-y-2 text-sm">
+                {Array.isArray(selected.sale_commission_team_rows) &&
+                  selected.sale_commission_team_rows.length > 1 && (
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs mb-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
+                        All advisors on this sale
+                      </div>
+                      <ul className="space-y-1">
+                        {selected.sale_commission_team_rows.map((t: any) => {
+                          const mainAid = selected.plot_sales?.advisor_id;
+                          const isMain = Boolean(mainAid && t.advisor_id === mainAid);
+                          const tr = commissionRemaining(t);
+                          return (
+                            <li
+                              key={t.id}
+                              className="flex flex-wrap justify-between gap-2 border-b border-zinc-100 pb-1 last:border-0 last:pb-0"
+                            >
+                              <span className="font-medium text-zinc-800">
+                                {t.advisors?.name ?? "—"}
+                                {isMain ? (
+                                  <span className="text-zinc-500 font-normal"> (main)</span>
+                                ) : mainAid ? (
+                                  <span className="text-amber-800/90 font-normal"> (sub)</span>
+                                ) : null}
+                              </span>
+                              <span className="font-mono tabular-nums text-zinc-700">
+                                {formatCurrency(t.total_commission_amount)} · due{" "}
+                                {formatCurrency(tr)}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 mb-3">
                   <span><strong>Advisor:</strong> {selected.advisors?.name ?? "—"}</span>
                   <span><strong>Plot:</strong> {selected.plot_sales?.plots?.projects?.name ?? "—"} • {selected.plot_sales?.plots?.plot_number ?? "—"}</span>

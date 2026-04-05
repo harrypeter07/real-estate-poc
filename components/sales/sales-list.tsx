@@ -171,13 +171,45 @@ export function SalesList({
 											</div>
 											<div className="flex items-start gap-2">
 												<User className="h-4 w-4 text-zinc-400 mt-0.5" />
-												<div>
+												<div className="min-w-0 flex-1">
 													<p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
 														Advisor
 													</p>
 													<p className="text-sm font-semibold">
 														{advisorName}
 													</p>
+													{!sale.sold_by_admin && team.length > 0 ? (
+														<div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50/90 p-2 space-y-1">
+															<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+																Commission on this sale
+															</p>
+															<ul className="space-y-1 text-[11px]">
+																{team.map((p: { name?: string; amount?: number; is_main?: boolean }, idx: number) => (
+																	<li
+																		key={`${p.name}-${idx}`}
+																		className="flex justify-between gap-2 text-zinc-800"
+																	>
+																		<span className="min-w-0 truncate">
+																			{p.name ?? "—"}
+																			{p.is_main === true ? (
+																				<span className="text-zinc-400 font-normal"> (main)</span>
+																			) : p.is_main === false ? (
+																				<span className="text-amber-700/90 font-normal"> (sub)</span>
+																			) : null}
+																		</span>
+																		<span className="shrink-0 font-mono tabular-nums font-semibold">
+																			{typeof p.amount === "number" ? formatCurrency(p.amount) : "—"}
+																		</span>
+																	</li>
+																))}
+															</ul>
+														</div>
+													) : !sale.sold_by_admin && subN > 0 && team.length === 0 ? (
+														<p className="mt-1.5 text-[11px] text-amber-800">
+															{subN} sub-advisor{subN === 1 ? "" : "s"} on this sale — open details to see
+															shares.
+														</p>
+													) : null}
 												</div>
 											</div>
 										</div>

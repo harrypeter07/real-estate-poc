@@ -30,6 +30,8 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		.select(
 			`
       id,
+      business_id,
+      advisor_id,
       sale_phase,
       token_date,
       agreement_date,
@@ -42,7 +44,23 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
       sold_by_admin,
       plots(plot_number, size_sqft, projects(name, location)),
       customers(name, phone, address),
-      advisors(name)
+      advisors(name),
+      businesses(
+        name,
+        display_name,
+        tagline,
+        address,
+        phone,
+        email,
+        gst_number,
+        pan_number,
+        receipt_footer
+      ),
+      advisor_commissions(
+        total_commission_amount,
+        advisor_id,
+        advisors(name, code)
+      )
     `
 		)
 		.eq("id", saleId)
@@ -57,7 +75,50 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const plot = s.plots;
 	const customer = s.customers;
 	const advisor = s.advisors;
-	const soldBy = s.sold_by_admin ? "Admin (Direct)" : advisor?.name ?? "—";
+	const biz = s.businesses as
+		| {
+				name?: string | null;
+				display_name?: string | null;
+				tagline?: string | null;
+				address?: string | null;
+				phone?: string | null;
+				email?: string | null;
+				gst_number?: string | null;
+				pan_number?: string | null;
+				receipt_footer?: string | null;
+		  }
+		| null
+		| undefined;
+
+	const bizTitle =
+		(biz?.display_name || biz?.name || "S-INFRA").trim() || "S-INFRA";
+	const bizSub =
+		(biz?.tagline || "Real Estate | Land & Plot Development").trim() ||
+		"Real Estate | Land & Plot Development";
+	const watermarkText = bizTitle.slice(0, 8).toUpperCase().padEnd(4, "·");
+
+	const commissionRows = (Array.isArray(s.advisor_commissions)
+		? s.advisor_commissions
+		: []
+	) as Array<{
+		total_commission_amount?: number | null;
+		advisor_id?: string | null;
+		advisors?: { name?: string | null; code?: string | null };
+	}>;
+	const mainAid = s.advisor_id as string | null | undefined;
+	const sortedCommissions = [...commissionRows].sort((a, b) => {
+		const aMain = mainAid && a.advisor_id === mainAid ? 1 : 0;
+		const bMain = mainAid && b.advisor_id === mainAid ? 1 : 0;
+		return bMain - aMain;
+	});
+
+	const contactLine =
+		[biz?.address, biz?.phone, biz?.email].filter(Boolean).join(" · ") ||
+		`Contact ${bizTitle} for any queries.`;
+
+	const soldBy = s.sold_by_admin
+		? "Admin (Direct)"
+		: advisor?.name ?? "—";
 
 	// Build a styled PDF bill with proper table layout
 	const pdfDoc = await PDFDocument.create();
@@ -67,8 +128,8 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const { width, height } = page.getSize();
 	let isFirstSection = true;
 
-	// Watermark
-	page.drawText("S-INFRA", {
+	// Watermark (short business name)
+	page.drawText(watermarkText.slice(0, 12), {
 		x: 170,
 		y: 420,
 		size: 72,
@@ -85,14 +146,14 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		height: 120,
 		color: rgb(0.08, 0.36, 0.62),
 	});
-	page.drawText("S-INFRA", {
+	page.drawText(bizTitle.slice(0, 42), {
 		x: 38,
 		y: height - 50,
 		size: 24,
 		font: fontBold,
 		color: rgb(1, 1, 1),
 	});
-	page.drawText("Real Estate | Land & Plot Development", {
+	page.drawText(bizSub.slice(0, 80), {
 		x: 40,
 		y: height - 74,
 		size: 11,
@@ -223,6 +284,15 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		{ key: "Address", value: customer?.address ?? "—" },
 	]);
 
+	const issuerRows: Array<{ key: string; value: string }> = [];
+	if (biz?.address)
+		issuerRows.push({ key: "Address", value: String(biz.address).slice(0, 220) });
+	if (biz?.gst_number)
+		issuerRows.push({ key: "GST", value: String(biz.gst_number) });
+	if (biz?.pan_number)
+		issuerRows.push({ key: "PAN", value: String(biz.pan_number) });
+	if (issuerRows.length) drawTable("Business details", issuerRows);
+
 	drawTable("Transaction Details", [
 		{ key: "Project", value: `${project?.name ?? "—"}${project?.location ? `, ${project.location}` : ""}` },
 		{ key: "Plot", value: `${plot?.plot_number ?? "—"} (${plot?.size_sqft ?? "—"} sqft)` },
@@ -231,6 +301,22 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		{ key: "Agreement Date", value: formatDate(s.agreement_date) },
 		{ key: "Sold By", value: soldBy },
 	]);
+
+	if (sortedCommissions.length > 0) {
+		drawTable(
+			"Commission allocation (this sale)",
+			sortedCommissions.map((c) => {
+				const isMain = Boolean(mainAid && c.advisor_id === mainAid);
+				const name = c.advisors?.name ?? "—";
+				const code = c.advisors?.code ? ` (${c.advisors.code})` : "";
+				return {
+					key: `${String(name).slice(0, 40)}${code}${isMain ? " — main" : ""}`,
+					value: formatCurrency(Number(c.total_commission_amount ?? 0)),
+					strong: isMain,
+				};
+			}),
+		);
+	}
 
 	const paymentRows: Array<{ key: string; value: string; strong?: boolean }> = [
 		{ key: "Total Sale Amount", value: formatCurrency(Number(s.total_sale_amount ?? 0)) },
@@ -246,12 +332,26 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	}
 	drawTable("Payment Summary", paymentRows);
 
-	drawTable("Terms & Conditions", [
-		{ key: "•", value: "This is a computer-generated receipt and does not require signature." },
-		{ key: "•", value: "Please preserve this receipt for your records." },
-		{ key: "•", value: "For any queries, contact S-Infra." },
-		{ key: "Sale ID", value: saleId, strong: true },
-	]);
+	const termsRows: Array<{ key: string; value: string; strong?: boolean }> = [];
+	if (biz?.receipt_footer?.trim()) {
+		for (const line of biz.receipt_footer
+			.split(/\r?\n/)
+			.map((l) => l.trim())
+			.filter(Boolean)) {
+			termsRows.push({ key: "•", value: line.slice(0, 500) });
+		}
+	} else {
+		termsRows.push(
+			{
+				key: "•",
+				value: "This is a computer-generated receipt and does not require signature.",
+			},
+			{ key: "•", value: "Please preserve this receipt for your records." },
+			{ key: "•", value: contactLine.slice(0, 500) },
+		);
+	}
+	termsRows.push({ key: "Sale ID", value: saleId, strong: true });
+	drawTable("Terms & Conditions", termsRows);
 
 	// Footer strip
 	page.drawRectangle({
@@ -268,8 +368,8 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		font,
 		color: rgb(0.55, 0.58, 0.62),
 	});
-	page.drawText("Generated by S-Infra CRM", {
-		x: width - 184,
+	page.drawText(`Generated by ${bizTitle.slice(0, 28)} CRM`, {
+		x: width - 220,
 		y: 15,
 		size: 9,
 		font,

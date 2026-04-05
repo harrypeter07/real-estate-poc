@@ -102,13 +102,22 @@ export async function getCommissions() {
 	);
 }
 
-export async function getAdvisorCommissions(advisorId: string) {
+/** Sub-advisors' commission rows for a main advisor (for advisor portal). */
+export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
 	const supabase = await createClient();
 	if (!supabase) return [];
+	const { data: subs, error: subErr } = await supabase
+		.from("advisors")
+		.select("id, name, code, phone")
+		.eq("parent_advisor_id", mainAdvisorId);
+	if (subErr || !subs?.length) return [];
+	const subIds = subs.map((s) => s.id);
 
 	const baseSelect = `
       *,
+      advisors(name, code),
       plot_sales(
+        advisor_id,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, projects(name))
@@ -119,13 +128,16 @@ export async function getAdvisorCommissions(advisorId: string) {
         paid_date,
         payment_mode,
         reference_number,
+        receipt_path,
         note,
         created_at
       )
     `;
 	const extraSelect = `
       *,
+      advisors(name, code),
       plot_sales(
+        advisor_id,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, projects(name))
@@ -137,6 +149,79 @@ export async function getAdvisorCommissions(advisorId: string) {
         paid_date,
         payment_mode,
         reference_number,
+        receipt_path,
+        note,
+        created_at
+      )
+    `;
+
+	const { data: dataWithExtra, error: errWithExtra } = await supabase
+		.from("advisor_commissions")
+		.select(extraSelect)
+		.in("advisor_id", subIds)
+		.order("created_at", { ascending: false });
+	if (!errWithExtra) return attachSaleCommissionTeams(dataWithExtra || []);
+
+	const msg = (errWithExtra.message || "").toLowerCase();
+	if (!msg.includes("extra_paid_amount")) return [];
+
+	const { data, error } = await supabase
+		.from("advisor_commissions")
+		.select(baseSelect)
+		.in("advisor_id", subIds)
+		.order("created_at", { ascending: false });
+	if (error) return [];
+	return attachSaleCommissionTeams(
+		(data || []).map((row: any) => ({
+			...row,
+			advisor_commission_payments: (row.advisor_commission_payments ?? []).map(
+				(p: any) => ({ ...p, extra_paid_amount: 0 })
+			),
+		}))
+	);
+}
+
+export async function getAdvisorCommissions(advisorId: string) {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const baseSelect = `
+      *,
+      advisors(name, code),
+      plot_sales(
+        advisor_id,
+        total_sale_amount,
+        amount_paid,
+        plots(plot_number, size_sqft, projects(name))
+      ),
+      advisor_commission_payments(
+        id,
+        amount,
+        paid_date,
+        payment_mode,
+        reference_number,
+        receipt_path,
+        note,
+        created_at
+      )
+    `;
+	const extraSelect = `
+      *,
+      advisors(name, code),
+      plot_sales(
+        advisor_id,
+        total_sale_amount,
+        amount_paid,
+        plots(plot_number, size_sqft, projects(name))
+      ),
+      advisor_commission_payments(
+        id,
+        amount,
+        extra_paid_amount,
+        paid_date,
+        payment_mode,
+        reference_number,
+        receipt_path,
         note,
         created_at
       )

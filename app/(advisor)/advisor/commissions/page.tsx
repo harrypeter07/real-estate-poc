@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
-import { getAdvisorCommissions } from "@/app/actions/commissions";
+import { getAdvisorCommissions, getSubAdvisorCommissionsForParent } from "@/app/actions/commissions";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from "@/components/ui";
 
@@ -20,6 +20,17 @@ export default async function AdvisorCommissionsPage() {
 
   const commissions = await getAdvisorCommissions(advisorId);
 
+  const { data: advisorRow } = await supabase
+    .from("advisors")
+    .select("id, parent_advisor_id, name, code")
+    .eq("id", advisorId)
+    .maybeSingle();
+
+  const isMainAdvisor = !advisorRow?.parent_advisor_id;
+  const subTeamCommissions = isMainAdvisor
+    ? await getSubAdvisorCommissionsForParent(advisorId)
+    : [];
+
   const totals = commissions.reduce(
     (acc, c: any) => {
       const total = Number(c.total_commission_amount ?? 0);
@@ -31,6 +42,18 @@ export default async function AdvisorCommissionsPage() {
     { total: 0, paid: 0 }
   );
   const pending = totals.total - totals.paid;
+
+  const subTotals = subTeamCommissions.reduce(
+    (acc, c: any) => {
+      const total = Number(c.total_commission_amount ?? 0);
+      const paid = Number(c.amount_paid ?? 0);
+      acc.total += total;
+      acc.paid += paid;
+      return acc;
+    },
+    { total: 0, paid: 0 }
+  );
+  const subPending = subTotals.total - subTotals.paid;
 
   return (
     <div className="space-y-6">
@@ -65,6 +88,98 @@ export default async function AdvisorCommissionsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {isMainAdvisor && subTeamCommissions.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="text-sm font-semibold text-zinc-900">
+              Your team (sub-advisors)
+            </div>
+            <p className="text-xs text-zinc-500">
+              Commission rows for advisors linked under you. This is separate from your own commission in the
+              table below.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-lg border border-amber-200/80 bg-amber-50/40 px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-900/80">
+                  Team total
+                </div>
+                <div className="text-lg font-bold tabular-nums">{formatCurrency(subTotals.total)}</div>
+              </div>
+              <div className="rounded-lg border border-green-200/80 bg-green-50/40 px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-green-800">
+                  Paid to team
+                </div>
+                <div className="text-lg font-bold tabular-nums text-green-800">
+                  {formatCurrency(subTotals.paid)}
+                </div>
+              </div>
+              <div className="rounded-lg border border-amber-200/80 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                  Team pending
+                </div>
+                <div className="text-lg font-bold tabular-nums text-amber-800">
+                  {formatCurrency(subPending)}
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-md border border-zinc-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sub-advisor</TableHead>
+                    <TableHead>Plot / Project</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Paid</TableHead>
+                    <TableHead>Pending</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subTeamCommissions.map((comm: any) => {
+                    const total = Number(comm.total_commission_amount ?? 0);
+                    const paid = Number(comm.amount_paid ?? 0);
+                    const rem = total - paid;
+                    const isPaid = rem <= 0;
+                    return (
+                      <TableRow key={comm.id}>
+                        <TableCell>
+                          <div className="flex flex-col text-xs">
+                            <span className="font-semibold text-zinc-800">
+                              {comm.advisors?.name ?? "—"}
+                            </span>
+                            <span className="text-zinc-500 font-mono">{comm.advisors?.code ?? "—"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col text-xs">
+                            <span className="font-semibold text-zinc-800">
+                              {comm.plot_sales?.plots?.plot_number ?? "—"}
+                            </span>
+                            <span className="text-zinc-500">
+                              {comm.plot_sales?.plots?.projects?.name ?? "—"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(total)}</TableCell>
+                        <TableCell className="font-semibold text-green-600">{formatCurrency(paid)}</TableCell>
+                        <TableCell className="font-semibold text-amber-600">{formatCurrency(rem)}</TableCell>
+                        <TableCell>
+                          {isPaid ? (
+                            <Badge className="bg-green-100 text-green-800 border-green-200">Paid</Badge>
+                          ) : (
+                            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-0">

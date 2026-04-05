@@ -1,21 +1,17 @@
 /**
- * Default advisor login password: normalized name + last 10 phone digits.
- * - Name: lowercase letters and digits only (strip spaces/punctuation).
- * - Phone: last 10 numeric digits (or pad).
- * - Minimum length 6 for Supabase Auth (pad with trailing "0" if needed).
- * Changing name/phone in DB does not auto-update Auth; use reset or sync script.
+ * Default advisor login password: deterministic 8-digit numeric from name + phone.
+ * Not stored in DB; used for display hints and initial Auth signup. Sync Auth separately.
  */
 export function buildAdvisorPasswordFromNameAndPhone(
 	name: string,
 	phone: string,
 ): string {
-	const digits = (phone || "").replace(/\D/g, "");
-	const last10 = digits.length >= 10 ? digits.slice(-10) : digits.padStart(10, "0");
-	const slug = (name || "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]/g, "")
-		.slice(0, 32);
-	const base = `${slug || "adv"}${last10}`;
-	if (base.length >= 6) return base;
-	return (base + "0000000000").slice(0, 6);
+	const seed = `${String(name).trim()}|${String(phone).replace(/\D/g, "")}`;
+	let h = 2166136261;
+	for (let i = 0; i < seed.length; i++) {
+		h ^= seed.charCodeAt(i);
+		h = Math.imul(h, 16777619);
+	}
+	const n = (Math.abs(h) % 90000000) + 10000000;
+	return String(n);
 }

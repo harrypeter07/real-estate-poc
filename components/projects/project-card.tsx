@@ -29,7 +29,9 @@ interface ProjectCardProps {
 	plotCounts: PlotStatusCounts;
 	available_area_sqft?: number;
 	sold_area_sqft?: number;
+	/** @deprecated duplicate of available; use total_area_sqft + available + booked */
 	left_area_sqft?: number;
+	total_area_sqft?: number;
 }
 
 const statusConfig = {
@@ -60,12 +62,13 @@ export function ProjectCard({
 	plotCounts,
 	available_area_sqft,
 	sold_area_sqft,
-	left_area_sqft,
+	left_area_sqft: _leftDup,
+	total_area_sqft,
 }: ProjectCardProps) {
 	const router = useRouter();
+	const totalArea = Math.round(Number(total_area_sqft ?? 0));
 	const availableArea = Math.round(Number(available_area_sqft ?? 0));
-	const soldArea = Math.round(Number(sold_area_sqft ?? 0));
-	const leftArea = Math.round(Number(left_area_sqft ?? 0));
+	const bookedArea = Math.round(Number(sold_area_sqft ?? 0));
 
 	return (
 		<div
@@ -130,10 +133,11 @@ export function ProjectCard({
 
 					{/* Area stats */}
 					{total_plots_count > 0 && (
-						<div className="text-xs text-zinc-600">
-							Area: {availableArea.toLocaleString("en-IN")} sqft available •{" "}
-							{soldArea.toLocaleString("en-IN")} sqft sold •{" "}
-							{leftArea.toLocaleString("en-IN")} sqft left
+						<div className="text-xs text-zinc-600 leading-relaxed">
+							<span className="font-medium text-zinc-700">Area:</span>{" "}
+							{totalArea.toLocaleString("en-IN")} sqft total ·{" "}
+							{availableArea.toLocaleString("en-IN")} sqft unsold inventory ·{" "}
+							{bookedArea.toLocaleString("en-IN")} sqft booked (token / agreement / sold)
 						</div>
 					)}
 

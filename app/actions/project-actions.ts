@@ -203,7 +203,8 @@ export type ProjectWithStats = {
 };
 
 export async function getProjectWithStats(
-	id: string
+	id: string,
+	options?: { advisorId?: string }
 ): Promise<ProjectWithStats | null> {
 	const supabase = await createClient();
 	if (!supabase) return null;
@@ -262,11 +263,12 @@ export async function getProjectWithStats(
 			);
 		}
 
-		const { data: sales } = await supabase
+		const { data: salesRaw } = await supabase
 			.from("plot_sales")
 			.select(
 				`
         id,
+        advisor_id,
         total_sale_amount,
         token_date,
         sale_phase,
@@ -279,9 +281,26 @@ export async function getProjectWithStats(
 			.in("plot_id", plotIds)
 			.eq("is_cancelled", false)
 			.order("created_at", { ascending: false })
-			.limit(5);
+			.limit(options?.advisorId ? 40 : 5);
 
-		if (sales) {
+		let sales = salesRaw ?? [];
+		if (options?.advisorId && sales.length > 0) {
+			const aid = options.advisorId;
+			const ids = sales.map((s: { id: string }) => s.id);
+			const { data: commLinks } = await supabase
+				.from("advisor_commissions")
+				.select("sale_id")
+				.in("sale_id", ids)
+				.eq("advisor_id", aid);
+			const hasComm = new Set((commLinks ?? []).map((c: { sale_id: string }) => c.sale_id));
+			sales = sales.filter(
+				(s: { id: string; advisor_id?: string | null }) =>
+					s.advisor_id === aid || hasComm.has(s.id)
+			);
+			sales = sales.slice(0, 5);
+		}
+
+		if (sales.length) {
 			recentSales = sales.map((s: any) => ({
 				id: s.id,
 				plot_number: s.plots?.plot_number ?? "—",
@@ -361,6 +380,7 @@ export async function getProjectsWithPlotCounts() {
 		},
 		available_area_sqft: areaMap.get(project.id)?.available ?? 0,
 		sold_area_sqft: (areaMap.get(project.id)?.total ?? 0) - (areaMap.get(project.id)?.available ?? 0),
+		/** Same as available — kept for older callers; prefer total_area_sqft + available + sold for UI. */
 		left_area_sqft: areaMap.get(project.id)?.available ?? 0,
 		total_area_sqft: areaMap.get(project.id)?.total ?? 0,
 	}));

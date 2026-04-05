@@ -40,7 +40,7 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 	const allowed = await advisorHasProjectAccess(advisorId, id);
 	if (!allowed) notFound();
 
-	const data = await getProjectWithStats(id);
+	const data = await getProjectWithStats(id, { advisorId });
 	const plots = await getPlotsByProject(id);
 
 	if (!data) notFound();
@@ -85,6 +85,21 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 			/>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+				<div className="sm:col-span-2 lg:col-span-4">
+					<Card>
+						<CardHeader className="pb-2">
+							<CardTitle className="text-sm font-medium text-zinc-500">
+								Revenue collected (this project)
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+							<p className="text-xs text-zinc-500 mt-1">
+								Sum of confirmed customer payments on this project.
+							</p>
+						</CardContent>
+					</Card>
+				</div>
 				<StatCard
 					title="Total Plots"
 					value={plotCounts.total}
@@ -125,22 +140,6 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 				</Card>
 			)}
 
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium text-zinc-500">
-							Revenue collected (project)
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-						<p className="text-xs text-zinc-400 mt-1">
-							Confirmed payments across all sales on this project.
-						</p>
-					</CardContent>
-				</Card>
-			</div>
-
 			{project.description ? (
 				<Card className="mb-6">
 					<CardHeader className="pb-2">
@@ -158,7 +157,10 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">Recent sales</CardTitle>
+					<CardTitle className="text-base">Your recent sales on this project</CardTitle>
+					<p className="text-xs text-zinc-500 font-normal mt-1">
+						Shows sales where you are the main advisor or have a commission row.
+					</p>
 				</CardHeader>
 				<CardContent>
 					{recentSales.length === 0 ? (

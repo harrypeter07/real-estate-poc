@@ -1,26 +1,39 @@
-"use client";
+import { AdvisorAppShell } from "@/components/advisor/advisor-app-shell";
+import { createClient } from "@/lib/supabase/server";
 
-import { useState } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
-import { ADVISOR_NAV_ITEMS } from "@/components/layout/nav-items";
+export default async function AdvisorLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	const supabase = await createClient();
+	let mainAdvisorBanner: { name: string; code: string | null } | null = null;
 
-export default function AdvisorLayout({ children }: { children: React.ReactNode }) {
-	const [sidebarOpen, setSidebarOpen] = useState(false);
+	if (supabase) {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		const advisorId = (user?.user_metadata as { advisor_id?: string })?.advisor_id;
+		if (advisorId) {
+			const { data: adv } = await supabase
+				.from("advisors")
+				.select("parent_advisor_id")
+				.eq("id", advisorId)
+				.maybeSingle();
+			if (adv?.parent_advisor_id) {
+				const { data: parent } = await supabase
+					.from("advisors")
+					.select("name, code")
+					.eq("id", adv.parent_advisor_id)
+					.maybeSingle();
+				if (parent?.name) {
+					mainAdvisorBanner = { name: parent.name, code: parent.code ?? null };
+				}
+			}
+		}
+	}
 
 	return (
-		<div className="flex h-screen overflow-hidden bg-background">
-			<Sidebar
-				open={sidebarOpen}
-				onClose={() => setSidebarOpen(false)}
-				items={ADVISOR_NAV_ITEMS}
-			/>
-
-			<div className="flex flex-1 flex-col overflow-hidden">
-				<Header onMenuClick={() => setSidebarOpen(true)} />
-				<main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
-			</div>
-		</div>
+		<AdvisorAppShell mainAdvisorBanner={mainAdvisorBanner}>{children}</AdvisorAppShell>
 	);
 }
-

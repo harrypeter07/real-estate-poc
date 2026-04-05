@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ListSearchBar } from "@/components/shared/list-search-bar";
 import { matchesTextSearch } from "@/lib/utils/text-search";
 import { toast } from "sonner";
@@ -281,9 +281,8 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               className="max-w-xl"
             />
             <p className="text-[11px] text-zinc-500 max-w-2xl">
-              Each sale is one row for the main advisor. Sub-advisors on that sale are listed under them with
-              their own totals. Paid, Remaining, Extra, and Status in the row refer to the main advisor&apos;s
-              commission only (due logic unchanged).
+              One sale = main row + optional second row for sub-advisors. Amounts in the main row are the main
+              advisor&apos;s commission only; subs are shown separately below.
             </p>
           </div>
           {visibleCommissions.length === 0 ? (
@@ -314,93 +313,22 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                     ? Number(comm.amount_paid ?? 0) - Number(comm.total_commission_amount ?? 0)
                     : 0;
                 return (
+                  <Fragment key={key}>
                   <TableRow
-                    key={key}
                     className="hover:bg-zinc-50 align-top"
                   >
                     <TableCell className="min-w-[200px]">
-                      <div className="flex flex-col gap-2">
-                        <div>
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                            Main
-                          </div>
-                          <span className="font-semibold text-sm flex items-center gap-1">
-                            <User className="h-3 w-3 text-zinc-400 shrink-0" />{" "}
-                            {comm.advisors?.name ?? "—"}
-                          </span>
-                          <span className="text-xs text-zinc-500 font-mono">
-                            CODE: {comm.advisors?.code ?? "—"}
-                          </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                          Main
                         </div>
-                        {subs.length > 0 ? (
-                          <div className="rounded-md border border-amber-200/80 bg-amber-50/40 px-2 py-2 space-y-1.5">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-900/80">
-                              Sub-advisors (same sale)
-                            </div>
-                            {subs.map((sub: any) => {
-                              const srem = commissionRemaining(sub);
-                              return (
-                                <div
-                                  key={sub.id}
-                                  className="flex flex-col gap-1 border-b border-amber-100 pb-1.5 last:border-0 last:pb-0 text-xs"
-                                >
-                                  <div className="font-medium text-zinc-800">
-                                    {sub.advisors?.name ?? "—"}
-                                    <span className="text-zinc-500 font-normal ml-1 font-mono text-[10px]">
-                                      {sub.advisors?.code ?? ""}
-                                    </span>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-x-2 text-[10px] tabular-nums text-zinc-600">
-                                    <span title="Their commission on this sale">
-                                      Total{" "}
-                                      <span className="block font-semibold text-zinc-900">
-                                        {formatCurrency(sub.total_commission_amount)}
-                                      </span>
-                                    </span>
-                                    <span title="Paid out to this sub-advisor">
-                                      Paid{" "}
-                                      <span className="block font-semibold text-green-700">
-                                        {formatCurrency(sub.amount_paid)}
-                                      </span>
-                                    </span>
-                                    <span title="Their remaining">
-                                      Due{" "}
-                                      <span className="block font-semibold text-red-600">
-                                        {formatCurrency(srem)}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1 justify-end">
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 text-[10px] px-2"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openRow(sub, "manage");
-                                      }}
-                                    >
-                                      Manage
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 text-[10px] px-2"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openRow(sub, "history");
-                                      }}
-                                    >
-                                      History
-                                    </Button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : null}
+                        <span className="font-semibold text-sm flex items-center gap-1">
+                          <User className="h-3 w-3 text-zinc-400 shrink-0" />{" "}
+                          {comm.advisors?.name ?? "—"}
+                        </span>
+                        <span className="text-xs text-zinc-500 font-mono">
+                          CODE: {comm.advisors?.code ?? "—"}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -464,6 +392,80 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {subs.length > 0 ? (
+                    <TableRow className="bg-amber-50/20 hover:bg-amber-50/35 align-top">
+                      <TableCell colSpan={8} className="py-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-900/85 mb-2 px-0.5">
+                          Sub-advisors (same sale)
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                          {subs.map((sub: any) => {
+                            const srem = commissionRemaining(sub);
+                            return (
+                              <div
+                                key={sub.id}
+                                className="rounded-lg border border-amber-200/90 bg-white/80 px-3 py-2 text-xs shadow-sm"
+                              >
+                                <div className="font-medium text-zinc-800 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                  <span>{sub.advisors?.name ?? "—"}</span>
+                                  <span className="text-zinc-500 font-mono text-[10px]">
+                                    {sub.advisors?.code ?? "—"}
+                                  </span>
+                                </div>
+                                <div className="mt-1.5 grid grid-cols-3 gap-2 text-[10px] tabular-nums text-zinc-600">
+                                  <span>
+                                    Total
+                                    <span className="block font-semibold text-zinc-900">
+                                      {formatCurrency(sub.total_commission_amount)}
+                                    </span>
+                                  </span>
+                                  <span>
+                                    Paid
+                                    <span className="block font-semibold text-green-700">
+                                      {formatCurrency(sub.amount_paid)}
+                                    </span>
+                                  </span>
+                                  <span>
+                                    Due
+                                    <span className="block font-semibold text-red-600">
+                                      {formatCurrency(srem)}
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="mt-2 flex flex-wrap justify-end gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-[10px] px-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openRow(sub, "manage");
+                                    }}
+                                  >
+                                    Manage
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-[10px] px-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openRow(sub, "history");
+                                    }}
+                                  >
+                                    History
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  </Fragment>
                 );
               })}
             </TableBody>
@@ -473,7 +475,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className={dialogMode === "manage" ? "max-w-lg" : "max-w-2xl"}>
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>
@@ -490,11 +492,12 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
               className={
                 dialogMode === "history"
                   ? "grid grid-cols-1 gap-4"
-                  : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+                  : "grid grid-cols-1 gap-4"
               }
             >
               <div className="space-y-2 text-sm">
-                {Array.isArray(selected.sale_commission_team_rows) &&
+                {dialogMode === "history" &&
+                  Array.isArray(selected.sale_commission_team_rows) &&
                   selected.sale_commission_team_rows.length > 1 && (
                     <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs mb-1">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
@@ -528,21 +531,38 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
                       </ul>
                     </div>
                   )}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 mb-3">
-                  <span><strong>Advisor:</strong> {selected.advisors?.name ?? "—"}</span>
-                  <span><strong>Plot:</strong> {selected.plot_sales?.plots?.projects?.name ?? "—"} • {selected.plot_sales?.plots?.plot_number ?? "—"}</span>
-                  <span><strong>Total:</strong> {formatCurrency(selected.total_commission_amount)}</span>
-                  <span><strong>Paid:</strong> {formatCurrency(selected.amount_paid)}</span>
-                  <span><strong>Available:</strong> {formatCurrency(availableNow)}</span>
-                </div>
+                {dialogMode === "manage" ? (
+                  <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm mb-2 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                      This payment
+                    </div>
+                    <div className="font-semibold text-zinc-900">{selected.advisors?.name ?? "—"}</div>
+                    <div className="text-xs text-zinc-600">
+                      {selected.plot_sales?.plots?.projects?.name ?? "—"} · Plot{" "}
+                      {selected.plot_sales?.plots?.plot_number ?? "—"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 mb-3">
+                    <span><strong>Advisor:</strong> {selected.advisors?.name ?? "—"}</span>
+                    <span><strong>Plot:</strong> {selected.plot_sales?.plots?.projects?.name ?? "—"} • {selected.plot_sales?.plots?.plot_number ?? "—"}</span>
+                    <span><strong>Total:</strong> {formatCurrency(selected.total_commission_amount)}</span>
+                    <span><strong>Paid:</strong> {formatCurrency(selected.amount_paid)}</span>
+                    <span><strong>Available:</strong> {formatCurrency(availableNow)}</span>
+                  </div>
+                )}
                 {dialogMode === "manage" && (
                   <>
-                    <InfoRow label="Total Profit" value={formatCurrency(selected.total_commission_amount)} strong />
-                    <InfoRow label="Paid" value={formatCurrency(selected.amount_paid)} />
-                    <InfoRow label="Advisor earned so far" value={formatCurrency(eligibleNow)} strong />
-                    <InfoRow label="Available to pay" value={formatCurrency(availableNow)} strong />
-                    <InfoRow label="Remaining (overall)" value={formatCurrency(remaining)} />
-                    <InfoRow label="Extra paid (overall)" value={formatCurrency(totalExtraPaid)} />
+                    <InfoRow label="Commission on this sale" value={formatCurrency(selected.total_commission_amount)} strong />
+                    <InfoRow label="Paid out so far" value={formatCurrency(selected.amount_paid)} />
+                    <InfoRow
+                      label="Eligible from collections (pro-rata)"
+                      value={formatCurrency(eligibleNow)}
+                      strong
+                    />
+                    <InfoRow label="Can pay now (within eligible)" value={formatCurrency(availableNow)} strong />
+                    <InfoRow label="Commission still due" value={formatCurrency(remaining)} />
+                    <InfoRow label="Extra paid (recorded)" value={formatCurrency(totalExtraPaid)} />
                     {selected.notes && (
                       <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                         {selected.notes}

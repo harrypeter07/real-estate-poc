@@ -55,6 +55,7 @@ export default async function ProjectsPage() {
               available_area_sqft={project.available_area_sqft}
               sold_area_sqft={project.sold_area_sqft}
               left_area_sqft={project.left_area_sqft}
+              total_area_sqft={project.total_area_sqft}
             />
           ))}
         </div>

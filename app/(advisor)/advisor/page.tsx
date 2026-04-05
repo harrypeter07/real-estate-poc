@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdvisorAnalytics } from "@/app/actions/advisors";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent, Button } from "@/components/ui";
-import { Users, Handshake, IndianRupee, Clock } from "lucide-react";
+import { Users, Handshake, IndianRupee, Clock, Building2 } from "lucide-react";
 
 export default async function AdvisorDashboardPage() {
 	const supabase = await createClient();
@@ -87,6 +87,23 @@ export default async function AdvisorDashboardPage() {
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<Card>
+					<CardContent className="p-6">
+						<div className="flex items-center justify-between">
+							<div>
+								<p className="text-sm font-semibold">My Projects</p>
+								<p className="text-xs text-zinc-500">
+									Assigned layouts and plot status (read-only)
+								</p>
+							</div>
+							<Link href="/advisor/projects">
+								<Button size="sm" variant="outline">
+									<Building2 className="h-4 w-4 mr-2" /> Projects
+								</Button>
+							</Link>
+						</div>
+					</CardContent>
+				</Card>
 				<Card>
 					<CardContent className="p-6">
 						<div className="flex items-center justify-between">

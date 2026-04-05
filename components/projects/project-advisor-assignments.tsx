@@ -6,11 +6,7 @@ import { Trash2, Plus, Pencil, X, Save } from "lucide-react";
 import {
 	Button,
 	Input,
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
+	SearchableCombobox,
 	Table,
 	TableBody,
 	TableCell,
@@ -231,18 +227,20 @@ export function ProjectAdvisorAssignments({
 					<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
 						Advisor
 					</label>
-					<Select value={advisorId} onValueChange={setAdvisorId}>
-						<SelectTrigger className="mt-1">
-							<SelectValue placeholder="Select advisor to assign" />
-						</SelectTrigger>
-						<SelectContent>
-							{availableAdvisors.map((a) => (
-								<SelectItem key={a.id} value={a.id}>
-									{a.name} ({a.code})
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<div className="mt-1">
+						<SearchableCombobox
+							options={availableAdvisors.map((a) => ({
+								value: a.id,
+								label: a.name,
+								subtitle: a.code,
+								keywords: `${a.phone} ${a.code}`,
+							}))}
+							value={advisorId}
+							onChange={setAdvisorId}
+							placeholder="Search advisor by name, code, phone…"
+							emptyMessage="No unassigned advisor matches."
+						/>
+					</div>
 					<p className="text-[11px] text-zinc-500 mt-1">
 						Default per-sqft selling price for this advisor on this project (overridable when
 						recording a sale).

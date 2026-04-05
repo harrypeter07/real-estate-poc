@@ -57,7 +57,7 @@ export default async function ProjectAnalyticsSection({
 				/>
 				<StatCard
 					title="Revenue Collected"
-					value={formatCurrency(projectAnalytics.revenue.total)}
+					value={formatCurrency(projectAnalytics.revenue.collected)}
 					icon={CreditCard}
 					color="orange"
 				/>
@@ -86,20 +86,30 @@ export default async function ProjectAnalyticsSection({
 							</span>
 						</div>
 						<div className="flex justify-between text-green-600">
-							<span>Collected</span>
+							<span>Collected (all confirmed payments)</span>
 							<span className="font-bold">
-								{formatCurrency(projectAnalytics.revenue.total)}
+								{formatCurrency(projectAnalytics.revenue.collected)}
 							</span>
 						</div>
-						<div className="flex justify-between text-red-600">
-							<span>Outstanding</span>
+						<div className="flex justify-between text-amber-700">
+							<span>Layout remaining</span>
 							<span className="font-bold">
-								{formatCurrency(projectAnalytics.revenue.outstanding)}
+								{formatCurrency(projectAnalytics.revenue.layoutRemaining)}
+							</span>
+						</div>
+						<p className="text-[11px] text-zinc-500">
+							Layout expense minus total sales value (active sales). Collected includes payments
+							from revoked sales on this project.
+						</p>
+						<div className="flex justify-between text-red-600 pt-1 border-t border-zinc-100">
+							<span>Customer outstanding (EMI / balance)</span>
+							<span className="font-bold">
+								{formatCurrency(projectAnalytics.revenue.customerOutstanding)}
 							</span>
 						</div>
 						{projectAnalytics.layoutExpense > 0 && (
 							<div className="flex justify-between text-zinc-600 pt-2 border-t">
-								<span>Layout Expense</span>
+								<span>Layout expense (total plot value)</span>
 								<span className="font-bold">
 									{formatCurrency(projectAnalytics.layoutExpense)}
 								</span>

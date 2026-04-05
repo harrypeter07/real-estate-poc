@@ -230,6 +230,27 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
 
           {selected && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {Array.isArray(selected.sale_commission_team) &&
+                selected.sale_commission_team.length > 1 && (
+                  <div className="lg:col-span-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                    <p className="text-[10px] font-bold uppercase text-zinc-500 mb-2">
+                      Advisor commission split (this sale)
+                    </p>
+                    <ul className="space-y-1 text-xs">
+                      {selected.sale_commission_team.map((m: any, i: number) => (
+                        <li key={i} className="flex justify-between gap-2">
+                          <span>
+                            {m.name}{" "}
+                            <span className="text-zinc-500 tabular-nums">{m.phone}</span>
+                          </span>
+                          <span className="font-mono tabular-nums">
+                            {formatCurrency(m.amount)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               <div className="space-y-2 text-sm">
                 <DetailRow label="Date" value={formatDate(selected.payment_date)} />
                 <DetailRow

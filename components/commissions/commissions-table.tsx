@@ -227,13 +227,16 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
     <>
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          <div className="p-3 border-b border-zinc-100">
+          <div className="p-3 border-b border-zinc-100 space-y-1">
             <ListSearchBar
               value={listQuery}
               onChange={setListQuery}
               placeholder="Search by advisor, code, plot, project…"
               className="max-w-xl"
             />
+            <p className="text-[11px] text-zinc-500 max-w-2xl">
+              Team commission splits: the same sale can appear once per advisor — pay out each row separately.
+            </p>
           </div>
           {visibleCommissions.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-zinc-600">

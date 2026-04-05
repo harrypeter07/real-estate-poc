@@ -3,11 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
 	advisorSchema,
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
 import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
 import { mapUniquePhoneViolation } from "@/lib/utils/db-errors";
 
 export type ActionResponse = {
@@ -93,7 +95,7 @@ export async function createAdvisor(
 	const advisorEmail = parsed.data.email?.trim() || toAdvisorEmail(parsed.data.phone);
 	const password =
 		parsed.data.use_phone_as_password || !parsed.data.password?.trim()
-			? parsed.data.phone.replace(/\D/g, "").slice(-10) || parsed.data.phone
+			? buildAdvisorPasswordFromNameAndPhone(parsed.data.name, parsed.data.phone)
 			: parsed.data.password;
 
 	const businessId = await getCurrentBusinessId();
@@ -260,6 +262,138 @@ export async function getAdvisors() {
 	return data || [];
 }
 
+/** Channel partners with no parent (for assigning sub-advisors). */
+export async function getTopLevelAdvisors() {
+	const rows = await getAdvisors();
+	return rows.filter((a: any) => !a.parent_advisor_id);
+}
+
+export async function listSubAdvisors(parentAdvisorId: string) {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const { data, error } = await supabase
+		.from("advisors")
+		.select("id, name, code, phone, parent_advisor_id, is_active")
+		.eq("parent_advisor_id", parentAdvisorId)
+		.eq("is_active", true)
+		.order("name", { ascending: true });
+
+	if (error) throw new Error(error.message);
+	return data ?? [];
+}
+
+const subAdvisorSchema = advisorSchema.extend({
+	parent_advisor_id: z.string().uuid("Select a parent advisor"),
+});
+
+export async function createSubAdvisor(
+	values: z.infer<typeof subAdvisorSchema>,
+): Promise<ActionResponse> {
+	const parsed = subAdvisorSchema.safeParse(values);
+	if (!parsed.success) {
+		return {
+			success: false,
+			error: parsed.error.issues[0]?.message || "Validation failed",
+		};
+	}
+
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: parent, error: pErr } = await supabase
+		.from("advisors")
+		.select("id, parent_advisor_id")
+		.eq("id", parsed.data.parent_advisor_id)
+		.maybeSingle();
+
+	if (pErr || !parent?.id) {
+		return { success: false, error: "Parent advisor not found" };
+	}
+	if ((parent as { parent_advisor_id?: string | null }).parent_advisor_id) {
+		return { success: false, error: "Parent must be a main advisor (not a sub-advisor)." };
+	}
+
+	const advisorEmail = parsed.data.email?.trim() || toAdvisorEmail(parsed.data.phone);
+	const password =
+		parsed.data.use_phone_as_password || !parsed.data.password?.trim()
+			? buildAdvisorPasswordFromNameAndPhone(parsed.data.name, parsed.data.phone)
+			: parsed.data.password;
+
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) {
+		return {
+			success: false,
+			error:
+				"Business context is missing. Sign out and sign in again, or contact support if this persists.",
+		};
+	}
+
+	const { data: advisor, error } = await supabase
+		.from("advisors")
+		.insert({
+			business_id: businessId,
+			parent_advisor_id: parsed.data.parent_advisor_id,
+			name: parsed.data.name,
+			code: parsed.data.code,
+			phone: parsed.data.phone,
+			email: advisorEmail,
+			address: parsed.data.address || null,
+			birth_date: parsed.data.birth_date || null,
+			notes: parsed.data.notes || null,
+			is_active: parsed.data.is_active,
+		})
+		.select("id")
+		.single();
+
+	if (error) {
+		if (error.code === "23505") {
+			const phoneMsg = mapUniquePhoneViolation(error, "advisor");
+			if (phoneMsg) return { success: false, error: phoneMsg };
+			return {
+				success: false,
+				error: "Advisor code already exists for this business.",
+			};
+		}
+		return { success: false, error: error.message };
+	}
+
+	if (advisor?.id) {
+		await syncAdvisorBirthdayReminder(supabase, {
+			id: advisor.id,
+			name: parsed.data.name,
+			phone: parsed.data.phone,
+			birth_date: parsed.data.birth_date ?? null,
+		});
+	}
+
+	const admin = createAdminClient();
+	if (admin && advisor?.id) {
+		const pw = password.length >= 6 ? password : String(password).padEnd(6, "0");
+		const { data: authUser, error: authError } = await admin.auth.admin.createUser({
+			email: advisorEmail,
+			password: pw,
+			email_confirm: true,
+			user_metadata: {
+				role: "advisor",
+				advisor_id: advisor.id,
+				business_id: businessId ?? null,
+				parent_advisor_id: parsed.data.parent_advisor_id,
+			},
+		});
+		if (!authError && authUser?.user) {
+			await supabase
+				.from("advisors")
+				.update({ auth_user_id: authUser.user.id, email: advisorEmail })
+				.eq("id", advisor.id);
+		}
+	}
+
+	revalidatePath("/advisors");
+	revalidatePath("/messaging");
+	return { success: true };
+}
+
 export async function getAdvisorById(id: string) {
 	const supabase = await createClient();
 	if (!supabase) return null;
@@ -310,7 +444,15 @@ export async function getAdvisorAnalytics(
 	const advisor = await getAdvisorById(advisorId);
 	if (!advisor) return null;
 
-	const { data: sales } = await supabase
+	const { data: commSaleRows } = await supabase
+		.from("advisor_commissions")
+		.select("sale_id")
+		.eq("advisor_id", advisorId);
+	const commSaleIds = [
+		...new Set((commSaleRows ?? []).map((r: { sale_id: string }) => r.sale_id).filter(Boolean)),
+	];
+
+	let salesQuery = supabase
 		.from("plot_sales")
 		.select(
 			`
@@ -320,13 +462,22 @@ export async function getAdvisorAnalytics(
       remaining_amount,
       sale_phase,
       token_date,
+      advisor_id,
       plots(plot_number, projects(name)),
-      customers(name)
-    `
+      customers(name),
+      advisors(name)
+    `,
 		)
-		.eq("advisor_id", advisorId)
-		.eq("is_cancelled", false)
-		.order("created_at", { ascending: false });
+		.eq("is_cancelled", false);
+
+	if (commSaleIds.length > 0) {
+		const inList = commSaleIds.join(",");
+		salesQuery = salesQuery.or(`advisor_id.eq.${advisorId},id.in.(${inList})`);
+	} else {
+		salesQuery = salesQuery.eq("advisor_id", advisorId);
+	}
+
+	const { data: sales } = await salesQuery.order("created_at", { ascending: false });
 
 	const { data: commissions } = await supabase
 		.from("advisor_commissions")

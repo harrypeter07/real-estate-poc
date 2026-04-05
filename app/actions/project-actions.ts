@@ -240,10 +240,28 @@ export async function getProjectWithStats(
 	// Fetch sales for this project's plots
 	const plotIds = plots?.map((p) => p.id) ?? [];
 
+	/** Sum of confirmed payments for all sales on this project (includes revoked sales). */
 	let totalRevenue = 0;
 	let recentSales: ProjectWithStats["recentSales"] = [];
 
 	if (plotIds.length > 0) {
+		const { data: saleIdsRows } = await supabase
+			.from("plot_sales")
+			.select("id")
+			.in("plot_id", plotIds);
+		const saleIds = (saleIdsRows ?? []).map((r) => r.id);
+		if (saleIds.length > 0) {
+			const { data: payRows } = await supabase
+				.from("payments")
+				.select("amount")
+				.eq("is_confirmed", true)
+				.in("sale_id", saleIds);
+			totalRevenue = (payRows ?? []).reduce(
+				(sum, p) => sum + Number((p as { amount?: number }).amount ?? 0),
+				0,
+			);
+		}
+
 		const { data: sales } = await supabase
 			.from("plot_sales")
 			.select(
@@ -264,11 +282,6 @@ export async function getProjectWithStats(
 			.limit(5);
 
 		if (sales) {
-			totalRevenue = sales.reduce(
-				(sum, s) => sum + Number(s.total_sale_amount ?? 0),
-				0
-			);
-
 			recentSales = sales.map((s: any) => ({
 				id: s.id,
 				plot_number: s.plots?.plot_number ?? "—",

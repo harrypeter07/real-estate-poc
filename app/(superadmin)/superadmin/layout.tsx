@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LogOut, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const items = [
 	{ href: "/superadmin", label: "Overview" },
@@ -15,7 +17,28 @@ const items = [
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
+	const [signingOut, setSigningOut] = useState(false);
 	const pathname = usePathname();
+	const router = useRouter();
+
+	async function handleSignOut() {
+		if (signingOut) return;
+		setSigningOut(true);
+		try {
+			const res = await fetch("/api/auth/superadmin-signout", {
+				method: "POST",
+				credentials: "include",
+			});
+			if (!res.ok) throw new Error("Sign out failed");
+			toast.success("Signed out");
+			router.push("/login");
+			router.refresh();
+		} catch {
+			toast.error("Could not sign out", { description: "Try again or clear site cookies." });
+		} finally {
+			setSigningOut(false);
+		}
+	}
 
 	return (
 		<div className="flex h-screen overflow-hidden bg-background">
@@ -54,6 +77,20 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 								onClick={() => setOpen((v) => !v)}
 							>
 								Menu
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => void handleSignOut()}
+								disabled={signingOut}
+								className="text-zinc-700"
+							>
+								{signingOut ? (
+									<Loader2 className="h-4 w-4 animate-spin mr-2" />
+								) : (
+									<LogOut className="h-4 w-4 mr-2" />
+								)}
+								{signingOut ? "Signing out…" : "Sign out"}
 							</Button>
 						</div>
 					</div>

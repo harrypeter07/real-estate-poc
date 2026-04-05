@@ -34,6 +34,7 @@ interface SaleDetailModalProps {
 		plots: { plot_number: string; projects?: { name: string } | null };
 		customers: { name: string };
 		advisors: { name: string; code?: string };
+		commission_participants?: { name: string; phone: string }[];
 	};
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -147,6 +148,22 @@ export function SaleDetailModal({
 							</p>
 						</div>
 					</div>
+
+					{sale.commission_participants && sale.commission_participants.length > 1 ? (
+						<div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-3">
+							<p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
+								Sales team (commission)
+							</p>
+							<ul className="space-y-1.5 text-sm">
+								{sale.commission_participants.map((p, i) => (
+									<li key={i} className="flex flex-col border-b border-zinc-100 pb-1.5 last:border-0 last:pb-0">
+										<span className="font-medium">{p.name}</span>
+										<span className="text-xs text-zinc-500">{p.phone}</span>
+									</li>
+								))}
+							</ul>
+						</div>
+					) : null}
 
 					<div className="grid grid-cols-2 gap-4">
 						<div>

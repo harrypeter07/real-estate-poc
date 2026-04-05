@@ -71,6 +71,7 @@ CREATE TABLE plots (
 -- =============================================
 CREATE TABLE advisors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_advisor_id UUID REFERENCES advisors(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   code TEXT UNIQUE NOT NULL,
   phone TEXT NOT NULL,
@@ -186,8 +187,7 @@ CREATE TABLE advisor_commissions (
   paid_date DATE,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(sale_id)  -- one commission record per sale
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- =============================================
@@ -304,6 +304,7 @@ CREATE INDEX idx_payments_confirmed ON payments(is_confirmed);
 CREATE INDEX idx_reminders_date ON reminders(reminder_date);
 CREATE INDEX idx_reminders_completed ON reminders(is_completed);
 CREATE INDEX idx_commissions_advisor ON advisor_commissions(advisor_id);
+CREATE UNIQUE INDEX advisor_commissions_sale_id_advisor_id_key ON advisor_commissions (sale_id, advisor_id);
 CREATE INDEX idx_advisor_project_commissions_project ON advisor_project_commissions(project_id);
 CREATE INDEX idx_advisor_project_commissions_advisor ON advisor_project_commissions(advisor_id);
 CREATE INDEX idx_customer_documents_customer ON customer_documents(customer_id);
@@ -461,6 +462,19 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_commission_totals
 AFTER INSERT OR UPDATE OR DELETE ON advisor_commission_payments
 FOR EACH ROW EXECUTE FUNCTION update_commission_totals();
+
+-- =============================================
+-- LOGIN THROTTLE (service role only; used by app server)
+-- =============================================
+CREATE TABLE IF NOT EXISTS login_throttle (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key_hash TEXT NOT NULL UNIQUE,
+  failed_count INT NOT NULL DEFAULT 0,
+  locked_until TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_throttle_key_hash ON login_throttle (key_hash);
 
 -- =============================================
 -- RLS POLICIES (enable after auth setup)

@@ -39,6 +39,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
 
 export const ADVISOR_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/advisor", icon: LayoutDashboard },
+  { label: "My Projects", href: "/advisor/projects", icon: Building2, moduleKey: "projects" },
   { label: "Customers", href: "/advisor/customers", icon: Users },
   { label: "Sales", href: "/advisor/sales", icon: Handshake },
   { label: "Payments", href: "/advisor/payments", icon: CreditCard },

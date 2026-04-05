@@ -28,6 +28,15 @@ export const saleSchema = z
       },
       z.number().min(0).optional(),
     ),
+    /** Rupee split of total profit commission across main + sub-advisors (optional; server defaults to main only). */
+    commission_splits: z
+      .array(
+        z.object({
+          advisor_id: z.string().uuid(),
+          amount: z.coerce.number().min(0),
+        }),
+      )
+      .optional(),
   })
   .refine((data) => !data.sold_by_admin || data.advisor_id == null, {
     message: "Admin sale must not have advisor",

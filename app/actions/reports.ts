@@ -52,10 +52,12 @@ export async function getReportStats(filters?: ReportFilters) {
 	const filteredSales = sales ?? [];
 
 	const totalSalesValue = filteredSales.reduce((sum, s) => sum + Number(s.total_sale_amount ?? 0), 0);
-	const totalRevenueCollected = filteredSales.reduce((sum, s) => sum + Number(s.amount_paid ?? 0), 0);
-	const totalOutstanding = filteredSales.reduce((sum, s) => sum + Number(s.remaining_amount ?? 0), 0);
+	const totalCustomerOutstanding = filteredSales.reduce(
+		(sum, s) => sum + Number(s.remaining_amount ?? 0),
+		0,
+	);
 
-	// 2. Payments (for collections timeline)
+	// 2. Payments (for collections timeline; includes payments on revoked sales)
 	let paymentsQuery = supabase
 		.from("payments")
 		.select("amount, payment_date, is_confirmed")
@@ -66,6 +68,7 @@ export async function getReportStats(filters?: ReportFilters) {
 
 	const filteredPayments = payments ?? [];
 	const totalPaymentsCollected = filteredPayments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+	const totalRevenueCollected = totalPaymentsCollected;
 
 	// 3. Expenses
 	let expensesQuery = supabase
@@ -179,10 +182,10 @@ export async function getReportStats(filters?: ReportFilters) {
 		expenseByCategory[cat] = (expenseByCategory[cat] ?? 0) + Number((e as any).amount ?? 0);
 	}
 
-	// 10. Collections vs outstanding
+	// 10. Collections vs outstanding (customer dues on active sales)
 	const collectionsVsOutstanding = {
 		collected: totalRevenueCollected,
-		outstanding: totalOutstanding,
+		outstanding: totalCustomerOutstanding,
 		total: totalSalesValue,
 	};
 
@@ -271,7 +274,7 @@ export async function getReportStats(filters?: ReportFilters) {
 		summary: {
 			totalSalesValue,
 			totalRevenueCollected,
-			totalOutstanding,
+			totalOutstanding: totalCustomerOutstanding,
 			totalExpenses,
 			netProfit: totalRevenueCollected - totalExpenses,
 			salesCount: filteredSales.length,
@@ -348,9 +351,33 @@ export async function getProjectAnalytics(projectId: string) {
 		.in("plot_id", plotIds)
 		.eq("is_cancelled", false);
 
-	const totalRevenue = (sales ?? []).reduce((sum: number, s: any) => sum + Number(s.amount_paid ?? 0), 0);
 	const totalSalesValue = (sales ?? []).reduce((sum: number, s: any) => sum + Number(s.total_sale_amount ?? 0), 0);
-	const outstanding = (sales ?? []).reduce((sum: number, s: any) => sum + Number(s.remaining_amount ?? 0), 0);
+	const customerOutstanding = (sales ?? []).reduce(
+		(sum: number, s: any) => sum + Number(s.remaining_amount ?? 0),
+		0,
+	);
+
+	const layoutExpense = Number((project as any).layout_expense ?? 0);
+	const layoutRemaining = Math.max(0, layoutExpense - totalSalesValue);
+
+	const { data: allProjectSales } = await supabase
+		.from("plot_sales")
+		.select("id")
+		.in("plot_id", plotIds);
+
+	const allSaleIds = (allProjectSales ?? []).map((r: { id: string }) => r.id);
+	let collectedPayments = 0;
+	if (allSaleIds.length > 0) {
+		const { data: projectPayments } = await supabase
+			.from("payments")
+			.select("amount")
+			.eq("is_confirmed", true)
+			.in("sale_id", allSaleIds);
+		collectedPayments = (projectPayments ?? []).reduce(
+			(sum: number, p: any) => sum + Number(p.amount ?? 0),
+			0,
+		);
+	}
 
 	const advisorSales: Record<string, number> = {};
 	for (const s of sales ?? []) {
@@ -371,11 +398,15 @@ export async function getProjectAnalytics(projectId: string) {
 		.sort((a: any, b: any) => b.value - a.value)
 		.slice(0, 10);
 
-	const { data: comms } = await supabase
-		.from("advisor_commissions")
-		.select("id, sale_id")
-		.in("sale_id", (sales ?? []).map((s: any) => s.id));
-	const commissionIds = (comms ?? []).map((c: any) => c.id);
+	let comms: { id: string; sale_id: string }[] = [];
+	if (allSaleIds.length > 0) {
+		const { data: commRows } = await supabase
+			.from("advisor_commissions")
+			.select("id, sale_id")
+			.in("sale_id", allSaleIds);
+		comms = (commRows ?? []) as { id: string; sale_id: string }[];
+	}
+	const commissionIds = comms.map((c) => c.id);
 
 	let extraCommissionPaid = 0;
 	if (commissionIds.length > 0) {
@@ -399,8 +430,13 @@ export async function getProjectAnalytics(projectId: string) {
 		plots: { total, sold, available },
 		estimatedRevenueLeft,
 		leftPlots: leftPlotsTop,
-		revenue: { total: totalRevenue, salesValue: totalSalesValue, outstanding },
-		layoutExpense: Number((project as any).layout_expense ?? 0),
+		revenue: {
+			collected: collectedPayments,
+			salesValue: totalSalesValue,
+			layoutRemaining,
+			customerOutstanding,
+		},
+		layoutExpense,
 		extraCommissionPaid,
 		advisors: advisorsInProject,
 		topPlots,
@@ -439,7 +475,6 @@ export async function getProjectPaymentsTrend(
     `
 		)
 		.eq("is_confirmed", true)
-		.eq("plot_sales.is_cancelled", false)
 		.eq("plot_sales.plots.project_id", projectId);
 
 	if (start) q = q.gte("payment_date", start);

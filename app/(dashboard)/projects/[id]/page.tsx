@@ -205,13 +205,14 @@ export default async function ProjectDetailPage({
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium text-zinc-500">
-							Total Revenue
+							Revenue collected
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
 						<p className="text-xs text-zinc-400 mt-1">
-							From {recentSales.length} sale(s)
+							Confirmed payments (including revoked sales). Showing {recentSales.length}{" "}
+							recent active sale(s) below.
 						</p>
 					</CardContent>
 				</Card>

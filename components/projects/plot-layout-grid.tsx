@@ -36,6 +36,8 @@ interface PlotLayoutGridProps {
 	projectName?: string;
 	projectId: string;
 	initialPlotId?: string | null;
+	/** Hide plot CRUD, sales, bulk edit (e.g. advisor read-only project view). */
+	readOnly?: boolean;
 }
 
 type StatusKey = "available" | "token" | "sold";
@@ -72,6 +74,7 @@ export function PlotLayoutGrid({
 	projectName,
 	projectId,
 	initialPlotId,
+	readOnly = false,
 }: PlotLayoutGridProps) {
 	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(initialPlotId ?? null);
 	const [editing, setEditing] = useState(false);
@@ -94,6 +97,13 @@ export function PlotLayoutGrid({
 		notes: "",
 	});
 	const router = useRouter();
+
+	useEffect(() => {
+		if (readOnly && multiSelectMode) {
+			setMultiSelectMode(false);
+			setMultiSelectedPlotIds([]);
+		}
+	}, [readOnly, multiSelectMode]);
 
 	useEffect(() => {
 		if (initialPlotId && plots.some((p) => p.id === initialPlotId)) {
@@ -193,25 +203,27 @@ export function PlotLayoutGrid({
 					<LegendPill colorClass="bg-emerald-300" label="Available" />
 					<LegendPill colorClass="bg-amber-300" label="Token" />
 					<LegendPill colorClass="bg-rose-300" label="Sold" />
-					<Button
-						type="button"
-						size="sm"
-						variant={multiSelectMode ? "default" : "outline"}
-						className="h-8 text-[11px]"
-						onClick={() => {
-							if (multiSelectMode) {
-								setMultiSelectMode(false);
+					{!readOnly ? (
+						<Button
+							type="button"
+							size="sm"
+							variant={multiSelectMode ? "default" : "outline"}
+							className="h-8 text-[11px]"
+							onClick={() => {
+								if (multiSelectMode) {
+									setMultiSelectMode(false);
+									setMultiSelectedPlotIds([]);
+									setEditing(false);
+									return;
+								}
+								setMultiSelectMode(true);
 								setMultiSelectedPlotIds([]);
 								setEditing(false);
-								return;
-							}
-							setMultiSelectMode(true);
-							setMultiSelectedPlotIds([]);
-							setEditing(false);
-						}}
-					>
-						{multiSelectMode ? "Cancel Multi Select" : "Multiple Select"}
-					</Button>
+							}}
+						>
+							{multiSelectMode ? "Cancel Multi Select" : "Multiple Select"}
+						</Button>
+					) : null}
 				</div>
 			</div>
 
@@ -331,7 +343,7 @@ export function PlotLayoutGrid({
 								Plot #{selectedPlot.plot_number}
 							</h3>
 
-							{multiSelectMode ? (
+							{multiSelectMode && !readOnly ? (
 								<div className="space-y-3 mb-3">
 									<div className="flex items-center justify-between gap-3">
 										<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
@@ -359,7 +371,7 @@ export function PlotLayoutGrid({
 														value={bulkFormState.size_sqft ?? ""}
 														onChange={(e) => {
 															const raw = e.target.value;
-															const sanitized = raw.replace(/^0+(?=\\d)/, "");
+															const sanitized = raw.replace(/^0+(?=\d)/, "");
 															setBulkFormState((s) => ({
 																...s,
 																size_sqft:
@@ -380,7 +392,7 @@ export function PlotLayoutGrid({
 														value={bulkFormState.rate_per_sqft ?? ""}
 														onChange={(e) => {
 															const raw = e.target.value;
-															const sanitized = raw.replace(/^0+(?=\\d)/, "");
+															const sanitized = raw.replace(/^0+(?=\d)/, "");
 															setBulkFormState((s) => ({
 																...s,
 																rate_per_sqft:
@@ -464,7 +476,7 @@ export function PlotLayoutGrid({
 								</div>
 							) : null}
 
-							{multiSelectMode ? null : (
+							{multiSelectMode || readOnly ? null : (
 								<div className="flex flex-wrap gap-2 mb-3">
 								<Badge
 									variant="secondary"
@@ -568,7 +580,31 @@ export function PlotLayoutGrid({
 								</div>
 							)}
 
-							{!multiSelectMode && (editing ? (
+							{readOnly && !multiSelectMode ? (
+								<div className="mb-3">
+									<Badge
+										variant="secondary"
+										className="capitalize"
+										title={
+											selectedPlot.status === "sold" ||
+											selectedPlot.status === "agreement"
+												? "payment completed sold"
+												: selectedPlot.status === "token"
+													? "token / booking"
+													: "available"
+										}
+									>
+										{selectedPlot.status === "token"
+											? "Token"
+											: selectedPlot.status === "sold" ||
+											  selectedPlot.status === "agreement"
+												? "Sold"
+												: "Available"}
+									</Badge>
+								</div>
+							) : null}
+
+							{!multiSelectMode && (!readOnly && editing ? (
 								<div className="space-y-3">
 									<div className="grid grid-cols-2 gap-3">
 										<div>
@@ -734,7 +770,7 @@ export function PlotLayoutGrid({
 								</div>
 							)}
 
-							{!multiSelectMode && projectName && (
+							{!multiSelectMode && !readOnly && projectName && (
 								<SaleBookingDialog
 									open={sellOpen}
 									onOpenChange={setSellOpen}

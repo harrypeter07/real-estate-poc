@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
 
 export type ActionResponse<T = void> = {
 	success: boolean;
@@ -21,7 +22,7 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 
 	const { data: advisor, error } = await supabase
 		.from("advisors")
-		.select("id, phone, email, auth_user_id, is_active, business_id")
+		.select("id, name, phone, email, auth_user_id, is_active, business_id, parent_advisor_id")
 		.eq("id", advisorId)
 		.single();
 
@@ -33,11 +34,20 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 	}
 
 	const email = advisor.email?.trim() || toAdvisorEmail(advisor.phone);
+	const pw = buildAdvisorPasswordFromNameAndPhone(
+		String((advisor as { name?: string }).name ?? ""),
+		String(advisor.phone ?? ""),
+	);
 	const { data: created, error: createErr } = await admin.auth.admin.createUser({
 		email,
-		password: String(advisor.phone).replace(/\D/g, "").slice(-10).padEnd(6, "0"),
+		password: pw.length >= 6 ? pw : pw.padEnd(6, "0"),
 		email_confirm: true,
-		user_metadata: { role: "advisor", advisor_id: advisor.id, business_id: advisor.business_id ?? null },
+		user_metadata: {
+			role: "advisor",
+			advisor_id: advisor.id,
+			business_id: advisor.business_id ?? null,
+			parent_advisor_id: (advisor as { parent_advisor_id?: string | null }).parent_advisor_id ?? null,
+		},
 	});
 
 	if (createErr || !created?.user) {
@@ -63,9 +73,19 @@ export async function resetAdvisorPassword(input: {
 	const ensured = await ensureAdvisorAuthUser(input.advisorId);
 	if (!ensured.success) return { success: false, error: ensured.error };
 
+	const supabase = await createClient();
+	let advisorName = "";
+	if (supabase) {
+		const { data: row } = await supabase
+			.from("advisors")
+			.select("name")
+			.eq("id", input.advisorId)
+			.maybeSingle();
+		advisorName = String((row as { name?: string } | null)?.name ?? "");
+	}
 	const newPassword =
 		input.mode === "phone"
-			? String(ensured.phone).replace(/\D/g, "").slice(-10).padEnd(6, "0")
+			? buildAdvisorPasswordFromNameAndPhone(advisorName, String(ensured.phone ?? ""))
 			: (input.customPassword || "").trim();
 
 	if (input.mode === "custom" && newPassword.length < 6) {

@@ -216,11 +216,36 @@ export async function getPayments(filters?: PaymentsFilter) {
 		),
 	];
 	const lastBySale = await lastConfirmedPaymentDateBySale(supabase, saleIds);
+
+	const participantsBySale: Record<
+		string,
+		{ name: string; phone: string; amount: number }[]
+	> = {};
+	if (saleIds.length > 0) {
+		const { data: comms } = await supabase
+			.from("advisor_commissions")
+			.select("sale_id, total_commission_amount, advisors(name, phone)")
+			.in("sale_id", saleIds);
+		for (const sid of saleIds) {
+			participantsBySale[sid] = (comms ?? [])
+				.filter((c: any) => c.sale_id === sid)
+				.map((c: any) => ({
+					name: String(c.advisors?.name ?? "—"),
+					phone: String(c.advisors?.phone ?? "—"),
+					amount: Number(c.total_commission_amount ?? 0),
+				}));
+		}
+	}
+
 	const asOf =
 		typeof filters?.asOf === "string" && /^\d{4}-\d{2}-\d{2}$/.test(filters.asOf)
 			? filters.asOf
 			: undefined;
-	return enrichPaymentsWithDue(rows, lastBySale, asOf);
+	const base = enrichPaymentsWithDue(rows, lastBySale, asOf);
+	return base.map((p: any) => ({
+		...p,
+		sale_commission_team: participantsBySale[p.plot_sales?.id] ?? [],
+	}));
 }
 
 export async function confirmPayment(id: string) {

@@ -21,15 +21,19 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
+	SearchableCombobox,
 } from "@/components/ui";
 import {
 	advisorSchema,
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
-import { createAdvisor, updateAdvisor } from "@/app/actions/advisors";
+import { createAdvisor, createSubAdvisor, updateAdvisor } from "@/app/actions/advisors";
 
 interface AdvisorFormProps {
 	mode: "create" | "edit";
+	/** Sub-advisor flow: pick a main advisor, then same fields as create. */
+	variant?: "default" | "sub";
+	parentOptions?: { id: string; name: string; code: string; phone?: string }[];
 	initialData?: any;
 	onSuccess?: () => void;
 	onCancel?: () => void;
@@ -38,12 +42,15 @@ interface AdvisorFormProps {
 
 export function AdvisorForm({
 	mode,
+	variant = "default",
+	parentOptions = [],
 	initialData,
 	onSuccess,
 	onCancel,
 	redirectToList = true,
 }: AdvisorFormProps) {
 	const router = useRouter();
+	const [parentAdvisorId, setParentAdvisorId] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 	const [statusText, setStatusText] = useState("");
@@ -135,6 +142,16 @@ export function AdvisorForm({
 			let result;
 			if (mode === "edit" && initialData?.id) {
 				result = await updateAdvisor(initialData.id, values);
+			} else if (variant === "sub") {
+				if (!parentAdvisorId) {
+					toast.error("Select parent advisor");
+					setLoading(false);
+					return;
+				}
+				result = await createSubAdvisor({
+					...values,
+					parent_advisor_id: parentAdvisorId,
+				});
 			} else {
 				result = await createAdvisor(values);
 			}
@@ -147,9 +164,21 @@ export function AdvisorForm({
 				return;
 			}
 
-			toast.success(mode === "edit" ? "Advisor updated" : "Advisor created");
+			toast.success(
+				mode === "edit"
+					? "Advisor updated"
+					: variant === "sub"
+						? "Sub-advisor created"
+						: "Advisor created",
+			);
 			setSubmitStatus("success");
-			setStatusText(mode === "edit" ? "Advisor updated successfully." : "Advisor created successfully.");
+			setStatusText(
+				mode === "edit"
+					? "Advisor updated successfully."
+					: variant === "sub"
+						? "Sub-advisor created successfully."
+						: "Advisor created successfully.",
+			);
 			playSubmitTone("success");
 			onSuccess?.();
 			if (redirectToList) router.push("/advisors");
@@ -169,10 +198,16 @@ export function AdvisorForm({
 			<CardHeader className="flex flex-row items-center justify-between space-y-0">
 				<div>
 					<CardTitle>
-						{mode === "edit" ? "Edit Advisor" : "New Advisor"}
+						{mode === "edit"
+							? "Edit Advisor"
+							: variant === "sub"
+								? "New Sub-advisor"
+								: "New Advisor"}
 					</CardTitle>
 					<CardDescription>
-						Enter details for the channel partner
+						{variant === "sub"
+							? "Register a partner under a main advisor"
+							: "Enter details for the channel partner"}
 					</CardDescription>
 				</div>
 				<Button
@@ -187,6 +222,23 @@ export function AdvisorForm({
 			<CardContent>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+						{variant === "sub" && mode === "create" ? (
+							<div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3">
+								<p className="text-xs font-semibold text-zinc-700 mb-2">Parent advisor *</p>
+								<SearchableCombobox
+									options={parentOptions.map((p) => ({
+										value: p.id,
+										label: p.name,
+										subtitle: p.code,
+										keywords: p.phone ?? "",
+									}))}
+									value={parentAdvisorId}
+									onChange={setParentAdvisorId}
+									placeholder="Search main advisor…"
+									emptyMessage="No advisor matches."
+								/>
+							</div>
+						) : null}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 							<FormField
 								control={form.control}
@@ -279,7 +331,9 @@ export function AdvisorForm({
 							<div className="rounded-lg border border-zinc-200 p-3 space-y-2 bg-zinc-50/50">
 								<h3 className="text-sm font-semibold">Login Credentials</h3>
 								<p className="text-xs text-zinc-500">
-									Advisor can login with phone + password. Default password is phone number.
+									Advisor can log in with email + password. Default password is derived from name plus
+									the last 10 digits of phone (same formula as the advisors list &quot;Default
+									password&quot; column).
 								</p>
 								<FormField
 									control={form.control}
@@ -295,7 +349,7 @@ export function AdvisorForm({
 												/>
 											</FormControl>
 											<FormLabel className="!mt-0 cursor-pointer font-normal">
-												Use phone number as default password
+												Use default password (name + phone)
 											</FormLabel>
 										</FormItem>
 									)}

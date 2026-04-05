@@ -46,23 +46,17 @@ export default async function ReportsPage({
 	let reportStats: Awaited<ReturnType<typeof getReportStats>> | null = null;
 	let projectsCount: number | null = null;
 	let customersCount: number | null = null;
-	let sales: Array<{ total_sale_amount: number; amount_paid: number }> | null = null;
 	let recentReminders: any[] | null = null;
 
 	// Only load overview-heavy stats when no project is selected
 	if (!projectId) {
-		const [rs, projectsCountRes, customersCountRes, salesRes, remindersRes] = await Promise.all([
+		const [rs, projectsCountRes, customersCountRes, remindersRes] = await Promise.all([
 			getReportStats({
 				startDate: params.from ?? undefined,
 				endDate: params.to ?? undefined,
 			}),
 			supabase.from("projects").select("*", { count: "exact", head: true }).then((r) => r.count ?? 0),
 			supabase.from("customers").select("*", { count: "exact", head: true }).then((r) => r.count ?? 0),
-			supabase
-				.from("plot_sales")
-				.select("total_sale_amount, amount_paid")
-				.eq("is_cancelled", false)
-				.then((r) => r.data ?? []),
 			supabase
 				.from("reminders")
 				.select("*, customers(name)")
@@ -75,12 +69,11 @@ export default async function ReportsPage({
 		reportStats = rs;
 		projectsCount = projectsCountRes;
 		customersCount = customersCountRes;
-		sales = salesRes as any;
 		recentReminders = remindersRes;
 	}
 
-	const totalSalesValue = sales?.reduce((sum, s) => sum + Number(s.total_sale_amount), 0) || 0;
-	const totalCollected = sales?.reduce((sum, s) => sum + Number(s.amount_paid), 0) || 0;
+	const totalSalesValue = reportStats?.summary.totalSalesValue ?? 0;
+	const totalCollected = reportStats?.summary.totalRevenueCollected ?? 0;
 
 	return (
 		<div className="space-y-6">

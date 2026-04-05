@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,18 +27,33 @@ import { signInWithEmailOrPhone } from "@/app/actions/auth";
 const loginSchema = z.object({
 	identifier: z.string().trim().min(3, "Enter email or phone"),
 	password: z.string().optional(),
+	/** Super admin: TOTP or second password (same submit as step 1). */
+	secondFactor: z.string().optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+function LoginQueryToasts() {
+	const searchParams = useSearchParams();
+	useEffect(() => {
+		const reason = searchParams.get("reason");
+		if (reason === "timeout" || reason === "session") {
+			toast.message("Super admin session ended", {
+				description:
+					"Console access is limited to 15 minutes per sign-in. Enter password and security code again.",
+			});
+		}
+	}, [searchParams]);
+	return null;
+}
+
 export default function LoginPage() {
-	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 
 	const form = useForm<LoginFormValues>({
 		resolver: zodResolver(loginSchema),
-		defaultValues: { identifier: "", password: "" },
+		defaultValues: { identifier: "", password: "", secondFactor: "" },
 	});
 
 	async function onSubmit(values: LoginFormValues) {
@@ -46,7 +61,8 @@ export default function LoginPage() {
 		try {
 			const result = await signInWithEmailOrPhone(
 				values.identifier,
-				(values.password ?? "").trim()
+				(values.password ?? "").trim(),
+				(values.secondFactor ?? "").trim(),
 			);
 			if (!result.success) {
 				toast.error("Login failed", { description: result.error });
@@ -63,6 +79,9 @@ export default function LoginPage() {
 			suppressHydrationWarning
 			className="relative min-h-screen overflow-hidden"
 		>
+			<Suspense fallback={null}>
+				<LoginQueryToasts />
+			</Suspense>
 			{/* Background image (login screen only) */}
 			<div
 				suppressHydrationWarning
@@ -140,7 +159,31 @@ export default function LoginPage() {
 											</div>
 										</FormControl>
 										<p className="text-[10px] text-zinc-500">
-											For advisors: if password is blank, default is your phone (last 10 digits).
+											Advisors: blank password uses the default from name + phone (see advisors list).
+										</p>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="secondFactor"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Security code (super admin only)</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="Authenticator 6-digit code or second password"
+												type="text"
+												autoComplete="one-time-code"
+												inputMode="numeric"
+												className="font-mono tracking-widest"
+												{...field}
+											/>
+										</FormControl>
+										<p className="text-[10px] text-zinc-500">
+											Leave empty for tenant users. Super admin accounts require a second step
+											(TOTP or passphrase from your operator).
 										</p>
 										<FormMessage />
 									</FormItem>

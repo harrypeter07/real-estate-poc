@@ -204,18 +204,68 @@ export async function createSale(
 		}
 	}
 
-	// 3. Create commission record only when sold by advisor (not admin)
+	// 3. Commission rows (one per participant: main + optional sub-advisors)
 	if (!soldByAdmin && parsed.data.advisor_id) {
 		const profitTotal = finance.profit;
-		await supabase.from("advisor_commissions").insert({
-			business_id: businessId,
-			advisor_id: parsed.data.advisor_id,
-			sale_id: sale.id,
-			commission_percentage: 0,
-			total_commission_amount: profitTotal,
-			amount_paid: 0,
-			notes: `Earning based on profit-share for plot ${plotRow.plot_number}`,
-		});
+		if (profitTotal > 0.001) {
+			const mainId = parsed.data.advisor_id;
+			let splits = parsed.data.commission_splits;
+
+			const { data: subRows } = await supabase
+				.from("advisors")
+				.select("id")
+				.eq("parent_advisor_id", mainId);
+			const allowedSub = new Set((subRows ?? []).map((r: { id: string }) => r.id));
+
+			if (!splits?.length) {
+				splits = [{ advisor_id: mainId, amount: profitTotal }];
+			} else {
+				const sum = splits.reduce((s, r) => s + r.amount, 0);
+				if (Math.abs(sum - profitTotal) > 0.05) {
+					return {
+						success: false,
+						error: `Commission split must total ₹ ${profitTotal.toLocaleString(
+							"en-IN",
+						)} (currently ₹ ${sum.toLocaleString("en-IN")}).`,
+					};
+				}
+				const seen = new Set<string>();
+				for (const row of splits) {
+					if (seen.has(row.advisor_id)) {
+						return { success: false, error: "Duplicate advisor in commission split." };
+					}
+					seen.add(row.advisor_id);
+					if (row.advisor_id !== mainId && !allowedSub.has(row.advisor_id)) {
+						return {
+							success: false,
+							error:
+								"Commission split can only include the main advisor and their sub-advisors.",
+						};
+					}
+				}
+				if (!splits.some((r) => r.advisor_id === mainId)) {
+					return { success: false, error: "Commission split must include the main advisor." };
+				}
+			}
+
+			for (const row of splits) {
+				const { error: cErr } = await supabase.from("advisor_commissions").insert({
+					business_id: businessId,
+					advisor_id: row.advisor_id,
+					sale_id: sale.id,
+					commission_percentage: 0,
+					total_commission_amount: row.amount,
+					amount_paid: 0,
+					notes:
+						row.advisor_id === mainId
+							? `Profit-share (main) plot ${plotRow.plot_number}`
+							: `Profit-share (sub) plot ${plotRow.plot_number}`,
+				});
+				if (cErr) {
+					return { success: false, error: cErr.message };
+				}
+			}
+		}
 	}
 
 	// Payment follow-ups use Payments / Sales WhatsApp actions (not messaging reminders).
@@ -269,9 +319,31 @@ export async function getSales() {
 	const rows = data || [];
 	const saleIds = rows.map((s: { id: string }) => s.id);
 	const lastBySale = await lastConfirmedPaymentDateBySaleId(supabase, saleIds);
+
+	const subCountBySale: Record<string, number> = {};
+	const commissionParticipantsBySale: Record<string, { name: string; phone: string }[]> = {};
+	if (saleIds.length > 0) {
+		const { data: comms } = await supabase
+			.from("advisor_commissions")
+			.select("sale_id, advisor_id, advisors(name, phone)")
+			.in("sale_id", saleIds);
+		for (const sale of rows as { id: string; advisor_id?: string | null }[]) {
+			const list = (comms ?? []).filter((c: any) => c.sale_id === sale.id);
+			const mainId = sale.advisor_id;
+			const subs = list.filter((c: any) => c.advisor_id && c.advisor_id !== mainId);
+			subCountBySale[sale.id] = subs.length;
+			commissionParticipantsBySale[sale.id] = list.map((c: any) => ({
+				name: String(c.advisors?.name ?? "—"),
+				phone: String(c.advisors?.phone ?? "—"),
+			}));
+		}
+	}
+
 	return rows.map((sale: any) => ({
 		...sale,
 		payment_due_meta: computePaymentDueMeta(sale, lastBySale[sale.id]),
+		sub_advisor_commission_count: subCountBySale[sale.id] ?? 0,
+		commission_participants: commissionParticipantsBySale[sale.id] ?? [],
 	}));
 }
 
@@ -286,7 +358,12 @@ export async function getSaleById(id: string) {
       *,
       plots(*, projects(name)),
       customers(*),
-      advisors(*)
+      advisors(*),
+      advisor_commissions(
+        advisor_id,
+        total_commission_amount,
+        advisors(name, phone)
+      )
     `
 		)
 		.eq("id", id)

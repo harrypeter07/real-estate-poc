@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SA_SESSION_COOKIE, SA_SESSION_MAX_MS } from "@/lib/auth/superadmin-session-constants";
 
 function getModuleKeyForPath(pathname: string): string | null {
   // Super admin /auth excluded from gating.
@@ -9,7 +10,8 @@ function getModuleKeyForPath(pathname: string): string | null {
     pathname.startsWith("/projects") ||
     pathname.startsWith("/advisors") ||
     pathname.startsWith("/customers") ||
-    pathname.startsWith("/advisor/customers")
+    pathname.startsWith("/advisor/customers") ||
+    pathname.startsWith("/advisor/projects")
   )
     return "projects";
 
@@ -82,14 +84,44 @@ export async function middleware(request: NextRequest) {
 
   const role =
     (user?.user_metadata as any)?.role ?? (user?.app_metadata as any)?.role;
+  const roleLower = String(role || "").toLowerCase();
+
+  // Tenant users cannot open super admin routes (layout also checks; this fails fast).
+  if (user && roleLower !== "superadmin" && pathname.startsWith("/superadmin")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  // Super admin: 15-minute console session (absolute); missing/expired cookie ends session.
+  if (
+    user &&
+    roleLower === "superadmin" &&
+    pathname.startsWith("/superadmin") &&
+    !pathname.startsWith("/api/auth/superadmin-session-end") &&
+    !pathname.startsWith("/api/auth/superadmin-signout")
+  ) {
+    const sa = request.cookies.get(SA_SESSION_COOKIE)?.value;
+    const started = sa ? parseInt(sa, 10) : NaN;
+    const fresh =
+      Number.isFinite(started) && Date.now() - started <= SA_SESSION_MAX_MS;
+    if (!fresh) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/api/auth/superadmin-session-end";
+      url.searchParams.set("reason", "timeout");
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Superadmin: only the superadmin console — no tenant CRM routes (/dashboard, /payments, etc.)
-  if (user && String(role || "").toLowerCase() === "superadmin") {
+  if (user && roleLower === "superadmin") {
     const allowed =
       pathname === "/superadmin" ||
       pathname.startsWith("/superadmin/") ||
       pathname === "/login" ||
-      pathname.startsWith("/_next");
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api/auth/superadmin-session-end") ||
+      pathname.startsWith("/api/auth/superadmin-signout");
 
     if (!allowed) {
       const url = request.nextUrl.clone();
@@ -99,7 +131,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // If advisor is logged in, keep them inside /advisor routes or allow dashboard/enquiries
-  if (user && role === "advisor") {
+  if (user && roleLower === "advisor") {
     const allowed =
       pathname === "/advisor" ||
       pathname.startsWith("/advisor/") ||
@@ -117,7 +149,6 @@ export async function middleware(request: NextRequest) {
   // Module entitlement gating (real-time via business_modules)
   if (user) {
     const moduleKey = getModuleKeyForPath(pathname);
-    const roleLower = String(role || "").toLowerCase();
 
     if (moduleKey && roleLower !== "superadmin") {
       // If entitlement row doesn't exist yet for this tenant, treat it as enabled for backward compatibility.

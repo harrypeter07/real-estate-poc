@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { saleSchema, type SaleFormValues } from "@/lib/validations/sale";
 import { createSale } from "@/app/actions/sales";
+import { listSubAdvisors } from "@/app/actions/advisors";
 import { ShareReceiptModal } from "./share-receipt-modal";
 import { formatCurrency, formatCurrencyShort } from "@/lib/utils/formatters";
 import { calculateFinance } from "@/lib/utils/finance";
@@ -69,6 +70,10 @@ export function SaleForm({
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [statusText, setStatusText] = useState("");
   const [shareModal, setShareModal] = useState<{ saleId: string; customerPhone?: string | null; customerName?: string | null } | null>(null);
+  const [subAdvisorIds, setSubAdvisorIds] = useState<string[]>([]);
+  const [subOptions, setSubOptions] = useState<{ id: string; name: string; code: string; phone: string }[]>([]);
+  const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
+  const [subComboKey, setSubComboKey] = useState(0);
   const showFillMock = useIsLocalhost();
 
   const form = useForm<SaleFormValues>({
@@ -142,10 +147,15 @@ export function SaleForm({
     });
   }, [allowedProjectIdsForAdvisor, plots, soldByAdmin]);
 
+  const topLevelAdvisors = useMemo(
+    () => (advisors as any[]).filter((a) => !a.parent_advisor_id),
+    [advisors],
+  );
+
   const filteredAdvisors = useMemo(() => {
-    if (!allowedAdvisorIdsForProject) return advisors;
-    return advisors.filter((a) => allowedAdvisorIdsForProject.has(a.id));
-  }, [advisors, allowedAdvisorIdsForProject]);
+    if (!allowedAdvisorIdsForProject) return topLevelAdvisors;
+    return topLevelAdvisors.filter((a) => allowedAdvisorIdsForProject.has(a.id));
+  }, [topLevelAdvisors, allowedAdvisorIdsForProject]);
 
   // keep selections consistent when filters change
   useEffect(() => {
@@ -175,6 +185,31 @@ export function SaleForm({
       form.setValue("advisor_selling_price_per_sqft", undefined);
     }
   }, [soldByAdmin, form]);
+
+  useEffect(() => {
+    if (!selectedAdvisorId || soldByAdmin) {
+      setSubOptions([]);
+      setSubAdvisorIds([]);
+      setSplitByAdvisor({});
+      return;
+    }
+    let cancelled = false;
+    listSubAdvisors(selectedAdvisorId)
+      .then((rows) => {
+        if (!cancelled) setSubOptions(rows as any[]);
+      })
+      .catch(() => {
+        if (!cancelled) setSubOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAdvisorId, soldByAdmin]);
+
+  useEffect(() => {
+    if (!selectedAdvisorId || soldByAdmin) return;
+    setSubAdvisorIds((prev) => prev.filter((id) => subOptions.some((s) => s.id === id)));
+  }, [selectedAdvisorId, soldByAdmin, subOptions]);
 
   // Keep one visible date in sync when switching phase (token ↔ other phases use different form keys).
   useEffect(() => {
@@ -296,6 +331,20 @@ export function SaleForm({
     }
   }, [assignedFaceRatePerSqft, plotSize, plotBaseRatePerSqft, receivedNow, soldByAdmin]);
 
+  const commissionParticipantIds =
+    selectedAdvisorId && !soldByAdmin ? [selectedAdvisorId, ...subAdvisorIds] : [];
+  const splitSumManual =
+    commissionParticipantIds.length > 1
+      ? commissionParticipantIds.slice(0, -1).reduce(
+          (s, id) => s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
+          0,
+        )
+      : 0;
+  const splitLastAuto =
+    commissionParticipantIds.length > 1
+      ? Math.max(0, finance.profit - splitSumManual)
+      : 0;
+
   // Auto-fill selling price when plot/advisor/phase changes
   useEffect(() => {
     if (!selectedPlotId) return;
@@ -416,7 +465,26 @@ export function SaleForm({
     setSubmitStatus("idle");
     setStatusText("");
     try {
-      const result = await createSale(values);
+      const pid = selectedAdvisorId && !values.sold_by_admin
+        ? [selectedAdvisorId, ...subAdvisorIds]
+        : [];
+      let commission_splits: SaleFormValues["commission_splits"] = undefined;
+      if (pid.length > 1 && finance.profit > 0.001) {
+        const sumMid = pid.slice(0, -1).reduce(
+          (s, id) => s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
+          0,
+        );
+        const lastAmt = Math.max(0, finance.profit - sumMid);
+        commission_splits = pid.map((id, i) => ({
+          advisor_id: id,
+          amount: i === pid.length - 1 ? lastAmt : Number(splitByAdvisor[id] || 0),
+        }));
+      }
+
+      const result = await createSale({
+        ...values,
+        commission_splits,
+      });
       if (!result.success) {
         toast.error("Error", { description: result.error });
         setSubmitStatus("error");
@@ -575,6 +643,111 @@ export function SaleForm({
                     )}
                   />
                 )}
+
+                {!soldByAdmin && selectedAdvisorId && subOptions.length > 0 ? (
+                  <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 space-y-2">
+                    <div className="text-xs font-semibold text-zinc-700">
+                      Sub-advisors (optional)
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Add team members under this advisor. Commission (total profit ₹{" "}
+                      {formatCurrency(finance.profit)}) is split below.
+                    </p>
+                    <SearchableCombobox
+                      key={subComboKey}
+                      options={subOptions
+                        .filter((s) => !subAdvisorIds.includes(s.id))
+                        .map((s) => ({
+                          value: s.id,
+                          label: s.name,
+                          subtitle: s.code,
+                          keywords: s.phone,
+                        }))}
+                      value=""
+                      onChange={(id) => {
+                        if (id && !subAdvisorIds.includes(id)) {
+                          setSubAdvisorIds((prev) => [...prev, id]);
+                          setSubComboKey((k) => k + 1);
+                        }
+                      }}
+                      placeholder="Add sub-advisor…"
+                      emptyMessage="No more sub-advisors."
+                    />
+                    {subAdvisorIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {subAdvisorIds.map((sid) => {
+                          const sub = subOptions.find((s) => s.id === sid);
+                          return (
+                            <button
+                              key={sid}
+                              type="button"
+                              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]"
+                              onClick={() => {
+                                setSubAdvisorIds((prev) => prev.filter((x) => x !== sid));
+                                setSplitByAdvisor((prev) => {
+                                  const next = { ...prev };
+                                  delete next[sid];
+                                  return next;
+                                });
+                              }}
+                            >
+                              {sub?.name ?? sid.slice(0, 8)}
+                              <span className="text-zinc-400">×</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {!soldByAdmin && selectedAdvisorId && finance.profit > 0.001 && commissionParticipantIds.length > 1 ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+                    <div className="text-xs font-semibold text-amber-900">
+                      Commission split (₹ from total profit)
+                    </div>
+                    {commissionParticipantIds.map((aid, idx) => {
+                      const isLast = idx === commissionParticipantIds.length - 1;
+                      const adv =
+                        aid === selectedAdvisorId
+                          ? filteredAdvisors.find((a) => a.id === aid)
+                          : subOptions.find((s) => s.id === aid);
+                      const label =
+                        aid === selectedAdvisorId
+                          ? `${adv?.name ?? "Main"} (main)`
+                          : `${adv?.name ?? "Sub"}`;
+                      return (
+                        <div key={aid} className="flex items-center gap-2 text-sm">
+                          <span className="min-w-0 flex-1 truncate text-zinc-700">{label}</span>
+                          {isLast ? (
+                            <span className="font-mono tabular-nums font-semibold text-zinc-900 w-28 text-right">
+                              {formatCurrency(splitLastAuto)}
+                            </span>
+                          ) : (
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              className="h-8 w-28 text-right font-mono text-xs"
+                              value={splitByAdvisor[aid] ?? ""}
+                              onChange={(e) =>
+                                setSplitByAdvisor((prev) => ({
+                                  ...prev,
+                                  [aid]: e.target.value,
+                                }))
+                              }
+                              placeholder="0"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                    <p className="text-[11px] text-amber-800">
+                      Left after your entries:{" "}
+                      <strong>{formatCurrency(splitLastAuto)}</strong> → last advisor (auto)
+                    </p>
+                  </div>
+                ) : null}
 
                 {!soldByAdmin && selectedAdvisorId ? (
                   <FormField

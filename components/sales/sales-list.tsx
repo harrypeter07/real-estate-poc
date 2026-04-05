@@ -85,9 +85,12 @@ export function SalesList({
 			{visibleSales.length > 0 ? (
 			<div className="grid grid-cols-1 gap-4 mt-4">
 				{visibleSales.map((sale) => {
+					const subN = Number(sale.sub_advisor_commission_count ?? 0);
 					const advisorName = sale.sold_by_admin
 						? "Admin (Direct)"
-						: sale.advisors?.name ?? "—";
+						: `${sale.advisors?.name ?? "—"}${
+								subN > 0 ? ` + ${subN} sub-advisor${subN === 1 ? "" : "s"}` : ""
+							}`;
 					const phase =
 						sale.is_cancelled
 							? { label: "Plot revoked", className: "bg-zinc-200 text-zinc-700 border-zinc-300" }

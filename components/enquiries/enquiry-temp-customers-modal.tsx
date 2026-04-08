@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Badge, Progress } from "@/components/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Badge, Progress, Input } from "@/components/ui";
 import { getEnquiryTempCustomersForModal, upgradeTempCustomerToCustomer, type EnquiryTempCustomerForModal } from "@/app/actions/enquiries";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +17,7 @@ export function EnquiryTempCustomersModal({
 	const [loading, setLoading] = useState(false);
 	const [upgradingId, setUpgradingId] = useState<string | null>(null);
 	const [rows, setRows] = useState<EnquiryTempCustomerForModal[]>([]);
+	const [query, setQuery] = useState("");
 
 	const tempCount = rows.length;
 
@@ -36,7 +37,15 @@ export function EnquiryTempCustomersModal({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open]);
 
-	const filteredRows = useMemo(() => rows, [rows]);
+	const filteredRows = useMemo(() => {
+		const q = query.trim().toLowerCase();
+		if (!q) return rows;
+		return rows.filter((r) =>
+			`${r.name ?? ""} ${r.phone ?? ""} ${r.latest_enquiry_details ?? ""}`
+				.toLowerCase()
+				.includes(q)
+		);
+	}, [rows, query]);
 
 	async function onUpgrade(customerId: string) {
 		setUpgradingId(customerId);
@@ -72,6 +81,11 @@ export function EnquiryTempCustomersModal({
 				</DialogHeader>
 
 				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+					<Input
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						placeholder="Search customer name/phone..."
+					/>
 					{loading ? (
 						<div className="space-y-3">
 							<Progress value={25} className="h-2" />

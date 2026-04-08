@@ -5,9 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
 	plotSchema,
+	plotUpdateSchema,
 	plotBulkUpdateSchema,
 	type PlotFormValues,
 	type PlotBulkUpdateValues,
+	type PlotUpdateFormValues,
 } from "@/lib/validations/plot";
 
 export type ActionResponse = {
@@ -124,9 +126,9 @@ export async function createBulkPlots(
 export async function updatePlot(
 	id: string,
 	projectId: string,
-	values: PlotFormValues
+	values: PlotUpdateFormValues
 ): Promise<ActionResponse> {
-	const parsed = plotSchema.safeParse(values);
+	const parsed = plotUpdateSchema.safeParse(values);
 	if (!parsed.success) {
 		return {
 			success: false,
@@ -140,7 +142,7 @@ export async function updatePlot(
 	// Verify plot is still available
 	const { data: plot } = await supabase
 		.from("plots")
-		.select("status")
+		.select("status, size_sqft, rate_per_sqft")
 		.eq("id", id)
 		.single();
 
@@ -159,8 +161,9 @@ export async function updatePlot(
 		.from("plots")
 		.update({
 			plot_number: parsed.data.plot_number,
-			size_sqft: parsed.data.size_sqft,
-			rate_per_sqft: parsed.data.rate_per_sqft,
+			size_sqft: parsed.data.size_sqft ?? Number((plot as any).size_sqft ?? 0),
+			rate_per_sqft:
+				parsed.data.rate_per_sqft ?? Number((plot as any).rate_per_sqft ?? 0),
 			facing: parsed.data.facing || null,
 			notes: parsed.data.notes || null,
 			updated_at: new Date().toISOString(),

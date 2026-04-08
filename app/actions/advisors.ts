@@ -165,7 +165,7 @@ export async function createAdvisor(
 			email: advisorEmail,
 			password: pw,
 			email_confirm: true,
-			user_metadata: { role: "advisor", advisor_id: advisor.id, business_id: businessId ?? null },
+			user_metadata: { role: "advisor", advisor_id: advisor.id, business_id: businessId },
 		});
 		if (!authError && authUser?.user) {
 			await supabase
@@ -377,7 +377,7 @@ export async function createSubAdvisor(
 			user_metadata: {
 				role: "advisor",
 				advisor_id: advisor.id,
-				business_id: businessId ?? null,
+				business_id: businessId,
 				parent_advisor_id: parsed.data.parent_advisor_id,
 			},
 		});

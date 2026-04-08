@@ -22,10 +22,7 @@ import {
   FormLabel,
   FormMessage,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  SearchableCombobox,
 } from "@/components/ui";
 import { customerSchema, type CustomerFormValues } from "@/lib/validations/customer";
 import { isDev } from "@/lib/is-dev";
@@ -240,24 +237,23 @@ export function CustomerForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Referred By (Advisor)</FormLabel>
-                    <Select 
-                      onValueChange={(v) => field.onChange(v === "none" ? null : v)} 
-                      value={field.value ?? "none"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an advisor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {advisors.map((advisor) => (
-                          <SelectItem key={advisor.id} value={advisor.id}>
-                            {advisor.name} ({advisor.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchableCombobox
+                        value={field.value ?? ""}
+                        onChange={(v) => field.onChange(v || null)}
+                        placeholder="Search advisor by name/code"
+                        emptyMessage="No advisors found."
+                        options={[
+                          { value: "", label: "None", subtitle: "No advisor" },
+                          ...advisors.map((advisor) => ({
+                            value: advisor.id,
+                            label: advisor.name,
+                            subtitle: advisor.code ?? "",
+                            keywords: `${advisor.name ?? ""} ${advisor.code ?? ""}`,
+                          })),
+                        ]}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

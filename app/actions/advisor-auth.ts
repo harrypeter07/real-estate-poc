@@ -28,6 +28,12 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 
 	if (error || !advisor) return { success: false, error: "Advisor not found" } as const;
 	if (!advisor.is_active) return { success: false, error: "Advisor is inactive" } as const;
+	if (!advisor.business_id) {
+		return {
+			success: false,
+			error: "Advisor is missing business mapping (business_id).",
+		} as const;
+	}
 
 	if (advisor.auth_user_id) {
 		return { success: true, auth_user_id: advisor.auth_user_id, email: advisor.email ?? null, phone: advisor.phone } as const;
@@ -45,7 +51,7 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 		user_metadata: {
 			role: "advisor",
 			advisor_id: advisor.id,
-			business_id: advisor.business_id ?? null,
+			business_id: advisor.business_id,
 			parent_advisor_id: (advisor as { parent_advisor_id?: string | null }).parent_advisor_id ?? null,
 		},
 	});

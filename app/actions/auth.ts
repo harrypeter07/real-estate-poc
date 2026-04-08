@@ -102,6 +102,14 @@ export async function signInWithEmailOrPhone(
 			await recordLoginFailure(keyHash);
 			return { success: false, error: "No advisor found for this phone." };
 		}
+		if (!match.business_id) {
+			await recordLoginFailure(keyHash);
+			return {
+				success: false,
+				error:
+					"Advisor is missing business mapping. Ask admin to assign business_id in advisors table.",
+			};
+		}
 
 		const resolvedEmail =
 			(String(match.email || "").trim() || toAdvisorEmail(String(match.phone || last10))).toLowerCase();
@@ -130,7 +138,7 @@ export async function signInWithEmailOrPhone(
 				user_metadata: {
 					role: "advisor",
 					advisor_id: match.id,
-					business_id: match.business_id ?? null,
+					business_id: match.business_id,
 					parent_advisor_id: match.parent_advisor_id ?? null,
 				},
 			});

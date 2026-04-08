@@ -23,7 +23,12 @@ import {
 	FormMessage,
 } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { plotSchema, type PlotFormValues } from "@/lib/validations/plot";
+import {
+	plotSchema,
+	plotUpdateSchema,
+	type PlotFormValues,
+	type PlotUpdateFormValues,
+} from "@/lib/validations/plot";
 import { createPlot, updatePlot } from "@/app/actions/plots";
 import { isDev } from "@/lib/is-dev";
 
@@ -52,8 +57,8 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 	const [statusText, setStatusText] = useState("");
 
-	const form = useForm<PlotFormValues>({
-		resolver: zodResolver(plotSchema) as any,
+	const form = useForm<PlotFormValues | PlotUpdateFormValues>({
+		resolver: zodResolver(mode === "edit" ? plotUpdateSchema : plotSchema) as any,
 		defaultValues: {
 			plot_number: initialData?.plot_number ?? "",
 			size_sqft: initialPlotNumeric(initialData?.size_sqft) as any,
@@ -121,7 +126,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 		} catch {}
 	};
 
-	async function onSubmit(values: PlotFormValues) {
+	async function onSubmit(values: PlotFormValues | PlotUpdateFormValues) {
 		setLoading(true);
 		setSubmitStatus("idle");
 		setStatusText("");
@@ -130,9 +135,9 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 			let result;
 
 			if (mode === "edit" && initialData?.id) {
-				result = await updatePlot(initialData.id, projectId, values);
+				result = await updatePlot(initialData.id, projectId, values as PlotUpdateFormValues);
 			} else {
-				result = await createPlot(projectId, values);
+				result = await createPlot(projectId, values as PlotFormValues);
 			}
 
 			if (!result.success) {
@@ -214,7 +219,8 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											Size (sqft) <span className="text-red-500">*</span>
+										Size (sqft){" "}
+										{mode === "create" ? <span className="text-red-500">*</span> : null}
 										</FormLabel>
 										<FormControl>
 											<Input
@@ -247,7 +253,8 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											Rate per sqft <span className="text-red-500">*</span>
+										Rate per sqft{" "}
+										{mode === "create" ? <span className="text-red-500">*</span> : null}
 										</FormLabel>
 										<FormControl>
 											<Input
@@ -275,7 +282,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 							/>
 						</div>
 
-						{size > 0 && rate > 0 && (
+						{Number(size ?? 0) > 0 && Number(rate ?? 0) > 0 && (
 							<div className="rounded-lg bg-zinc-50 p-4 border border-zinc-200">
 								<div className="flex justify-between items-center">
 									<span className="text-sm text-zinc-500 font-medium">

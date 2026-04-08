@@ -14,6 +14,17 @@ export const plotSchema = z.object({
 
 export type PlotFormValues = z.infer<typeof plotSchema>;
 
+/** For edit flows: allow changing only one field (e.g. only size or only rate). */
+export const plotUpdateSchema = z.object({
+  plot_number: z.string().min(1, "Plot number is required"),
+  size_sqft: z.number().positive("Size must be greater than 0").optional(),
+  rate_per_sqft: z.number().positive("Rate must be greater than 0").optional(),
+  facing: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
+});
+
+export type PlotUpdateFormValues = z.infer<typeof plotUpdateSchema>;
+
 export const plotBulkUpdateSchema = z.object({
   size_sqft: z.number().positive("Size must be greater than 0").optional(),
   rate_per_sqft: z.number().positive("Rate must be greater than 0").optional(),

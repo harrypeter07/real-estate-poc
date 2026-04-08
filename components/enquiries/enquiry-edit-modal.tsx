@@ -11,6 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	Input,
+	SearchableCombobox,
 	Textarea,
 	Select,
 	SelectContent,
@@ -179,22 +180,21 @@ export function EnquiryEditModal({
 						</div>
 						<div className="space-y-1">
 							<div className="text-xs font-semibold uppercase text-zinc-500">Assigned Advisor (Admin)</div>
-							<Select
-								value={form.assigned_advisor_id ?? "none"}
-								onValueChange={(v) => setForm((s) => s && { ...s, assigned_advisor_id: v === "none" ? null : v })}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Unassigned" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">Unassigned</SelectItem>
-									{advisors.map((a) => (
-										<SelectItem key={a.id} value={a.id}>
-											{a.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							<SearchableCombobox
+								value={form.assigned_advisor_id ?? ""}
+								onChange={(v) =>
+									setForm((s) => (s ? { ...s, assigned_advisor_id: v || null } : s))
+								}
+								placeholder="Search advisor (optional)"
+								options={[
+									{ value: "", label: "Unassigned", subtitle: "No advisor" },
+									...advisors.map((a) => ({
+										value: a.id,
+										label: a.name,
+										keywords: a.name,
+									})),
+								]}
+							/>
 						</div>
 					</div>
 
@@ -307,24 +307,19 @@ export function EnquiryEditModal({
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 						<div className="space-y-1">
 							<div className="text-xs font-semibold uppercase text-zinc-500">Project</div>
-							<Select
-								value={form.project_id ?? "none"}
-								onValueChange={(v) =>
-									setForm((s) => s && { ...s, project_id: v === "none" ? null : v })
-								}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Project" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">No project</SelectItem>
-									{projects.map((p) => (
-										<SelectItem key={p.id} value={p.id}>
-											{p.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							<SearchableCombobox
+								value={form.project_id ?? ""}
+								onChange={(v) => setForm((s) => (s ? { ...s, project_id: v || null } : s))}
+								placeholder="Search project (optional)"
+								options={[
+									{ value: "", label: "No project", subtitle: "Optional" },
+									...projects.map((p) => ({
+										value: p.id,
+										label: p.name,
+										keywords: p.name,
+									})),
+								]}
+							/>
 						</div>
 						<div className="space-y-1">
 							<div className="text-xs font-semibold uppercase text-zinc-500">Category</div>

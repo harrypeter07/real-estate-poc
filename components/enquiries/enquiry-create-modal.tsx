@@ -11,6 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	Input,
+	SearchableCombobox,
 	Textarea,
 	Select,
 	SelectContent,
@@ -332,21 +333,17 @@ export function EnquiryCreateModal({
 									<div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
 										Match temp customer
 									</div>
-									<Select
+									<SearchableCombobox
 										value={selectedTempCustomerId}
-										onValueChange={(v) => setSelectedTempCustomerId(v)}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Select customer" />
-										</SelectTrigger>
-										<SelectContent>
-											{tempCustomers.map((c) => (
-												<SelectItem key={c.id} value={c.id}>
-													{c.name} ({c.phone})
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+										onChange={(v) => setSelectedTempCustomerId(v || "none")}
+										placeholder="Search temp customer by name/phone"
+										options={tempCustomers.map((c) => ({
+											value: c.id,
+											label: c.name,
+											subtitle: c.phone,
+											keywords: `${c.name} ${c.phone}`,
+										}))}
+									/>
 								</div>
 							)}
 						</div>
@@ -403,27 +400,24 @@ export function EnquiryCreateModal({
 							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
 								Project
 							</div>
-							<Select
-								value={form.project_id ?? "none"}
-								onValueChange={(v) =>
+							<SearchableCombobox
+								value={form.project_id ?? ""}
+								onChange={(v) =>
 									setForm((s) => ({
 										...s,
-										project_id: v === "none" ? null : v,
+										project_id: v || null,
 									}))
 								}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Select project (optional)" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">No project</SelectItem>
-									{projectOptions.map((p) => (
-										<SelectItem key={p.id} value={p.id}>
-											{p.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								placeholder="Search project (optional)"
+								options={[
+									{ value: "", label: "No project", subtitle: "Optional" },
+									...projectOptions.map((p) => ({
+										value: p.id,
+										label: p.name,
+										keywords: p.name,
+									})),
+								]}
+							/>
 						</div>
 
 						<div className="space-y-2">
@@ -592,24 +586,21 @@ export function EnquiryCreateModal({
 							<div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
 								Assigned Advisor (Admin)
 							</div>
-							<Select
-								value={form.assigned_advisor_id ?? "none"}
-								onValueChange={(v) =>
-									setForm((s) => ({ ...s, assigned_advisor_id: v === "none" ? null : v }))
+							<SearchableCombobox
+								value={form.assigned_advisor_id ?? ""}
+								onChange={(v) =>
+									setForm((s) => ({ ...s, assigned_advisor_id: v || null }))
 								}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Unassigned" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">Unassigned</SelectItem>
-									{advisors.map((a) => (
-										<SelectItem key={a.id} value={a.id}>
-											{a.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								placeholder="Search advisor (optional)"
+								options={[
+									{ value: "", label: "Unassigned", subtitle: "No advisor" },
+									...advisors.map((a) => ({
+										value: a.id,
+										label: a.name,
+										keywords: a.name,
+									})),
+								]}
+							/>
 						</div>
 					</div>
 

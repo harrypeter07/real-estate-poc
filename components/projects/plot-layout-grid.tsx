@@ -6,7 +6,13 @@ import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, Input, Textarea, Badge } from "@/components/ui";
-import { updatePlot, deletePlot, revokePlotSale, bulkUpdatePlots } from "@/app/actions/plots";
+import {
+	createPlot,
+	updatePlot,
+	deletePlot,
+	revokePlotSale,
+	bulkUpdatePlots,
+} from "@/app/actions/plots";
 import { SaleBookingDialog } from "@/components/sales/sale-booking-dialog";
 
 interface PlotForGrid {
@@ -68,6 +74,16 @@ const STATUS_CONFIG: Record<
 		badgeClassName: "bg-rose-300",
 	},
 };
+
+function normalizePlotStatus(status: unknown): string {
+	return String(status ?? "available").trim().toLowerCase() || "available";
+}
+
+function isUuid(id: string) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+		id,
+	);
+}
 
 export function PlotLayoutGrid({
 	plots,
@@ -138,7 +154,9 @@ export function PlotLayoutGrid({
 		null;
 
 	const isPlaceholder = selectedPlot?.id?.startsWith?.("planned-") ?? false;
-	const canEdit = selectedPlot && !isPlaceholder && selectedPlot.status === "available";
+	const selectedStatus = normalizePlotStatus(selectedPlot?.status);
+	const canEdit = selectedPlot && !isPlaceholder && selectedStatus === "available";
+	const [creatingPlanned, setCreatingPlanned] = useState(false);
 
 	const [formState, setFormState] = useState<{
 		size_sqft: number | undefined;
@@ -266,10 +284,12 @@ export function PlotLayoutGrid({
 							</div>
 						) : null}
 						{filteredPlotsForGrid.map((plot) => {
+							const rawStatus = normalizePlotStatus(plot.status);
+							const planned = String(plot.id ?? "").startsWith("planned-");
 							const statusKey: StatusKey =
-								plot.status === "token"
+								rawStatus === "token"
 									? "token"
-									: plot.status === "sold" || plot.status === "agreement"
+									: rawStatus === "sold" || rawStatus === "agreement"
 										? "sold"
 										: "available";
 							const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.available;
@@ -280,7 +300,11 @@ export function PlotLayoutGrid({
 									type="button"
 									onClick={() => {
 										if (multiSelectMode) {
-											if (plot.status !== "available") {
+											if (planned) {
+												toast.error("This plot is not created yet (planned). Create it first.");
+												return;
+											}
+											if (rawStatus !== "available") {
 												toast.error("Only available plots can be edited");
 												return;
 											}
@@ -306,6 +330,7 @@ export function PlotLayoutGrid({
 										"flex items-center justify-center transition-all",
 										"focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2",
 										cfg.className,
+										planned ? "opacity-75" : "",
 										(multiSelectMode
 											? multiSelectedPlotIds.includes(plot.id)
 											: selectedPlotId === plot.id)
@@ -320,7 +345,7 @@ export function PlotLayoutGrid({
 										{Number(plot.size_sqft || 0).toLocaleString("en-IN")} sqft
 									</span>
 									<span className="pointer-events-none absolute bottom-0.5 left-0 right-0 text-[8px] font-medium text-zinc-700 hidden sm:block">
-										{cfg.label}
+										{planned ? "Planned" : cfg.label}
 									</span>
 								</button>
 							);
@@ -442,6 +467,14 @@ export function PlotLayoutGrid({
 													onClick={async () => {
 														setBulkSaving(true);
 														try {
+															const invalid = multiSelectedPlotIds.filter((id) => !isUuid(id));
+															if (invalid.length) {
+																toast.error("Bulk update failed", {
+																	description:
+																		"Some selected plots are not created yet (planned). Create them first.",
+																});
+																return;
+															}
 															const res = await bulkUpdatePlots(
 																multiSelectedPlotIds,
 																projectId,
@@ -482,18 +515,18 @@ export function PlotLayoutGrid({
 									variant="secondary"
 									className="capitalize"
 									title={
-										selectedPlot.status === "sold" ||
-										selectedPlot.status === "agreement"
+										selectedStatus === "sold" ||
+										selectedStatus === "agreement"
 											? "payment completed sold"
-											: selectedPlot.status === "token"
+											: selectedStatus === "token"
 												? "token / booking"
 												: "available"
 									}
 								>
-									{selectedPlot.status === "token"
+									{selectedStatus === "token"
 										? "Token"
-										: selectedPlot.status === "sold" ||
-										  selectedPlot.status === "agreement"
+										: selectedStatus === "sold" ||
+										  selectedStatus === "agreement"
 											? "Sold"
 											: "Available"}
 								</Badge>
@@ -505,7 +538,7 @@ export function PlotLayoutGrid({
 								>
 									{editing ? "Cancel Edit" : "Edit"}
 								</Button>
-								{selectedPlot.status === "token" && selectedPlot.sale ? (
+								{selectedStatus === "token" && selectedPlot.sale ? (
 									<Button
 										size="sm"
 										disabled={saving}
@@ -525,7 +558,7 @@ export function PlotLayoutGrid({
 									</Button>
 								)}
 
-								{selectedPlot.sale && selectedPlot.status !== "available" ? (
+								{selectedPlot.sale && selectedStatus !== "available" ? (
 									<Button
 										size="sm"
 										variant="destructive"
@@ -579,6 +612,78 @@ export function PlotLayoutGrid({
 								)}
 								</div>
 							)}
+
+							{isPlaceholder && !multiSelectMode && !readOnly ? (
+								<div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+									<div className="font-semibold">This is a planned plot (not created yet).</div>
+									<div className="text-amber-900/80 mt-0.5">
+										Create this plot first to edit size/rate or sell it.
+									</div>
+									<div className="mt-2">
+										<Button
+											type="button"
+											size="sm"
+											disabled={creatingPlanned}
+											onClick={async () => {
+												if (!selectedPlot) return;
+												setCreatingPlanned(true);
+												try {
+													// Pick sensible defaults from first existing real plot in this project.
+													const seed = sortedPlots.find(
+														(p) =>
+															isUuid(String(p.id ?? "")) &&
+															Number(p.size_sqft ?? 0) > 0 &&
+															Number(p.rate_per_sqft ?? 0) > 0,
+													);
+													const sizeSeed = Number(seed?.size_sqft ?? 0);
+													const rateSeed = Number(seed?.rate_per_sqft ?? 0);
+													if (sizeSeed <= 0 || rateSeed <= 0) {
+														toast.error("Cannot auto-create plot", {
+															description:
+																"Set size and rate for at least one existing plot first, or create this plot manually.",
+														});
+														router.push(`/projects/${projectId}/plots/new`);
+														return;
+													}
+
+													const res = await createPlot(projectId, {
+														plot_number: String(selectedPlot.plot_number),
+														size_sqft: sizeSeed,
+														rate_per_sqft: rateSeed,
+														facing: "",
+														notes: "",
+													} as any);
+													if (!res.success) {
+														toast.error("Create plot failed", {
+															description: res.error,
+														});
+														return;
+													}
+													toast.success(`Plot #${selectedPlot.plot_number} created`);
+													setMultiSelectMode(false);
+													setMultiSelectedPlotIds([]);
+													setEditing(false);
+													router.refresh();
+												} finally {
+													setCreatingPlanned(false);
+												}
+											}}
+										>
+											{creatingPlanned ? "Creating..." : "Create plot (1-click)"}
+										</Button>
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											className="ml-2"
+											onClick={() => router.push(`/projects/${projectId}/plots/new`)}
+											disabled={creatingPlanned}
+										>
+											Open full form
+										</Button>
+									</div>
+								</div>
+							) : null}
 
 							{readOnly && !multiSelectMode ? (
 								<div className="mb-3">

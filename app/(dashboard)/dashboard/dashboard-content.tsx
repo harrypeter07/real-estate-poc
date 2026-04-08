@@ -215,7 +215,7 @@ export default async function DashboardContent({
 					<CardContent>
 						<div className="space-y-4 max-h-64 overflow-y-auto">
 							{stats.advisorPerformance.map((advisor) => (
-								<div key={advisor.name} className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 border border-zinc-100">
+								<div key={advisor.id ?? advisor.name} className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 border border-zinc-100">
 									<div className="min-w-0">
 										<p className="text-sm font-bold truncate">{advisor.name}</p>
 										<p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Paid: {formatCurrency(advisor.paidCommission)}</p>

@@ -108,6 +108,7 @@ export async function getReportStats(filters?: ReportFilters) {
 		const total = comms.reduce((s, c) => s + Number(c.total_commission_amount ?? 0), 0);
 		const paid = comms.reduce((s, c) => s + Number(c.amount_paid ?? 0), 0);
 		return {
+			id: a.id,
 			name: a.name,
 			totalCommission: total,
 			paidCommission: paid,
@@ -517,7 +518,7 @@ function getEmptyReport() {
 			totalExtraCommissionPaid: 0,
 		},
 		enquiryConversionTopCategories: [] as { category: string; count: number }[],
-		advisorPerformance: [] as { name: string; totalCommission: number; paidCommission: number; pending: number }[],
+		advisorPerformance: [] as { id: string; name: string; totalCommission: number; paidCommission: number; pending: number }[],
 		projectStats: [] as { name: string; total: number; sold: number; soldInPeriod: number; available: number }[],
 		revenueByProject: [] as { name: string; value: number }[],
 		revenueByPhase: [] as { phase: string; value: number }[],

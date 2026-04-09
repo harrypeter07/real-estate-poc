@@ -23,6 +23,26 @@ function formatDate(d: string | null | undefined): string {
 	return new Date(d).toISOString().slice(0, 10);
 }
 
+function makeWatermarkText(bizTitle: string) {
+	const raw = String(bizTitle ?? "").trim();
+	if (!raw) return "BUSINESS";
+	const cleaned = raw.replace(/[^\p{L}\p{N}\s&.-]+/gu, " ").replace(/\s+/g, " ").trim();
+	const words = cleaned.split(" ").filter(Boolean);
+
+	// Prefer initials for long names: "MG Infra Constructions Pvt Ltd" -> "MICPL"
+	if (words.length >= 3) {
+		const initials = words
+			.slice(0, 6)
+			.map((w) => w[0])
+			.join("")
+			.toUpperCase();
+		if (initials.length >= 3) return initials;
+	}
+
+	// Otherwise a short uppercased chunk, without overflowing
+	return cleaned.toUpperCase();
+}
+
 export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
@@ -148,7 +168,7 @@ async function generateReceiptFromSaleRow({
 	const bizSub =
 		(biz?.tagline || "Real Estate | Land & Plot Development").trim() ||
 		"Real Estate | Land & Plot Development";
-	const watermarkText = bizTitle.slice(0, 8).toUpperCase().padEnd(4, "·");
+	const watermarkRaw = makeWatermarkText(bizTitle);
 
 	const commissionRows = (Array.isArray(s.advisor_commissions)
 		? s.advisor_commissions
@@ -196,10 +216,15 @@ async function generateReceiptFromSaleRow({
 	}
 
 	// Watermark (short business name)
-	page.drawText(watermarkText.slice(0, 12), {
+	const wmText = watermarkRaw.slice(0, 18);
+	const wmBaseSize = 72;
+	const wmMaxWidth = 430; // visual target width on page at this rotation
+	const wmWidth = fontBold.widthOfTextAtSize(wmText, wmBaseSize);
+	const wmSize = Math.max(44, Math.min(wmBaseSize, (wmBaseSize * wmMaxWidth) / Math.max(1, wmWidth)));
+	page.drawText(wmText, {
 		x: 170,
 		y: 420,
-		size: 72,
+		size: wmSize,
 		font: fontBold,
 		color: rgb(0.93, 0.94, 0.97),
 		rotate: degrees(32),

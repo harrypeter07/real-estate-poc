@@ -124,30 +124,103 @@ export async function updateBusinessProfile(values: {
 	gst_number?: string | null;
 	pan_number?: string | null;
 	receipt_footer?: string | null;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; error?: string; profile?: BusinessProfile }> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 	const resolved = await resolveBusinessIdForSettings();
 	if (!resolved.ok) return { success: false, error: resolved.error };
 	const bid = resolved.businessId;
 
-	const { error } = await supabase
-		.from("businesses")
-		.update({
-			display_name: values.display_name ?? null,
-			tagline: values.tagline ?? null,
-			logo_path: values.logo_path ?? null,
-			address: values.address ?? null,
-			phone: values.phone ?? null,
-			email: values.email ?? null,
-			gst_number: values.gst_number ?? null,
-			pan_number: values.pan_number ?? null,
-			receipt_footer: values.receipt_footer ?? null,
-			updated_at: new Date().toISOString(),
-		})
-		.eq("id", bid);
+	const updatePayload = {
+		display_name: values.display_name ?? null,
+		tagline: values.tagline ?? null,
+		logo_path: values.logo_path ?? null,
+		address: values.address ?? null,
+		phone: values.phone ?? null,
+		email: values.email ?? null,
+		gst_number: values.gst_number ?? null,
+		pan_number: values.pan_number ?? null,
+		receipt_footer: values.receipt_footer ?? null,
+		updated_at: new Date().toISOString(),
+	};
+	console.warn("[business-settings] Update attempt", {
+		businessId: bid,
+		updatePayload,
+	});
 
-	if (error) return { success: false, error: error.message };
+	const { data, error } = await supabase
+		.from("businesses")
+		.update(updatePayload)
+		.eq("id", bid)
+		.select(
+			"id, name, display_name, tagline, logo_path, address, phone, email, gst_number, pan_number, receipt_footer"
+		)
+		.maybeSingle();
+
+	if (error) {
+		console.warn("[business-settings] Update failed", {
+			businessId: bid,
+			message: error.message,
+			code: (error as any).code,
+		});
+		return { success: false, error: error.message };
+	}
+
+	if (!data) {
+		// Can happen if RLS blocks update (0 rows affected). Fall back to admin client.
+		const admin = createAdminClient();
+		if (!admin) {
+			console.warn("[business-settings] Update affected 0 rows (no admin fallback)", {
+				businessId: bid,
+			});
+			return {
+				success: false,
+				error:
+					"Business update was blocked (0 rows affected). Check RLS policies for businesses table.",
+			};
+		}
+
+		console.warn("[business-settings] Update affected 0 rows, trying admin fallback", {
+			businessId: bid,
+		});
+		const { data: adminData, error: adminErr } = await admin
+			.from("businesses")
+			.update(updatePayload)
+			.eq("id", bid)
+			.select(
+				"id, name, display_name, tagline, logo_path, address, phone, email, gst_number, pan_number, receipt_footer"
+			)
+			.maybeSingle();
+
+		if (adminErr) {
+			console.warn("[business-settings] Admin fallback update failed", {
+				businessId: bid,
+				message: adminErr.message,
+				code: (adminErr as any).code,
+			});
+			return { success: false, error: adminErr.message };
+		}
+		if (!adminData) {
+			console.warn("[business-settings] Admin fallback update returned no row", {
+				businessId: bid,
+			});
+			return { success: false, error: "Business update failed (no row returned)." };
+		}
+
+		console.warn("[business-settings] Admin fallback update ok", {
+			businessId: bid,
+			display_name: (adminData as any).display_name ?? null,
+			tagline: (adminData as any).tagline ?? null,
+		});
+		revalidatePath("/settings/business");
+		return { success: true, profile: adminData as BusinessProfile };
+	}
+
+	console.warn("[business-settings] Updated business profile", {
+		businessId: bid,
+		display_name: (data as any).display_name ?? null,
+		tagline: (data as any).tagline ?? null,
+	});
 	revalidatePath("/settings/business");
-	return { success: true };
+	return { success: true, profile: data as BusinessProfile };
 }

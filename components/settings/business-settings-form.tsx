@@ -80,29 +80,61 @@ export function BusinessSettingsForm({
 			pan_number: toNullable(pan),
 			receipt_footer: toNullable(footer),
 		} as const;
+		try {
+			if (process.env.NODE_ENV !== "production") {
+				// eslint-disable-next-line no-console
+				console.debug("[business-settings-form] submit", {
+					businessId: initial?.id,
+					legalName,
+					payload,
+				});
+			}
+		} catch {
+			// ignore
+		}
 		const res = await updateBusinessProfile(payload);
 		setLoading(false);
 		if (!res.success) {
+			try {
+				if (process.env.NODE_ENV !== "production") {
+					// eslint-disable-next-line no-console
+					console.debug("[business-settings-form] save failed", { businessId: initial?.id, res });
+				}
+			} catch {
+				// ignore
+			}
 			toast.error(res.error ?? "Save failed");
 			return;
 		}
+		try {
+			if (process.env.NODE_ENV !== "production") {
+				// eslint-disable-next-line no-console
+				console.debug("[business-settings-form] save ok", { businessId: initial?.id, res });
+			}
+		} catch {
+			// ignore
+		}
 		toast.success("Business profile saved");
-		setSaved((prev) =>
-			prev
-				? {
-						...prev,
-						display_name: payload.display_name,
-						tagline: payload.tagline,
-						logo_path: payload.logo_path,
-						address: payload.address,
-						phone: payload.phone,
-						email: payload.email,
-						gst_number: payload.gst_number,
-						pan_number: payload.pan_number,
-						receipt_footer: payload.receipt_footer,
-				  }
-				: prev,
-		);
+		if (res.profile) {
+			setSaved(res.profile);
+		} else {
+			setSaved((prev) =>
+				prev
+					? {
+							...prev,
+							display_name: payload.display_name,
+							tagline: payload.tagline,
+							logo_path: payload.logo_path,
+							address: payload.address,
+							phone: payload.phone,
+							email: payload.email,
+							gst_number: payload.gst_number,
+							pan_number: payload.pan_number,
+							receipt_footer: payload.receipt_footer,
+					  }
+					: prev,
+			);
+		}
 		setEditing(false);
 		try {
 			const display = displayNameToSave || (initial?.name ?? "");

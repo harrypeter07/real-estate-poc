@@ -35,8 +35,11 @@ export function BusinessSettingsForm({
 	const [saved, setSaved] = useState<BusinessProfile | null>(initial);
 
 	const [logoPath, setLogoPath] = useState<string | null>(initial?.logo_path ?? null);
-	// Edit form values should be raw (empty string for nulls). "Not set" is display-only.
-	const [displayName, setDisplayName] = useState(initial?.display_name ?? "");
+	// Edit form values: for display name, prefill the effective value (display_name or fallback to name).
+	// Otherwise users think it's already set (placeholder) and save NULL again.
+	const [displayName, setDisplayName] = useState(
+		initial?.display_name ?? initial?.name ?? ""
+	);
 	const [tagline, setTagline] = useState(initial?.tagline ?? "");
 	const [address, setAddress] = useState(initial?.address ?? "");
 	const [phone, setPhone] = useState(initial?.phone ?? "");
@@ -50,7 +53,7 @@ export function BusinessSettingsForm({
 	useEffect(() => {
 		setSaved(initial);
 		setLogoPath(initial?.logo_path ?? null);
-		setDisplayName(initial?.display_name ?? "");
+		setDisplayName(initial?.display_name ?? initial?.name ?? "");
 		setTagline(initial?.tagline ?? "");
 		setAddress(initial?.address ?? "");
 		setPhone(initial?.phone ?? "");
@@ -63,8 +66,11 @@ export function BusinessSettingsForm({
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setLoading(true);
+		const legalName = String(initial?.name ?? "").trim();
+		const dn = String(displayName ?? "").trim();
+		const displayNameToSave = dn ? (legalName && dn === legalName ? null : dn) : null;
 		const payload = {
-			display_name: toNullable(displayName),
+			display_name: displayNameToSave,
 			tagline: toNullable(tagline),
 			logo_path: logoPath || null,
 			address: toNullable(address),
@@ -99,7 +105,7 @@ export function BusinessSettingsForm({
 		);
 		setEditing(false);
 		try {
-			const display = toNullable(displayName) || (initial?.name ?? "");
+			const display = displayNameToSave || (initial?.name ?? "");
 			const tag = toNullable(tagline) ?? "";
 			if (display) localStorage.setItem("app_business_display_name", display);
 			if (tag) localStorage.setItem("app_business_tagline", tag);

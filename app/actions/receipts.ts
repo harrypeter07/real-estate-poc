@@ -165,22 +165,76 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 
 		const { data: full } = await admin
 			.from("plot_sales")
-			.select(saleSelect)
+			// NOTE: older rows sometimes have broken/missing relationships.
+			// Fetch base sale first and then hydrate related entities separately.
+			.select(
+				"id, business_id, advisor_id, sale_phase, token_date, agreement_date, total_sale_amount, down_payment, amount_paid, remaining_amount, monthly_emi, emi_day, sold_by_admin, plot_id, customer_id"
+			)
 			.eq("id", saleId)
 			.maybeSingle();
+
 		if (!full) {
-			console.warn("[receipt] Admin fetch failed", {
+			console.warn("[receipt] Admin base sale fetch failed", {
 				saleId,
 				saleBiz: saleBiz || null,
 				businessId,
 			});
 			return { success: false, error: "Sale not found" };
 		}
-		// proceed using admin-fetched row
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const s = full as any;
-		// Reuse existing rendering logic by jumping to the shared block below.
-		return await generateReceiptFromSaleRow({ saleId, supabase: sb, saleRow: s });
+
+		const base = full as any;
+		const plotId = String(base.plot_id ?? "").trim();
+		const customerId = String(base.customer_id ?? "").trim();
+		const advisorId = String(base.advisor_id ?? "").trim();
+
+		const [{ data: plotRow }, { data: custRow }, { data: advRow }, { data: bizRow }, { data: commRows }] =
+			await Promise.all([
+				plotId
+					? admin
+							.from("plots")
+							.select("plot_number, size_sqft, projects(name, location)")
+							.eq("id", plotId)
+							.maybeSingle()
+					: Promise.resolve({ data: null } as any),
+				customerId
+					? admin
+							.from("customers")
+							.select("name, phone, address")
+							.eq("id", customerId)
+							.maybeSingle()
+					: Promise.resolve({ data: null } as any),
+				advisorId
+					? admin.from("advisors").select("name").eq("id", advisorId).maybeSingle()
+					: Promise.resolve({ data: null } as any),
+				base.business_id
+					? admin
+							.from("businesses")
+							.select(
+								"name, display_name, tagline, logo_path, address, phone, email, gst_number, pan_number, receipt_footer"
+							)
+							.eq("id", base.business_id)
+							.maybeSingle()
+					: Promise.resolve({ data: null } as any),
+				admin
+					.from("advisor_commissions")
+					.select("total_commission_amount, advisor_id, advisors(name, code)")
+					.eq("sale_id", saleId),
+			]);
+
+		const hydrated = {
+			...base,
+			plots: plotRow ?? null,
+			customers: custRow ?? null,
+			advisors: advRow ?? null,
+			businesses: bizRow ?? null,
+			advisor_commissions: commRows ?? [],
+		};
+
+		return await generateReceiptFromSaleRow({
+			saleId,
+			supabase: sb,
+			saleRow: hydrated,
+		});
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

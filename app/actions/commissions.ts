@@ -3,6 +3,27 @@
 import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+async function resolveBusinessIdForTenantQuery(): Promise<string | null> {
+	const bid = await getCurrentBusinessId();
+	if (bid) return bid;
+
+	// Fallback: if JWT metadata is missing, resolve via business_admins using service role.
+	const supabase = await createClient();
+	const admin = createAdminClient();
+	if (!supabase || !admin) return null;
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user?.id) return null;
+	const { data } = await admin
+		.from("business_admins")
+		.select("business_id")
+		.eq("auth_user_id", user.id)
+		.maybeSingle();
+	return String((data as any)?.business_id ?? "").trim() || null;
+}
 
 function attachSaleCommissionTeams(rows: any[]) {
 	const bySale = new Map<string, any[]>();
@@ -33,6 +54,8 @@ function attachSaleCommissionTeams(rows: any[]) {
 export async function getCommissions() {
 	const supabase = await createClient();
 	if (!supabase) return [];
+	const businessId = await resolveBusinessIdForTenantQuery();
+	if (!businessId) return [];
 
 	const baseSelect = `
       *,
@@ -81,6 +104,7 @@ export async function getCommissions() {
 	const { data: dataWithExtra, error: errWithExtra } = await supabase
 		.from("advisor_commissions")
 		.select(extraSelect)
+		.eq("business_id", businessId)
 		.order("created_at", { ascending: false });
 	if (!errWithExtra) return attachSaleCommissionTeams(dataWithExtra || []);
 
@@ -90,6 +114,7 @@ export async function getCommissions() {
 	const { data, error } = await supabase
 		.from("advisor_commissions")
 		.select(baseSelect)
+		.eq("business_id", businessId)
 		.order("created_at", { ascending: false });
 	if (error) throw new Error(error.message);
 	return attachSaleCommissionTeams(

@@ -13,6 +13,7 @@ import {
 	DropdownMenuItem,
 } from "@/components/ui";
 import { SelfProfileModal } from "./self-profile-modal";
+import { BusinessBrand } from "@/components/layout/business-brand";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -97,7 +98,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="hidden lg:block" />
+      <div className="hidden lg:block">
+        <BusinessBrand fallbackName="Business name not set" fallbackTagline="" />
+      </div>
 
       <div className="flex items-center gap-2">
         {userInfo && (

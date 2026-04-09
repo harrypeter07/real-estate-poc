@@ -2,6 +2,26 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getISOWeek, getISOWeekYear, startOfISOWeek } from "date-fns";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+async function resolveBusinessIdForReports(): Promise<string | null> {
+	const bid = await getCurrentBusinessId();
+	if (bid) return bid;
+	const supabase = await createClient();
+	const admin = createAdminClient();
+	if (!supabase || !admin) return null;
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user?.id) return null;
+	const { data } = await admin
+		.from("business_admins")
+		.select("business_id")
+		.eq("auth_user_id", user.id)
+		.maybeSingle();
+	return String((data as any)?.business_id ?? "").trim() || null;
+}
 
 export type ReportFilters = {
 	startDate?: string; // ISO date YYYY-MM-DD
@@ -35,6 +55,8 @@ export async function getReportStats(filters?: ReportFilters) {
 	if (!supabase) {
 		return getEmptyReport();
 	}
+	const businessId = await resolveBusinessIdForReports();
+	if (!businessId) return getEmptyReport();
 
 	const start = filters?.startDate ? toDateOnly(filters.startDate) : undefined;
 	const end = filters?.endDate ? toDateOnly(filters.endDate) : undefined;
@@ -44,6 +66,7 @@ export async function getReportStats(filters?: ReportFilters) {
 	let salesQuery = supabase
 		.from("plot_sales")
 		.select("id, customer_id, total_sale_amount, amount_paid, remaining_amount, created_at, plots(project_id, projects(id, name)), sale_phase")
+		.eq("business_id", businessId)
 		.eq("is_cancelled", false);
 	if (startTs) salesQuery = salesQuery.gte("created_at", startTs);
 	if (endTs) salesQuery = salesQuery.lte("created_at", endTs);
@@ -61,6 +84,7 @@ export async function getReportStats(filters?: ReportFilters) {
 	let paymentsQuery = supabase
 		.from("payments")
 		.select("amount, payment_date, is_confirmed")
+		.eq("business_id", businessId)
 		.eq("is_confirmed", true);
 	if (start) paymentsQuery = paymentsQuery.gte("payment_date", start);
 	if (end) paymentsQuery = paymentsQuery.lte("payment_date", end);
@@ -74,6 +98,7 @@ export async function getReportStats(filters?: ReportFilters) {
 	let expensesQuery = supabase
 		.from("office_expenses")
 		.select("amount, expense_date, category");
+	expensesQuery = expensesQuery.eq("business_id", businessId);
 	if (start) expensesQuery = expensesQuery.gte("expense_date", start);
 	if (end) expensesQuery = expensesQuery.lte("expense_date", end);
 	const { data: expenses } = await expensesQuery;
@@ -84,11 +109,13 @@ export async function getReportStats(filters?: ReportFilters) {
 	// 4. Advisor commissions
 	const { data: advisors } = await supabase
 		.from("advisors")
-		.select("id, name, advisor_commissions(total_commission_amount, amount_paid)");
+		.select("id, name, advisor_commissions(total_commission_amount, amount_paid)")
+		.eq("business_id", businessId);
 
 	const { data: commissionPayments, error: commissionPaymentsErr } = await supabase
 		.from("advisor_commission_payments")
-		.select("extra_paid_amount, paid_date");
+		.select("extra_paid_amount, paid_date")
+		.eq("business_id", businessId);
 	const safeCommissionPayments =
 		commissionPaymentsErr &&
 		(commissionPaymentsErr.message || "").toLowerCase().includes("extra_paid_amount")
@@ -119,7 +146,8 @@ export async function getReportStats(filters?: ReportFilters) {
 	// 5. Project stats
 	const { data: projects } = await supabase
 		.from("projects")
-		.select("id, name, plots(id, status)");
+		.select("id, name, plots(id, status)")
+		.eq("business_id", businessId);
 
 	const projectStats = (projects ?? []).map((p: any) => {
 		const plots = (p.plots as any[]) || [];

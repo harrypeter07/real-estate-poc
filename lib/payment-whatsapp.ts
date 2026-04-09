@@ -36,7 +36,7 @@ export function openWhatsAppPaymentReminder(input: {
 					? localStorage.getItem("app_business_display_name")
 					: "") ??
 				"",
-		).trim() || "S-INFRA";
+		).trim() || "Business name not set";
 
 	const message = fillPaymentTemplate(template.body, {
 		business,

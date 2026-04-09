@@ -23,6 +23,7 @@ import {
 	FormMessage,
 } from "@/components/ui";
 import { signInWithEmailOrPhone } from "@/app/actions/auth";
+import { BusinessBrand } from "@/components/layout/business-brand";
 
 const loginSchema = z.object({
 	identifier: z.string().trim().min(3, "Enter email or phone"),
@@ -100,10 +101,12 @@ export default function LoginPage() {
 								<Building2 className="h-8 w-8 text-white dark:text-zinc-900" />
 							</div>
 							<div>
-								<CardTitle className="text-2xl font-bold">S-INFRA</CardTitle>
-								<CardDescription className="text-sm mt-1">
-									Estate Management + CRM
-								</CardDescription>
+								<div className="text-zinc-900">
+									<BusinessBrand
+										fallbackName="Business name not set"
+										fallbackTagline="Estate Management + CRM"
+									/>
+								</div>
 							</div>
 						</CardHeader>
 						<CardContent>

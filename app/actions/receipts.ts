@@ -94,7 +94,8 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		| undefined;
 
 	const bizTitle =
-		(biz?.display_name || biz?.name || "S-INFRA").trim() || "S-INFRA";
+		(biz?.display_name || biz?.name || "Business name not set").trim() ||
+		"Business name not set";
 	const bizSub =
 		(biz?.tagline || "Real Estate | Land & Plot Development").trim() ||
 		"Real Estate | Land & Plot Development";

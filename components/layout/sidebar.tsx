@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ADMIN_NAV_ITEMS, type NavItem } from "./nav-items";
 import { Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { BusinessBrand } from "@/components/layout/business-brand";
 
 interface SidebarProps {
   open: boolean;
@@ -89,10 +90,7 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
             <div className="flex justify-center items-center w-9 h-9 bg-white rounded-lg">
               <Building2 className="w-5 h-5 text-zinc-900" />
             </div>
-            <div>
-              <p className="text-base font-bold leading-none">S-INFRA</p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Plot CRM</p>
-            </div>
+            <BusinessBrand fallbackName="Business name not set" fallbackTagline="" />
           </Link>
           <Button
             variant="ghost"
@@ -133,7 +131,12 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-zinc-800">
           <p className="text-[11px] text-zinc-500">
-            © {new Date().getFullYear()} S-INFRA
+            © {new Date().getFullYear()}{" "}
+            <span suppressHydrationWarning>
+              {typeof window !== "undefined"
+                ? (localStorage.getItem("app_business_display_name") ?? "Business name not set")
+                : "Business name not set"}
+            </span>
           </p>
         </div>
       </aside>

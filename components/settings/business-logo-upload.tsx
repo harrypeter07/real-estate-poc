@@ -97,16 +97,31 @@ export function BusinessLogoUpload({
 			</div>
 
 			{value && publicUrl ? (
-				<a
-					href={publicUrl}
-					target="_blank"
-					rel="noreferrer"
-					className="inline-flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-900"
-				>
-					<ImageIcon className="h-3.5 w-3.5" />
-					Preview logo
-				</a>
+				<div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3">
+					<img
+						src={publicUrl}
+						alt="Business logo"
+						className="h-14 w-14 rounded-md border border-zinc-200 object-contain bg-white"
+					/>
+					<div className="min-w-0">
+						<div className="text-xs font-semibold text-zinc-700">Uploaded logo</div>
+						<div className="text-[11px] text-zinc-500">
+							This logo will be printed on receipts.
+						</div>
+						<a
+							href={publicUrl}
+							target="_blank"
+							rel="noreferrer"
+							className="mt-1 inline-flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-900"
+						>
+							<ImageIcon className="h-3.5 w-3.5" />
+							Open full image
+						</a>
+					</div>
+				</div>
 			) : null}
+
+			{/* Inline preview above; keep link there only */}
 
 			{uploading ? <div className="text-xs text-zinc-500">Uploading…</div> : null}
 		</div>

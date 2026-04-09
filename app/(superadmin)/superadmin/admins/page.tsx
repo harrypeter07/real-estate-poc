@@ -74,7 +74,7 @@ export default function SuperAdminAdminsPage() {
 		if (!a.ok) setErr((prev) => prev ?? a.error);
 		setBiz(b.ok ? b.data : []);
 		setAdmins(a.ok ? a.data : []);
-		if (!selectedBiz && b.ok && b.data.length) setSelectedBiz(b.data[0].id);
+		// Default: show ALL businesses (no filter) unless user explicitly selects one.
 	}
 
 	useEffect(() => {

@@ -4,6 +4,7 @@ import { Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
+import { BusinessDocumentTitle } from "@/components/layout/business-document-title";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -17,22 +18,20 @@ export const viewport = {
 
 export const metadata: Metadata = {
 	title: {
-		default: "S-INFRA CRM | Real Estate & Plot Management",
-		template: "%s | S-INFRA CRM",
+		default: "CRM | Real Estate & Plot Management",
+		template: "%s | CRM",
 	},
 	description:
-		"Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by S-INFRA.",
+		"CRM system for real estate plot management, advisor commissions, and customer follow-ups.",
 	keywords: [
 		"real estate",
 		"crm",
 		"plot management",
-		"s-infra",
-		"nagpur",
 		"advisor commissions",
 	],
-	authors: [{ name: "S-INFRA" }],
-	creator: "S-INFRA",
-	publisher: "S-INFRA",
+	authors: [{ name: "CRM" }],
+	creator: "CRM",
+	publisher: "CRM",
 	icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -41,17 +40,16 @@ export const metadata: Metadata = {
     apple: "/favicon.svg",
   },
   openGraph: {
-    title: "S-INFRA CRM | Real Estate & Plot Management",
-    description: "Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by S-INFRA.",
-    url: "https://s-infra-crm.vercel.app",
-    siteName: "S-INFRA CRM",
+    title: "CRM | Real Estate & Plot Management",
+    description: "CRM system for real estate plot management, advisor commissions, and customer follow-ups.",
+    siteName: "CRM",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "S-INFRA CRM | Real Estate & Plot Management",
-    description: "Advanced CRM system for real estate plot management, advisor commissions, and customer follow-ups by S-INFRA.",
+    title: "CRM | Real Estate & Plot Management",
+    description: "CRM system for real estate plot management, advisor commissions, and customer follow-ups.",
   },
 };
 
@@ -68,6 +66,7 @@ export default function RootLayout({
 		>
 			<body className={inter.className} suppressHydrationWarning>
 				{children}
+				<BusinessDocumentTitle />
 				<Toaster position="top-right" richColors closeButton />
 			</body>
 		</html>

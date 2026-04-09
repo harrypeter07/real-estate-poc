@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 
 export type ReceiptResult = {
@@ -26,10 +28,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	if (!supabase) return { success: false, error: "Database connection failed" };
 	const sb = supabase;
 
-	const { data: sale, error: saleErr } = await supabase
-		.from("plot_sales")
-		.select(
-			`
+	const saleSelect = `
       id,
       business_id,
       advisor_id,
@@ -63,16 +62,66 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
         advisor_id,
         advisors(name, code)
       )
-    `
-		)
+    `;
+
+	const { data: sale, error: saleErr } = await supabase
+		.from("plot_sales")
+		.select(saleSelect)
 		.eq("id", saleId)
-		.single();
+		.maybeSingle();
 
 	if (saleErr || !sale) {
-		return { success: false, error: "Sale not found" };
+		// Older rows can fail RLS if business_id is NULL (or metadata missing).
+		// Use a guarded admin fallback: only allow if the sale is in current business
+		// OR the sale has NULL business_id (legacy) for this logged-in business.
+		const businessId = await getCurrentBusinessId();
+		const admin = createAdminClient();
+		if (!businessId || !admin) {
+			return { success: false, error: "Sale not found" };
+		}
+
+		const { data: saleHead } = await admin
+			.from("plot_sales")
+			.select("id, business_id")
+			.eq("id", saleId)
+			.maybeSingle();
+		if (!saleHead?.id) return { success: false, error: "Sale not found" };
+
+		const saleBiz = String((saleHead as any)?.business_id ?? "").trim();
+		if (saleBiz && saleBiz !== businessId) {
+			return { success: false, error: "Sale not found" };
+		}
+
+		const { data: full } = await admin
+			.from("plot_sales")
+			.select(saleSelect)
+			.eq("id", saleId)
+			.maybeSingle();
+		if (!full) return { success: false, error: "Sale not found" };
+		// proceed using admin-fetched row
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const s = full as any;
+		// Reuse existing rendering logic by jumping to the shared block below.
+		return await generateReceiptFromSaleRow({ saleId, supabase: sb, saleRow: s });
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const s = sale as any;
+	return await generateReceiptFromSaleRow({ saleId, supabase: sb, saleRow: s });
+}
+
+async function generateReceiptFromSaleRow({
+	saleId,
+	supabase,
+	saleRow,
+}: {
+	saleId: string;
+	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	saleRow: any;
+}): Promise<ReceiptResult> {
+	const sb = supabase;
+	const s = saleRow;
 	const project = s.plots?.projects;
 	const plot = s.plots;
 	const customer = s.customers;

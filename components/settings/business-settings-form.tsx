@@ -6,10 +6,12 @@ import { Loader2 } from "lucide-react";
 import { Button, Input, Textarea, Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui";
 import { updateBusinessProfile, type BusinessProfile } from "@/app/actions/business-settings";
 import { useRouter } from "next/navigation";
+import { BusinessLogoUpload } from "@/components/settings/business-logo-upload";
 
 export function BusinessSettingsForm({ initial }: { initial: BusinessProfile | null }) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
+	const [logoPath, setLogoPath] = useState<string | null>(initial?.logo_path ?? null);
 
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -18,6 +20,7 @@ export function BusinessSettingsForm({ initial }: { initial: BusinessProfile | n
 		const res = await updateBusinessProfile({
 			display_name: String(fd.get("display_name") ?? "").trim() || null,
 			tagline: String(fd.get("tagline") ?? "").trim() || null,
+			logo_path: logoPath || null,
 			address: String(fd.get("address") ?? "").trim() || null,
 			phone: String(fd.get("phone") ?? "").trim() || null,
 			email: String(fd.get("email") ?? "").trim() || null,
@@ -31,6 +34,14 @@ export function BusinessSettingsForm({ initial }: { initial: BusinessProfile | n
 			return;
 		}
 		toast.success("Business profile saved");
+		try {
+			const display = String(fd.get("display_name") ?? "").trim() || (initial?.name ?? "S-INFRA");
+			const tag = String(fd.get("tagline") ?? "").trim();
+			localStorage.setItem("app_business_display_name", display);
+			localStorage.setItem("app_business_tagline", tag);
+		} catch {
+			// ignore
+		}
 		router.refresh();
 	}
 
@@ -50,6 +61,11 @@ export function BusinessSettingsForm({ initial }: { initial: BusinessProfile | n
 			</CardHeader>
 			<CardContent>
 				<form onSubmit={onSubmit} className="space-y-4">
+					<BusinessLogoUpload
+						businessId={initial.id}
+						value={logoPath}
+						onChange={(p) => setLogoPath(p)}
+					/>
 					<div>
 						<label className="text-xs font-semibold text-zinc-600">Display name (receipts)</label>
 						<Input

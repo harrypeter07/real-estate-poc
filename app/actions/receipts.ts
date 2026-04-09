@@ -24,6 +24,7 @@ function formatDate(d: string | null | undefined): string {
 export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+	const sb = supabase;
 
 	const { data: sale, error: saleErr } = await supabase
 		.from("plot_sales")
@@ -49,6 +50,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
         name,
         display_name,
         tagline,
+        logo_path,
         address,
         phone,
         email,
@@ -80,6 +82,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 				name?: string | null;
 				display_name?: string | null;
 				tagline?: string | null;
+				logo_path?: string | null;
 				address?: string | null;
 				phone?: string | null;
 				email?: string | null;
@@ -128,6 +131,20 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const { width, height } = page.getSize();
 	let isFirstSection = true;
 
+	async function tryEmbedLogo() {
+		const p = String(biz?.logo_path ?? "").trim();
+		if (!p) return null;
+		try {
+			const { data, error } = await sb.storage.from("receipts").download(p);
+			if (error || !data) return null;
+			const ab = await (data as any).arrayBuffer();
+			const bytes = new Uint8Array(ab);
+			return await pdfDoc.embedJpg(bytes);
+		} catch {
+			return null;
+		}
+	}
+
 	// Watermark (short business name)
 	page.drawText(watermarkText.slice(0, 12), {
 		x: 170,
@@ -146,15 +163,27 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		height: 120,
 		color: rgb(0.08, 0.36, 0.62),
 	});
+	const logoImg = await tryEmbedLogo();
+	const logoW = 34;
+	const logoH = 34;
+	const titleX = logoImg ? 38 + logoW + 10 : 38;
+	if (logoImg) {
+		page.drawImage(logoImg, {
+			x: 38,
+			y: height - 92,
+			width: logoW,
+			height: logoH,
+		});
+	}
 	page.drawText(bizTitle.slice(0, 42), {
-		x: 38,
+		x: titleX,
 		y: height - 50,
 		size: 24,
 		font: fontBold,
 		color: rgb(1, 1, 1),
 	});
 	page.drawText(bizSub.slice(0, 80), {
-		x: 40,
+		x: titleX + 2,
 		y: height - 74,
 		size: 11,
 		font,

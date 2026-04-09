@@ -11,6 +11,7 @@ import { formatWhatsAppPhone } from "@/lib/payment-due";
 
 export function openWhatsAppPaymentReminder(input: {
 	phone: string | null | undefined;
+	businessName?: string | null;
 	customerName: string;
 	plot: string;
 	project: string;
@@ -28,8 +29,17 @@ export function openWhatsAppPaymentReminder(input: {
 	const remaining = formatCurrency(input.remainingAmount);
 	const emi = formatCurrency(Number(input.monthlyEmi ?? 0));
 	const due = input.nextDue ? formatDate(input.nextDue) : "—";
+	const business =
+		String(
+			input.businessName ??
+				(typeof window !== "undefined"
+					? localStorage.getItem("app_business_display_name")
+					: "") ??
+				"",
+		).trim() || "S-INFRA";
 
 	const message = fillPaymentTemplate(template.body, {
+		business,
 		name: input.customerName || "Customer",
 		plot: input.plot || "—",
 		project: input.project || "—",

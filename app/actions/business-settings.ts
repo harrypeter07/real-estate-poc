@@ -9,6 +9,7 @@ export type BusinessProfile = {
 	name: string;
 	display_name: string | null;
 	tagline: string | null;
+	logo_path: string | null;
 	address: string | null;
 	phone: string | null;
 	email: string | null;
@@ -25,7 +26,7 @@ export async function getBusinessProfile(): Promise<BusinessProfile | null> {
 	const { data, error } = await supabase
 		.from("businesses")
 		.select(
-			"id, name, display_name, tagline, address, phone, email, gst_number, pan_number, receipt_footer"
+			"id, name, display_name, tagline, logo_path, address, phone, email, gst_number, pan_number, receipt_footer"
 		)
 		.eq("id", bid)
 		.maybeSingle();
@@ -36,6 +37,7 @@ export async function getBusinessProfile(): Promise<BusinessProfile | null> {
 export async function updateBusinessProfile(values: {
 	display_name?: string | null;
 	tagline?: string | null;
+	logo_path?: string | null;
 	address?: string | null;
 	phone?: string | null;
 	email?: string | null;
@@ -53,6 +55,7 @@ export async function updateBusinessProfile(values: {
 		.update({
 			display_name: values.display_name ?? null,
 			tagline: values.tagline ?? null,
+			logo_path: values.logo_path ?? null,
 			address: values.address ?? null,
 			phone: values.phone ?? null,
 			email: values.email ?? null,

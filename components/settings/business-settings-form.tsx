@@ -17,11 +17,9 @@ function displayOrNotSet(v: string | null | undefined, fallback?: string) {
 	return f || NOT_SET;
 }
 
-function toNullableFromUi(v: string) {
+function toNullable(v: string) {
 	const s = String(v ?? "").trim();
-	if (!s) return null;
-	if (s.toLowerCase() === NOT_SET.toLowerCase()) return null;
-	return s;
+	return s ? s : null;
 }
 
 export function BusinessSettingsForm({
@@ -37,45 +35,44 @@ export function BusinessSettingsForm({
 	const [saved, setSaved] = useState<BusinessProfile | null>(initial);
 
 	const [logoPath, setLogoPath] = useState<string | null>(initial?.logo_path ?? null);
-	const [displayName, setDisplayName] = useState(
-		displayOrNotSet(initial?.display_name, initial?.name)
-	);
-	const [tagline, setTagline] = useState(displayOrNotSet(initial?.tagline));
-	const [address, setAddress] = useState(displayOrNotSet(initial?.address));
-	const [phone, setPhone] = useState(displayOrNotSet(initial?.phone));
-	const [email, setEmail] = useState(displayOrNotSet(initial?.email));
-	const [gst, setGst] = useState(displayOrNotSet(initial?.gst_number));
-	const [pan, setPan] = useState(displayOrNotSet(initial?.pan_number));
+	// Edit form values should be raw (empty string for nulls). "Not set" is display-only.
+	const [displayName, setDisplayName] = useState(initial?.display_name ?? "");
+	const [tagline, setTagline] = useState(initial?.tagline ?? "");
+	const [address, setAddress] = useState(initial?.address ?? "");
+	const [phone, setPhone] = useState(initial?.phone ?? "");
+	const [email, setEmail] = useState(initial?.email ?? "");
+	const [gst, setGst] = useState(initial?.gst_number ?? "");
+	const [pan, setPan] = useState(initial?.pan_number ?? "");
 	const [footer, setFooter] = useState(
-		displayOrNotSet(initial?.receipt_footer, "Thank you for your payment.")
+		initial?.receipt_footer ?? "Thank you for your payment."
 	);
 
 	useEffect(() => {
 		setSaved(initial);
 		setLogoPath(initial?.logo_path ?? null);
-		setDisplayName(displayOrNotSet(initial?.display_name, initial?.name));
-		setTagline(displayOrNotSet(initial?.tagline));
-		setAddress(displayOrNotSet(initial?.address));
-		setPhone(displayOrNotSet(initial?.phone));
-		setEmail(displayOrNotSet(initial?.email));
-		setGst(displayOrNotSet(initial?.gst_number));
-		setPan(displayOrNotSet(initial?.pan_number));
-		setFooter(displayOrNotSet(initial?.receipt_footer, "Thank you for your payment."));
+		setDisplayName(initial?.display_name ?? "");
+		setTagline(initial?.tagline ?? "");
+		setAddress(initial?.address ?? "");
+		setPhone(initial?.phone ?? "");
+		setEmail(initial?.email ?? "");
+		setGst(initial?.gst_number ?? "");
+		setPan(initial?.pan_number ?? "");
+		setFooter(initial?.receipt_footer ?? "Thank you for your payment.");
 	}, [initial?.id]);
 
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setLoading(true);
 		const payload = {
-			display_name: toNullableFromUi(displayName),
-			tagline: toNullableFromUi(tagline),
+			display_name: toNullable(displayName),
+			tagline: toNullable(tagline),
 			logo_path: logoPath || null,
-			address: toNullableFromUi(address),
-			phone: toNullableFromUi(phone),
-			email: toNullableFromUi(email),
-			gst_number: toNullableFromUi(gst),
-			pan_number: toNullableFromUi(pan),
-			receipt_footer: toNullableFromUi(footer),
+			address: toNullable(address),
+			phone: toNullable(phone),
+			email: toNullable(email),
+			gst_number: toNullable(gst),
+			pan_number: toNullable(pan),
+			receipt_footer: toNullable(footer),
 		} as const;
 		const res = await updateBusinessProfile(payload);
 		setLoading(false);
@@ -102,8 +99,8 @@ export function BusinessSettingsForm({
 		);
 		setEditing(false);
 		try {
-			const display = toNullableFromUi(displayName) || (initial?.name ?? "");
-			const tag = toNullableFromUi(tagline) ?? "";
+			const display = toNullable(displayName) || (initial?.name ?? "");
+			const tag = toNullable(tagline) ?? "";
 			if (display) localStorage.setItem("app_business_display_name", display);
 			if (tag) localStorage.setItem("app_business_tagline", tag);
 			else localStorage.removeItem("app_business_tagline");

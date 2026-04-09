@@ -43,6 +43,38 @@ function makeWatermarkText(bizTitle: string) {
 	return cleaned.toUpperCase();
 }
 
+async function resolveBusinessIdForReceipt(): Promise<{
+	businessId: string | null;
+	debug: Record<string, unknown>;
+}> {
+	const debug: Record<string, unknown> = {};
+	const fromMetaOrDefault = await getCurrentBusinessId();
+	debug.fromMetaOrDefault = fromMetaOrDefault ?? null;
+	if (fromMetaOrDefault) return { businessId: fromMetaOrDefault, debug };
+
+	const supabase = await createClient();
+	const admin = createAdminClient();
+	debug.hasSupabase = Boolean(supabase);
+	debug.hasAdmin = Boolean(admin);
+	if (!supabase || !admin) return { businessId: null, debug };
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	debug.userId = user?.id ?? null;
+	if (!user?.id) return { businessId: null, debug };
+
+	const { data, error } = await admin
+		.from("business_admins")
+		.select("business_id")
+		.eq("auth_user_id", user.id)
+		.maybeSingle();
+	debug.adminMapError = error?.message ?? null;
+	const bid = String((data as any)?.business_id ?? "").trim();
+	debug.adminMappedBusinessId = bid || null;
+	return { businessId: bid || null, debug };
+}
+
 export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
@@ -94,9 +126,16 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 		// Older rows can fail RLS if business_id is NULL (or metadata missing).
 		// Use a guarded admin fallback: only allow if the sale is in current business
 		// OR the sale has NULL business_id (legacy) for this logged-in business.
-		const businessId = await getCurrentBusinessId();
+		const resolved = await resolveBusinessIdForReceipt();
+		const businessId = resolved.businessId;
 		const admin = createAdminClient();
 		if (!businessId || !admin) {
+			console.warn("[receipt] Sale not found (no business/admin)", {
+				saleId,
+				saleErr: saleErr?.message ?? null,
+				businessId,
+				...resolved.debug,
+			});
 			return { success: false, error: "Sale not found" };
 		}
 
@@ -105,10 +144,22 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 			.select("id, business_id")
 			.eq("id", saleId)
 			.maybeSingle();
-		if (!saleHead?.id) return { success: false, error: "Sale not found" };
+		if (!saleHead?.id) {
+			console.warn("[receipt] Sale id missing in DB", {
+				saleId,
+				saleErr: saleErr?.message ?? null,
+				businessId,
+			});
+			return { success: false, error: "Sale not found" };
+		}
 
 		const saleBiz = String((saleHead as any)?.business_id ?? "").trim();
 		if (saleBiz && saleBiz !== businessId) {
+			console.warn("[receipt] Sale belongs to different business", {
+				saleId,
+				saleBiz,
+				businessId,
+			});
 			return { success: false, error: "Sale not found" };
 		}
 
@@ -117,7 +168,14 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 			.select(saleSelect)
 			.eq("id", saleId)
 			.maybeSingle();
-		if (!full) return { success: false, error: "Sale not found" };
+		if (!full) {
+			console.warn("[receipt] Admin fetch failed", {
+				saleId,
+				saleBiz: saleBiz || null,
+				businessId,
+			});
+			return { success: false, error: "Sale not found" };
+		}
 		// proceed using admin-fetched row
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const s = full as any;

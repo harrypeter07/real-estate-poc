@@ -62,6 +62,7 @@ export function SaleForm({
   const [subOptions, setSubOptions] = useState<{ id: string; name: string; code: string; phone: string }[]>([]);
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
   const [subComboKey, setSubComboKey] = useState(0);
+  const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = isDev;
 
   const form = useForm<SaleFormValues>({
@@ -86,6 +87,7 @@ export function SaleForm({
   });
 
   const selectedPlotId = form.watch("plot_id");
+  const selectedCustomerId = form.watch("customer_id");
   const soldByAdmin = form.watch("sold_by_admin");
   const selectedAdvisorId = form.watch("advisor_id");
   const advisorSellingOverride = form.watch("advisor_selling_price_per_sqft");
@@ -174,6 +176,31 @@ export function SaleForm({
     }
   }, [soldByAdmin, form]);
 
+  // Autofill advisor from selected customer.
+  // If customer is tagged to a sub-advisor, auto-pick parent as main and preselect the sub.
+  useEffect(() => {
+    if (soldByAdmin || !selectedCustomerId) {
+      setPreferredCustomerSubAdvisorId(null);
+      return;
+    }
+    const customer = (customers as any[]).find((c) => c.id === selectedCustomerId);
+    const customerAdvisorId = String(customer?.advisor_id ?? "").trim();
+    if (!customerAdvisorId) {
+      setPreferredCustomerSubAdvisorId(null);
+      return;
+    }
+    const linked = (advisors as any[]).find((a) => a.id === customerAdvisorId);
+    if (!linked?.id) return;
+    const parentId = String(linked.parent_advisor_id ?? "").trim();
+    if (parentId) {
+      form.setValue("advisor_id", parentId);
+      setPreferredCustomerSubAdvisorId(linked.id);
+    } else {
+      form.setValue("advisor_id", linked.id);
+      setPreferredCustomerSubAdvisorId(null);
+    }
+  }, [advisors, customers, form, selectedCustomerId, soldByAdmin]);
+
   useEffect(() => {
     if (!selectedAdvisorId || soldByAdmin) {
       setSubOptions([]);
@@ -198,6 +225,15 @@ export function SaleForm({
     if (!selectedAdvisorId || soldByAdmin) return;
     setSubAdvisorIds((prev) => prev.filter((id) => subOptions.some((s) => s.id === id)));
   }, [selectedAdvisorId, soldByAdmin, subOptions]);
+
+  useEffect(() => {
+    if (!preferredCustomerSubAdvisorId || soldByAdmin) return;
+    if (!subOptions.some((s) => s.id === preferredCustomerSubAdvisorId)) return;
+    setSubAdvisorIds((prev) =>
+      prev.includes(preferredCustomerSubAdvisorId) ? prev : [...prev, preferredCustomerSubAdvisorId]
+    );
+    setPreferredCustomerSubAdvisorId(null);
+  }, [preferredCustomerSubAdvisorId, soldByAdmin, subOptions]);
 
   // Keep one visible date in sync when switching phase (token ↔ other phases use different form keys).
   useEffect(() => {

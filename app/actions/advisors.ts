@@ -17,6 +17,18 @@ export type ActionResponse = {
 	error?: string;
 };
 
+export type AdvisorDeleteImpact = {
+	advisor_id: string;
+	advisor_name: string;
+	sub_advisors: number;
+	customers: number;
+	sales: number;
+	commission_rows: number;
+	commission_payments: number;
+	project_assignments: number;
+	birthday_reminders: number;
+};
+
 function getNextBirthdayDate(birthDate: string): string | null {
 	if (!birthDate) return null;
 	const parsed = new Date(birthDate);
@@ -406,6 +418,331 @@ export async function getAdvisorById(id: string) {
 
 	if (error) return null;
 	return data;
+}
+
+export async function setAdvisorParent(
+	advisorId: string,
+	parentAdvisorId: string | null,
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) return { success: false, error: "Business context missing" };
+
+	const { data: advisor, error: aErr } = await supabase
+		.from("advisors")
+		.select("id, name, parent_advisor_id, business_id, auth_user_id")
+		.eq("id", advisorId)
+		.eq("business_id", businessId)
+		.maybeSingle();
+	if (aErr || !advisor?.id) return { success: false, error: "Advisor not found" };
+
+	if (!parentAdvisorId) {
+		const { error } = await supabase
+			.from("advisors")
+			.update({ parent_advisor_id: null, updated_at: new Date().toISOString() })
+			.eq("id", advisorId)
+			.eq("business_id", businessId);
+		if (error) return { success: false, error: error.message };
+		revalidatePath("/advisors");
+		return { success: true };
+	}
+
+	if (parentAdvisorId === advisorId) {
+		return { success: false, error: "Advisor cannot be parent of itself." };
+	}
+
+	const { data: parent, error: pErr } = await supabase
+		.from("advisors")
+		.select("id, parent_advisor_id, business_id")
+		.eq("id", parentAdvisorId)
+		.eq("business_id", businessId)
+		.maybeSingle();
+	if (pErr || !parent?.id) return { success: false, error: "Parent advisor not found" };
+	if ((parent as any).parent_advisor_id) {
+		return { success: false, error: "Parent must be a main advisor (not sub-advisor)." };
+	}
+
+	// prevent cycles: advisor -> parent -> ... should never come back to advisor
+	let cursor = parent as any;
+	for (let i = 0; i < 10 && cursor?.parent_advisor_id; i++) {
+		if (cursor.parent_advisor_id === advisorId) {
+			return { success: false, error: "Invalid parent assignment (cycle detected)." };
+		}
+		const { data: next } = await supabase
+			.from("advisors")
+			.select("id, parent_advisor_id")
+			.eq("id", cursor.parent_advisor_id)
+			.maybeSingle();
+		cursor = next as any;
+	}
+
+	const { error } = await supabase
+		.from("advisors")
+		.update({ parent_advisor_id: parentAdvisorId, updated_at: new Date().toISOString() })
+		.eq("id", advisorId)
+		.eq("business_id", businessId);
+	if (error) return { success: false, error: error.message };
+
+	// Keep auth metadata in sync (best effort)
+	const admin = createAdminClient();
+	const authUserId = String((advisor as any).auth_user_id ?? "").trim();
+	if (admin && authUserId) {
+		await admin.auth.admin.updateUserById(authUserId, {
+			user_metadata: {
+				parent_advisor_id: parentAdvisorId,
+			},
+		});
+	}
+
+	revalidatePath("/advisors");
+	return { success: true };
+}
+
+export async function getAdvisorDeleteImpact(
+	advisorId: string,
+): Promise<AdvisorDeleteImpact | null> {
+	const supabase = await createClient();
+	if (!supabase) return null;
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) return null;
+
+	const { data: adv } = await supabase
+		.from("advisors")
+		.select("id, name")
+		.eq("id", advisorId)
+		.eq("business_id", businessId)
+		.maybeSingle();
+	if (!adv?.id) return null;
+
+	const [{ count: subCount }, { count: custCount }, { count: salesCount }, { count: commCount }, { data: commIds }, { count: assignCount }, { count: reminderCount }] =
+		await Promise.all([
+			supabase
+				.from("advisors")
+				.select("id", { count: "exact", head: true })
+				.eq("business_id", businessId)
+				.eq("parent_advisor_id", advisorId),
+			supabase
+				.from("customers")
+				.select("id", { count: "exact", head: true })
+				.eq("business_id", businessId)
+				.eq("advisor_id", advisorId),
+			supabase
+				.from("plot_sales")
+				.select("id", { count: "exact", head: true })
+				.eq("business_id", businessId)
+				.eq("advisor_id", advisorId),
+			supabase
+				.from("advisor_commissions")
+				.select("id", { count: "exact", head: true })
+				.eq("business_id", businessId)
+				.eq("advisor_id", advisorId),
+			supabase
+				.from("advisor_commissions")
+				.select("id")
+				.eq("business_id", businessId)
+				.eq("advisor_id", advisorId),
+			supabase
+				.from("advisor_project_commissions")
+				.select("id", { count: "exact", head: true })
+				.eq("business_id", businessId)
+				.eq("advisor_id", advisorId),
+			supabase
+				.from("reminders")
+				.select("id", { count: "exact", head: true })
+				.eq("business_id", businessId)
+				.eq("description", `AUTO_BIRTHDAY:advisor:${advisorId}`),
+		]);
+
+	const ids = (commIds ?? []).map((r: any) => r.id).filter(Boolean);
+	let commissionPaymentCount = 0;
+	if (ids.length > 0) {
+		const { count } = await supabase
+			.from("advisor_commission_payments")
+			.select("id", { count: "exact", head: true })
+			.in("commission_id", ids);
+		commissionPaymentCount = Number(count ?? 0);
+	}
+
+	return {
+		advisor_id: adv.id,
+		advisor_name: String((adv as any).name ?? ""),
+		sub_advisors: Number(subCount ?? 0),
+		customers: Number(custCount ?? 0),
+		sales: Number(salesCount ?? 0),
+		commission_rows: Number(commCount ?? 0),
+		commission_payments: commissionPaymentCount,
+		project_assignments: Number(assignCount ?? 0),
+		birthday_reminders: Number(reminderCount ?? 0),
+	};
+}
+
+export async function deleteAdvisorWithConfirmation(
+	advisorId: string,
+	options: {
+		confirmText: string;
+		mode: "detach" | "hard";
+	},
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+	const admin = createAdminClient();
+	if (!admin) return { success: false, error: "Admin client unavailable" };
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) return { success: false, error: "Business context missing" };
+
+	const { data: advisor, error: advErr } = await admin
+		.from("advisors")
+		.select("id, name, parent_advisor_id, auth_user_id, business_id")
+		.eq("id", advisorId)
+		.eq("business_id", businessId)
+		.maybeSingle();
+	if (advErr || !advisor?.id) return { success: false, error: "Advisor not found" };
+
+	const expected = String((advisor as any).name ?? "").trim().toLowerCase();
+	const typed = String(options.confirmText ?? "").trim().toLowerCase();
+	if (!expected || typed !== expected) {
+		return { success: false, error: "Confirmation text mismatch. Type exact advisor name." };
+	}
+
+	const impact = await getAdvisorDeleteImpact(advisorId);
+	if (!impact) return { success: false, error: "Unable to load delete impact." };
+	const hasRelations =
+		impact.sub_advisors +
+			impact.customers +
+			impact.sales +
+			impact.commission_rows +
+			impact.commission_payments +
+			impact.project_assignments >
+		0;
+	if (hasRelations && options.mode !== "hard" && options.mode !== "detach") {
+		return { success: false, error: "Delete mode is required." };
+	}
+
+	// 1) Re-parent direct subs to current advisor's parent (or null).
+	await admin
+		.from("advisors")
+		.update({
+			parent_advisor_id: (advisor as any).parent_advisor_id ?? null,
+			updated_at: new Date().toISOString(),
+		})
+		.eq("business_id", businessId)
+		.eq("parent_advisor_id", advisorId);
+
+	// 2) Cleanup advisor's own commission rows + payments.
+	const { data: ownComms } = await admin
+		.from("advisor_commissions")
+		.select("id")
+		.eq("business_id", businessId)
+		.eq("advisor_id", advisorId);
+	const ownCommIds = (ownComms ?? []).map((r: any) => r.id).filter(Boolean);
+	if (ownCommIds.length > 0) {
+		await admin
+			.from("advisor_commission_payments")
+			.delete()
+			.in("commission_id", ownCommIds);
+	}
+	await admin
+		.from("advisor_commissions")
+		.delete()
+		.eq("business_id", businessId)
+		.eq("advisor_id", advisorId);
+
+	if (options.mode === "hard") {
+		// Hard mode: delete this advisor's sales and dependent records.
+		const { data: sales } = await admin
+			.from("plot_sales")
+			.select("id, plot_id")
+			.eq("business_id", businessId)
+			.eq("advisor_id", advisorId);
+		const saleIds = (sales ?? []).map((s: any) => s.id).filter(Boolean);
+		const plotIds = (sales ?? []).map((s: any) => s.plot_id).filter(Boolean);
+
+		if (saleIds.length > 0) {
+			const { data: saleCommRows } = await admin
+				.from("advisor_commissions")
+				.select("id")
+				.eq("business_id", businessId)
+				.in("sale_id", saleIds);
+			const saleCommIds = (saleCommRows ?? []).map((r: any) => r.id).filter(Boolean);
+			if (saleCommIds.length > 0) {
+				await admin
+					.from("advisor_commission_payments")
+					.delete()
+					.in("commission_id", saleCommIds);
+			}
+			await admin
+				.from("advisor_commissions")
+				.delete()
+				.eq("business_id", businessId)
+				.in("sale_id", saleIds);
+			await admin
+				.from("payments")
+				.delete()
+				.eq("business_id", businessId)
+				.in("sale_id", saleIds);
+			await admin
+				.from("plot_sales")
+				.delete()
+				.eq("business_id", businessId)
+				.in("id", saleIds);
+
+			if (plotIds.length > 0) {
+				await admin
+					.from("plots")
+					.update({ status: "available", updated_at: new Date().toISOString() })
+					.eq("business_id", businessId)
+					.in("id", plotIds);
+			}
+		}
+	} else {
+		// Detach mode: preserve data, just remove advisor links.
+		await admin
+			.from("plot_sales")
+			.update({ advisor_id: null, updated_at: new Date().toISOString() })
+			.eq("business_id", businessId)
+			.eq("advisor_id", advisorId);
+	}
+
+	// 3) Detach customers from this advisor (preserve customers).
+	await admin
+		.from("customers")
+		.update({ advisor_id: null, updated_at: new Date().toISOString() })
+		.eq("business_id", businessId)
+		.eq("advisor_id", advisorId);
+
+	// 4) Cleanup reminders + project assignment rows.
+	await admin
+		.from("reminders")
+		.delete()
+		.eq("business_id", businessId)
+		.eq("description", `AUTO_BIRTHDAY:advisor:${advisorId}`);
+	await admin
+		.from("advisor_project_commissions")
+		.delete()
+		.eq("business_id", businessId)
+		.eq("advisor_id", advisorId);
+
+	// 5) Remove advisor.
+	const { error: delErr } = await admin
+		.from("advisors")
+		.delete()
+		.eq("business_id", businessId)
+		.eq("id", advisorId);
+	if (delErr) return { success: false, error: delErr.message };
+
+	// 6) Optional auth cleanup (best effort).
+	const authUserId = String((advisor as any).auth_user_id ?? "").trim();
+	if (authUserId) {
+		await admin.auth.admin.deleteUser(authUserId);
+	}
+
+	revalidatePath("/advisors");
+	revalidatePath("/customers");
+	revalidatePath("/sales");
+	revalidatePath("/payments");
+	revalidatePath("/commissions");
+	return { success: true };
 }
 
 export type AdvisorAnalytics = {

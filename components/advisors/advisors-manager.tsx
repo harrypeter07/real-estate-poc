@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Pencil, Eye, ChevronDown } from "lucide-react";
+import { Search, Pencil, Eye, ChevronDown, GitBranch, Trash2, Loader2 } from "lucide-react";
 import {
 	Button,
 	Card,
@@ -18,10 +18,19 @@ import {
 	TableHeader,
 	TableRow,
 	Badge,
+	SearchableCombobox,
 } from "@/components/ui";
 import { AdvisorForm } from "./advisor-form";
 import { cn } from "@/lib/utils";
 import { digitsOnly } from "@/lib/utils/phone";
+import {
+	deleteAdvisorWithConfirmation,
+	getAdvisorDeleteImpact,
+	setAdvisorParent,
+	type AdvisorDeleteImpact,
+} from "@/app/actions/advisors";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export type AdvisorSubRow = {
 	id: string;
@@ -39,11 +48,31 @@ export type MainAdvisorRow = AdvisorSubRow & {
 };
 
 export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
+	const router = useRouter();
 	const [query, setQuery] = useState("");
 	const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 	const [openEdit, setOpenEdit] = useState(false);
 	const [openView, setOpenView] = useState(false);
+	const [openTeam, setOpenTeam] = useState(false);
+	const [openDelete, setOpenDelete] = useState(false);
 	const [selected, setSelected] = useState<AdvisorSubRow | null>(null);
+	const [teamMode, setTeamMode] = useState<"main" | "sub">("main");
+	const [targetParentId, setTargetParentId] = useState("");
+	const [deleteMode, setDeleteMode] = useState<"detach" | "hard">("detach");
+	const [confirmText, setConfirmText] = useState("");
+	const [impactLoading, setImpactLoading] = useState(false);
+	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [teamLoading, setTeamLoading] = useState(false);
+	const [deleteImpact, setDeleteImpact] = useState<AdvisorDeleteImpact | null>(null);
+
+	const mainAdvisorOptions = useMemo(() => {
+		return advisors.map((a) => ({
+			value: a.id,
+			label: a.name,
+			subtitle: a.code,
+			keywords: a.phone,
+		}));
+	}, [advisors]);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -77,6 +106,53 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 			else next.add(id);
 			return next;
 		});
+	}
+
+	async function openDeleteDialog(row: AdvisorSubRow) {
+		setSelected(row);
+		setOpenDelete(true);
+		setDeleteImpact(null);
+		setConfirmText("");
+		setDeleteMode("detach");
+		setImpactLoading(true);
+		try {
+			const impact = await getAdvisorDeleteImpact(row.id);
+			setDeleteImpact(impact);
+		} finally {
+			setImpactLoading(false);
+		}
+	}
+
+	async function handleTeamSave() {
+		if (!selected) return;
+		setTeamLoading(true);
+		const parentId = teamMode === "main" ? null : targetParentId || null;
+		const res = await setAdvisorParent(selected.id, parentId);
+		setTeamLoading(false);
+		if (!res.success) {
+			toast.error("Team update failed", { description: res.error });
+			return;
+		}
+		toast.success("Advisor hierarchy updated");
+		setOpenTeam(false);
+		router.refresh();
+	}
+
+	async function handleDelete() {
+		if (!selected) return;
+		setDeleteLoading(true);
+		const res = await deleteAdvisorWithConfirmation(selected.id, {
+			confirmText,
+			mode: deleteMode,
+		});
+		setDeleteLoading(false);
+		if (!res.success) {
+			toast.error("Delete failed", { description: res.error });
+			return;
+		}
+		toast.success("Advisor deleted");
+		setOpenDelete(false);
+		router.refresh();
 	}
 
 	return (
@@ -239,6 +315,31 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 														size="sm"
 														variant="ghost"
 														className="h-7 w-7 p-0"
+														title="Change team"
+														onClick={() => {
+															setSelected(a);
+															setTeamMode("main");
+															setTargetParentId("");
+															setOpenTeam(true);
+														}}
+													>
+														<GitBranch className="h-3.5 w-3.5" />
+													</Button>
+													<Button
+														size="sm"
+														variant="ghost"
+														className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+														title="Delete advisor"
+														onClick={() => {
+															void openDeleteDialog(a);
+														}}
+													>
+														<Trash2 className="h-3.5 w-3.5" />
+													</Button>
+													<Button
+														size="sm"
+														variant="ghost"
+														className="h-7 w-7 p-0"
 														onClick={() => {
 															setSelected(a);
 															setOpenEdit(true);
@@ -280,6 +381,29 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 																			}}
 																		>
 																			View
+																		</Button>
+																		<Button
+																			size="sm"
+																			variant="ghost"
+																			className="h-7 px-2"
+																			onClick={() => {
+																				setSelected(s);
+																				setTeamMode("main");
+																				setTargetParentId("");
+																				setOpenTeam(true);
+																			}}
+																		>
+																			Team
+																		</Button>
+																		<Button
+																			size="sm"
+																			variant="ghost"
+																			className="h-7 px-2 text-red-600 hover:text-red-700"
+																			onClick={() => {
+																				void openDeleteDialog(s);
+																			}}
+																		>
+																			Delete
 																		</Button>
 																		<Button
 																			size="sm"
@@ -397,6 +521,140 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 							/>
 						)}
 					</div>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={openTeam} onOpenChange={setOpenTeam}>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Manage Advisor Team</DialogTitle>
+					</DialogHeader>
+					{selected ? (
+						<div className="space-y-3 text-sm">
+							<div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+								<div className="font-semibold">{selected.name}</div>
+								<div className="text-xs text-zinc-500 font-mono">{selected.code}</div>
+							</div>
+							<div className="flex gap-2">
+								<Button
+									type="button"
+									variant={teamMode === "main" ? "default" : "outline"}
+									size="sm"
+									onClick={() => setTeamMode("main")}
+								>
+									Make Main Advisor
+								</Button>
+								<Button
+									type="button"
+									variant={teamMode === "sub" ? "default" : "outline"}
+									size="sm"
+									onClick={() => setTeamMode("sub")}
+								>
+									Make Sub-advisor
+								</Button>
+							</div>
+							{teamMode === "sub" ? (
+								<div>
+									<label className="text-xs font-semibold text-zinc-600">Parent main advisor</label>
+									<SearchableCombobox
+										options={mainAdvisorOptions.filter((o) => o.value !== selected.id)}
+										value={targetParentId}
+										onChange={setTargetParentId}
+										placeholder="Search main advisor…"
+										emptyMessage="No main advisor available."
+									/>
+								</div>
+							) : null}
+							<div className="flex justify-end gap-2 pt-2">
+								<Button type="button" variant="outline" onClick={() => setOpenTeam(false)}>
+									Cancel
+								</Button>
+								<Button
+									type="button"
+									disabled={teamLoading || (teamMode === "sub" && !targetParentId)}
+									onClick={() => void handleTeamSave()}
+								>
+									{teamLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+									Save Team
+								</Button>
+							</div>
+						</div>
+					) : null}
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={openDelete} onOpenChange={setOpenDelete}>
+				<DialogContent className="max-w-xl">
+					<DialogHeader>
+						<DialogTitle>Delete Advisor</DialogTitle>
+					</DialogHeader>
+					{selected ? (
+						<div className="space-y-3 text-sm">
+							<div className="rounded-md border border-red-200 bg-red-50 p-3 text-red-900">
+								<div className="font-semibold">{selected.name}</div>
+								<div className="text-xs">This action is irreversible.</div>
+							</div>
+							{impactLoading ? (
+								<div className="text-zinc-500 text-xs">Loading related-record impact…</div>
+							) : deleteImpact ? (
+								<div className="rounded-md border border-zinc-200 p-3">
+									<div className="text-xs font-semibold text-zinc-700 mb-2">Related records</div>
+									<div className="grid grid-cols-2 gap-2 text-xs">
+										<div>Sub-advisors: <strong>{deleteImpact.sub_advisors}</strong></div>
+										<div>Customers: <strong>{deleteImpact.customers}</strong></div>
+										<div>Sales: <strong>{deleteImpact.sales}</strong></div>
+										<div>Commissions: <strong>{deleteImpact.commission_rows}</strong></div>
+										<div>Commission payments: <strong>{deleteImpact.commission_payments}</strong></div>
+										<div>Project assignments: <strong>{deleteImpact.project_assignments}</strong></div>
+									</div>
+								</div>
+							) : null}
+							<div className="flex gap-2">
+								<Button
+									type="button"
+									size="sm"
+									variant={deleteMode === "detach" ? "default" : "outline"}
+									onClick={() => setDeleteMode("detach")}
+								>
+									Preserve Sales (detach advisor)
+								</Button>
+								<Button
+									type="button"
+									size="sm"
+									variant={deleteMode === "hard" ? "default" : "outline"}
+									onClick={() => setDeleteMode("hard")}
+									className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+								>
+									Delete Sales + Related Records
+								</Button>
+							</div>
+							<div>
+								<label className="text-xs font-semibold text-zinc-600">
+									Type advisor name to confirm: <span className="font-mono">{selected.name}</span>
+								</label>
+								<Input
+									value={confirmText}
+									onChange={(e) => setConfirmText(e.target.value)}
+									placeholder={selected.name}
+									className="mt-1"
+								/>
+							</div>
+							<div className="flex justify-end gap-2 pt-2">
+								<Button type="button" variant="outline" onClick={() => setOpenDelete(false)}>
+									Cancel
+								</Button>
+								<Button
+									type="button"
+									disabled={deleteLoading || confirmText.trim().toLowerCase() !== selected.name.trim().toLowerCase()}
+									className="bg-red-600 hover:bg-red-700 text-white"
+									onClick={() => void handleDelete()}
+								>
+									{deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+									Delete Advisor
+								</Button>
+							</div>
+						</div>
+					) : null}
 				</DialogContent>
 			</Dialog>
 		</Card>

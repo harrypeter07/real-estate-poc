@@ -59,7 +59,8 @@ export function AdvisorForm({
 }: AdvisorFormProps) {
 	const router = useRouter();
 	const [parentAdvisorId, setParentAdvisorId] = useState("");
-	const [existingAdvisorId, setExistingAdvisorId] = useState("");
+	const [existingAdvisorIds, setExistingAdvisorIds] = useState<string[]>([]);
+	const [existingComboKey, setExistingComboKey] = useState(0);
 	const [subMode, setSubMode] = useState<"new" | "existing">("new");
 	const [loading, setLoading] = useState(false);
 	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
@@ -159,12 +160,25 @@ export function AdvisorForm({
 					return;
 				}
 				if (subMode === "existing") {
-					if (!existingAdvisorId) {
-						toast.error("Select existing advisor");
+					if (existingAdvisorIds.length === 0) {
+						toast.error("Select at least one existing advisor");
 						setLoading(false);
 						return;
 					}
-					result = await setAdvisorParent(existingAdvisorId, parentAdvisorId);
+					let ok = 0;
+					let lastErr = "";
+					for (const aid of existingAdvisorIds) {
+						const r = await setAdvisorParent(aid, parentAdvisorId);
+						if (r.success) ok += 1;
+						else lastErr = r.error ?? "Failed";
+					}
+					result =
+						ok === existingAdvisorIds.length
+							? { success: true }
+							: {
+									success: false,
+									error: `Updated ${ok}/${existingAdvisorIds.length}. ${lastErr}`,
+							  };
 				} else {
 					result = await createSubAdvisor({
 						...values,
@@ -211,6 +225,12 @@ export function AdvisorForm({
 			setLoading(false);
 		}
 	}
+
+	const parentName =
+		parentOptions.find((p) => p.id === parentAdvisorId)?.name ?? "selected main advisor";
+	const selectedExistingNames = existingAdvisorIds
+		.map((id) => existingAdvisorOptions.find((p) => p.id === id)?.name)
+		.filter(Boolean) as string[];
 
 	return (
 		<Card className="max-w-4xl w-full mx-auto">
@@ -268,23 +288,51 @@ export function AdvisorForm({
 									<>
 										<p className="text-xs font-semibold text-zinc-700 mb-2">Existing advisor *</p>
 										<SearchableCombobox
-											options={existingAdvisorOptions.map((p) => ({
+											key={existingComboKey}
+											options={existingAdvisorOptions
+												.filter((p) => !existingAdvisorIds.includes(p.id))
+												.map((p) => ({
 												value: p.id,
 												label: p.name,
 												subtitle: p.code,
 												keywords: p.phone ?? "",
 											}))}
-											value={existingAdvisorId}
-											onChange={setExistingAdvisorId}
+											value=""
+											onChange={(id) => {
+												if (id && !existingAdvisorIds.includes(id)) {
+													setExistingAdvisorIds((prev) => [...prev, id]);
+													setExistingComboKey((k) => k + 1);
+												}
+											}}
 											placeholder="Search advisor with no sub-advisors…"
 											emptyMessage="No eligible advisors."
 										/>
+										{existingAdvisorIds.length > 0 ? (
+											<div className="mt-2 flex flex-wrap gap-1.5">
+												{existingAdvisorIds.map((id) => {
+													const item = existingAdvisorOptions.find((x) => x.id === id);
+													return (
+														<button
+															key={id}
+															type="button"
+															className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]"
+															onClick={() =>
+																setExistingAdvisorIds((prev) => prev.filter((x) => x !== id))
+															}
+														>
+															{item?.name ?? id.slice(0, 8)}
+															<span className="text-zinc-400">×</span>
+														</button>
+													);
+												})}
+											</div>
+										) : null}
 									</>
 								) : null}
 								<p className="text-xs font-semibold text-zinc-700 mb-2">Parent advisor *</p>
 								<SearchableCombobox
 									options={parentOptions
-										.filter((p) => p.id !== existingAdvisorId)
+										.filter((p) => !existingAdvisorIds.includes(p.id))
 										.map((p) => ({
 											value: p.id,
 											label: p.name,
@@ -296,6 +344,13 @@ export function AdvisorForm({
 									placeholder="Search main advisor…"
 									emptyMessage="No advisor matches."
 								/>
+								{subMode === "existing" && existingAdvisorIds.length > 0 && parentAdvisorId ? (
+									<p className="mt-2 text-xs text-zinc-700">
+										<strong>{selectedExistingNames.join(", ")}</strong>{" "}
+										{selectedExistingNames.length === 1 ? "will become sub-advisor of" : "will become sub-advisors of"}{" "}
+										<strong>{parentName}</strong>.
+									</p>
+								) : null}
 							</div>
 						) : null}
 						{subMode !== "existing" ? (
@@ -501,7 +556,9 @@ export function AdvisorForm({
 							<Button
 								type="submit"
 								disabled={
-									loading || (mode === "edit" && !form.formState.isDirty)
+									loading ||
+									(mode === "edit" && !form.formState.isDirty) ||
+									(variant === "sub" && subMode === "existing" && (existingAdvisorIds.length === 0 || !parentAdvisorId))
 								}
 								className={`transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}
 							>

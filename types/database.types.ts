@@ -20,7 +20,7 @@ export type Plot = {
   size_sqft: number;
   rate_per_sqft: number;
   total_amount: number;
-  status?: 'available' | 'token' | 'agreement' | 'sold';
+  status?: 'available' | 'token' | 'agreement' | 'sold' | 'sold_without_data';
   facing?: string;
   notes?: string;
   created_at?: string;

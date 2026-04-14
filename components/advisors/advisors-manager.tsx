@@ -303,18 +303,18 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-7 w-7 p-0"
+														className="h-8 w-8 p-0"
 														onClick={() => {
 															setSelected(a);
 															setOpenView(true);
 														}}
 													>
-														<Eye className="h-3.5 w-3.5" />
+														<Eye className="h-4.5 w-4.5" />
 													</Button>
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-7 w-7 p-0"
+														className="h-8 w-8 p-0"
 														title="Change team"
 														onClick={() => {
 															setSelected(a);
@@ -323,29 +323,29 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 															setOpenTeam(true);
 														}}
 													>
-														<GitBranch className="h-3.5 w-3.5" />
+														<GitBranch className="h-4.5 w-4.5" />
 													</Button>
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+														className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
 														title="Delete advisor"
 														onClick={() => {
 															void openDeleteDialog(a);
 														}}
 													>
-														<Trash2 className="h-3.5 w-3.5" />
+														<Trash2 className="h-4.5 w-4.5" />
 													</Button>
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-7 w-7 p-0"
+														className="h-8 w-8 p-0"
 														onClick={() => {
 															setSelected(a);
 															setOpenEdit(true);
 														}}
 													>
-														<Pencil className="h-3.5 w-3.5" />
+														<Pencil className="h-4.5 w-4.5" />
 													</Button>
 												</div>
 											</TableCell>

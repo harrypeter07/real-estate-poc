@@ -17,6 +17,8 @@ export type ActionResponse = {
 	error?: string;
 };
 
+const EDITABLE_PLOT_STATUSES = new Set(["available", "sold_without_data"]);
+
 export async function createPlot(
 	projectId: string,
 	values: PlotFormValues
@@ -150,10 +152,10 @@ export async function updatePlot(
 		return { success: false, error: "Plot not found" };
 	}
 
-	if (plot.status !== "available") {
+	if (!EDITABLE_PLOT_STATUSES.has(String(plot.status ?? "").trim().toLowerCase())) {
 		return {
 			success: false,
-			error: "Cannot edit a plot that has an active sale or is sold",
+			error: "Cannot edit a plot that has an active sale",
 		};
 	}
 
@@ -295,6 +297,79 @@ export async function deletePlot(
 	return { success: true };
 }
 
+export async function markPlotTemporarySold(
+	plotId: string,
+	projectId: string,
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: plot, error: plotErr } = await supabase
+		.from("plots")
+		.select("id, status")
+		.eq("id", plotId)
+		.eq("project_id", projectId)
+		.maybeSingle();
+
+	if (plotErr) return { success: false, error: plotErr.message };
+	if (!plot) return { success: false, error: "Plot not found" };
+
+	const currentStatus = String(plot.status ?? "").trim().toLowerCase();
+	if (currentStatus === "token" || currentStatus === "agreement" || currentStatus === "sold") {
+		return {
+			success: false,
+			error: "This plot already has sale data. Use payment/status flow instead.",
+		};
+	}
+
+	const { error } = await supabase
+		.from("plots")
+		.update({ status: "sold_without_data", updated_at: new Date().toISOString() })
+		.eq("id", plotId)
+		.eq("project_id", projectId);
+
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath(`/projects/${projectId}/plots`);
+	revalidatePath(`/projects/${projectId}`);
+	return { success: true };
+}
+
+export async function markPlotAvailable(
+	plotId: string,
+	projectId: string,
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: activeSale, error: saleErr } = await supabase
+		.from("plot_sales")
+		.select("id")
+		.eq("plot_id", plotId)
+		.eq("is_cancelled", false)
+		.maybeSingle();
+
+	if (saleErr) return { success: false, error: saleErr.message };
+	if (activeSale) {
+		return {
+			success: false,
+			error: "This plot has active sale data and cannot be marked available directly.",
+		};
+	}
+
+	const { error } = await supabase
+		.from("plots")
+		.update({ status: "available", updated_at: new Date().toISOString() })
+		.eq("id", plotId)
+		.eq("project_id", projectId);
+
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath(`/projects/${projectId}/plots`);
+	revalidatePath(`/projects/${projectId}`);
+	return { success: true };
+}
+
 export async function revokePlotSale(
 	plotId: string
 ): Promise<ActionResponse> {
@@ -378,7 +453,7 @@ export type PlotWithSaleInfo = {
 	size_sqft: number;
 	rate_per_sqft: number;
 	total_amount: number;
-	status: "available" | "token" | "agreement" | "sold";
+	status: "available" | "token" | "agreement" | "sold" | "sold_without_data";
 	facing: string | null;
 	notes: string | null;
 	created_at: string;

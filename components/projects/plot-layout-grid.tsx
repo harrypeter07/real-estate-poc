@@ -11,6 +11,8 @@ import {
 	updatePlot,
 	deletePlot,
 	revokePlotSale,
+	markPlotTemporarySold,
+	markPlotAvailable,
 	bulkUpdatePlots,
 } from "@/app/actions/plots";
 import { SaleBookingDialog } from "@/components/sales/sale-booking-dialog";
@@ -20,7 +22,7 @@ interface PlotForGrid {
 	plot_number: string;
 	size_sqft: number;
 	rate_per_sqft: number;
-	status: "available" | "token" | "agreement" | "sold" | string;
+	status: "available" | "token" | "agreement" | "sold" | "sold_without_data" | string;
 	facing: string | null;
 	notes?: string | null;
 	sale?: {
@@ -46,7 +48,7 @@ interface PlotLayoutGridProps {
 	readOnly?: boolean;
 }
 
-type StatusKey = "available" | "token" | "sold";
+type StatusKey = "available" | "token" | "sold" | "sold_without_data";
 
 const STATUS_CONFIG: Record<
 	StatusKey,
@@ -72,6 +74,12 @@ const STATUS_CONFIG: Record<
 		label: "Sold",
 		className: "bg-rose-100 border-rose-400 hover:bg-rose-200 text-rose-900",
 		badgeClassName: "bg-rose-300",
+	},
+	sold_without_data: {
+		label: "Temp Sold",
+		className:
+			"bg-violet-100 border-violet-400 hover:bg-violet-200 text-violet-900",
+		badgeClassName: "bg-violet-300",
 	},
 };
 
@@ -155,7 +163,10 @@ export function PlotLayoutGrid({
 
 	const isPlaceholder = selectedPlot?.id?.startsWith?.("planned-") ?? false;
 	const selectedStatus = normalizePlotStatus(selectedPlot?.status);
-	const canEdit = selectedPlot && !isPlaceholder && selectedStatus === "available";
+	const canEdit =
+		selectedPlot &&
+		!isPlaceholder &&
+		(selectedStatus === "available" || selectedStatus === "sold_without_data");
 	const [creatingPlanned, setCreatingPlanned] = useState(false);
 
 	const [formState, setFormState] = useState<{
@@ -220,6 +231,7 @@ export function PlotLayoutGrid({
 				<div className="flex flex-wrap gap-3 items-center text-[11px] text-zinc-600">
 					<LegendPill colorClass="bg-emerald-300" label="Available" />
 					<LegendPill colorClass="bg-amber-300" label="Token" />
+					<LegendPill colorClass="bg-violet-300" label="Sold (No Data)" />
 					<LegendPill colorClass="bg-rose-300" label="Sold" />
 					{!readOnly ? (
 						<Button
@@ -289,6 +301,8 @@ export function PlotLayoutGrid({
 							const statusKey: StatusKey =
 								rawStatus === "token"
 									? "token"
+									: rawStatus === "sold_without_data"
+										? "sold_without_data"
 									: rawStatus === "sold" || rawStatus === "agreement"
 										? "sold"
 										: "available";
@@ -321,6 +335,8 @@ export function PlotLayoutGrid({
 									title={
 										statusKey === "sold"
 											? "payment completed sold"
+											: statusKey === "sold_without_data"
+												? "temporary sold without buyer data"
 											: statusKey === "token"
 												? "token / booking"
 												: "available"
@@ -518,6 +534,8 @@ export function PlotLayoutGrid({
 										selectedStatus === "sold" ||
 										selectedStatus === "agreement"
 											? "payment completed sold"
+											: selectedStatus === "sold_without_data"
+												? "temporary sold without buyer data"
 											: selectedStatus === "token"
 												? "token / booking"
 												: "available"
@@ -525,6 +543,8 @@ export function PlotLayoutGrid({
 								>
 									{selectedStatus === "token"
 										? "Token"
+										: selectedStatus === "sold_without_data"
+											? "Sold (No Data)"
 										: selectedStatus === "sold" ||
 										  selectedStatus === "agreement"
 											? "Sold"
@@ -538,7 +558,8 @@ export function PlotLayoutGrid({
 								>
 									{editing ? "Cancel Edit" : "Edit"}
 								</Button>
-								{selectedStatus === "token" && selectedPlot.sale ? (
+								{(selectedStatus === "token" || selectedStatus === "sold_without_data") &&
+								selectedPlot.sale ? (
 									<Button
 										size="sm"
 										disabled={saving}
@@ -557,6 +578,58 @@ export function PlotLayoutGrid({
 										Sell / Book
 									</Button>
 								)}
+
+								{selectedStatus === "available" && !selectedPlot.sale ? (
+									<Button
+										size="sm"
+										variant="outline"
+										disabled={saving || isPlaceholder}
+										onClick={async () => {
+											setSaving(true);
+											try {
+												const res = await markPlotTemporarySold(selectedPlot.id, projectId);
+												if (!res.success) {
+													toast.error("Could not mark temporary sold", {
+														description: res.error,
+													});
+													return;
+												}
+												toast.success("Plot marked as sold without data");
+												router.refresh();
+											} finally {
+												setSaving(false);
+											}
+										}}
+									>
+										Mark Temporary Sold
+									</Button>
+								) : null}
+
+								{selectedStatus === "sold_without_data" && !selectedPlot.sale ? (
+									<Button
+										size="sm"
+										variant="outline"
+										disabled={saving || isPlaceholder}
+										onClick={async () => {
+											setSaving(true);
+											try {
+												const res = await markPlotAvailable(selectedPlot.id, projectId);
+												if (!res.success) {
+													toast.error("Could not mark available", {
+														description: res.error,
+													});
+													return;
+												}
+												toast.success("Plot marked available");
+												router.refresh();
+											} finally {
+												setSaving(false);
+											}
+										}}
+									>
+										Mark Available
+									</Button>
+								) : null}
 
 								{selectedPlot.sale && selectedStatus !== "available" ? (
 									<Button
@@ -694,6 +767,8 @@ export function PlotLayoutGrid({
 											selectedPlot.status === "sold" ||
 											selectedPlot.status === "agreement"
 												? "payment completed sold"
+												: selectedPlot.status === "sold_without_data"
+													? "temporary sold without buyer data"
 												: selectedPlot.status === "token"
 													? "token / booking"
 													: "available"
@@ -701,6 +776,8 @@ export function PlotLayoutGrid({
 									>
 										{selectedPlot.status === "token"
 											? "Token"
+											: selectedPlot.status === "sold_without_data"
+												? "Sold (No Data)"
 											: selectedPlot.status === "sold" ||
 											  selectedPlot.status === "agreement"
 												? "Sold"

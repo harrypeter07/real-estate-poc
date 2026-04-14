@@ -152,7 +152,13 @@ export async function getReportStats(filters?: ReportFilters) {
 	const projectStats = (projects ?? []).map((p: any) => {
 		const plots = (p.plots as any[]) || [];
 		const total = plots.length;
-		const sold = plots.filter((pl: any) => pl.status === "sold" || pl.status === "agreement" || pl.status === "token").length;
+		const sold = plots.filter(
+			(pl: any) =>
+				pl.status === "sold" ||
+				pl.status === "agreement" ||
+				pl.status === "token" ||
+				pl.status === "sold_without_data",
+		).length;
 		const available = plots.filter((pl: any) => pl.status === "available").length;
 		const soldInPeriod = filteredSales.filter((s: any) =>
 			(s as any).plots?.project_id === p.id || (s as any).plots?.projects?.id === p.id
@@ -355,7 +361,11 @@ export async function getProjectAnalytics(projectId: string) {
 	const plotIds = (plots ?? []).map((p: any) => p.id);
 	const total = plots?.length ?? 0;
 	const sold = (plots ?? []).filter(
-		(p: any) => p.status === "sold" || p.status === "agreement" || p.status === "token"
+		(p: any) =>
+			p.status === "sold" ||
+			p.status === "agreement" ||
+			p.status === "token" ||
+			p.status === "sold_without_data"
 	).length;
 	const available = (plots ?? []).filter((p: any) => p.status === "available").length;
 

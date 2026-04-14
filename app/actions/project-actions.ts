@@ -233,8 +233,13 @@ export async function getProjectWithStats(
 	};
 
 	plots?.forEach((plot) => {
-		if (plot.status && plot.status in plotCounts) {
-			plotCounts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
+		const status = String(plot.status ?? "").trim().toLowerCase();
+		if (status === "sold_without_data") {
+			plotCounts.sold++;
+			return;
+		}
+		if (status && status in plotCounts) {
+			plotCounts[status as keyof Omit<PlotStatusCounts, "total">]++;
 		}
 	});
 
@@ -355,15 +360,18 @@ export async function getProjectsWithPlotCounts() {
 		const counts = plotCountsMap.get(plot.project_id);
 		const area = areaMap.get(plot.project_id);
 		const size = Number(plot.size_sqft ?? 0);
+		const status = String(plot.status ?? "").trim().toLowerCase();
 		if (counts) {
 			counts.total++;
-			if (plot.status && plot.status in counts) {
-				counts[plot.status as keyof Omit<PlotStatusCounts, "total">]++;
+			if (status === "sold_without_data") {
+				counts.sold++;
+			} else if (status && status in counts) {
+				counts[status as keyof Omit<PlotStatusCounts, "total">]++;
 			}
 		}
 		if (area) {
 			area.total += size;
-			if (plot.status === "available") {
+			if (status === "available") {
 				area.available += size;
 			}
 		}

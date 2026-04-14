@@ -43,6 +43,11 @@ const statusConfig = {
 		icon: ShieldCheck,
 		className: "bg-red-50 text-red-700 border-red-200",
 	},
+	sold_without_data: {
+		label: "Sold (No Data)",
+		icon: ShieldCheck,
+		className: "bg-violet-50 text-violet-700 border-violet-200",
+	},
 };
 
 interface PlotCardProps {
@@ -60,7 +65,7 @@ interface PlotCardProps {
 export function PlotCard({ plot, projectId }: PlotCardProps) {
 	const router = useRouter();
 	const status = (plot.status || "available") as keyof typeof statusConfig;
-	const config = statusConfig[status];
+	const config = statusConfig[status] ?? statusConfig.available;
 	const StatusIcon = config.icon;
 	const totalAmount = plot.size_sqft * plot.rate_per_sqft;
 

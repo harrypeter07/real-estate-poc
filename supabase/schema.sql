@@ -2,7 +2,7 @@
 -- ENUMS
 -- =============================================
 CREATE TYPE plot_status AS ENUM 
-  ('available', 'token', 'agreement', 'sold');
+  ('available', 'token', 'agreement', 'sold', 'sold_without_data');
 
 CREATE TYPE payment_mode AS ENUM 
   ('cash', 'online', 'cheque');

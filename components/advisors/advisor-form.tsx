@@ -27,7 +27,12 @@ import {
 	advisorSchema,
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
-import { createAdvisor, createSubAdvisor, updateAdvisor } from "@/app/actions/advisors";
+import {
+	createAdvisor,
+	createSubAdvisor,
+	updateAdvisor,
+	setAdvisorParent,
+} from "@/app/actions/advisors";
 import { isDev } from "@/lib/is-dev";
 
 interface AdvisorFormProps {
@@ -35,6 +40,7 @@ interface AdvisorFormProps {
 	/** Sub-advisor flow: pick a main advisor, then same fields as create. */
 	variant?: "default" | "sub";
 	parentOptions?: { id: string; name: string; code: string; phone?: string }[];
+	existingAdvisorOptions?: { id: string; name: string; code: string; phone?: string }[];
 	initialData?: any;
 	onSuccess?: () => void;
 	onCancel?: () => void;
@@ -45,6 +51,7 @@ export function AdvisorForm({
 	mode,
 	variant = "default",
 	parentOptions = [],
+	existingAdvisorOptions = [],
 	initialData,
 	onSuccess,
 	onCancel,
@@ -52,6 +59,8 @@ export function AdvisorForm({
 }: AdvisorFormProps) {
 	const router = useRouter();
 	const [parentAdvisorId, setParentAdvisorId] = useState("");
+	const [existingAdvisorId, setExistingAdvisorId] = useState("");
+	const [subMode, setSubMode] = useState<"new" | "existing">("new");
 	const [loading, setLoading] = useState(false);
 	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 	const [statusText, setStatusText] = useState("");
@@ -149,10 +158,19 @@ export function AdvisorForm({
 					setLoading(false);
 					return;
 				}
-				result = await createSubAdvisor({
-					...values,
-					parent_advisor_id: parentAdvisorId,
-				});
+				if (subMode === "existing") {
+					if (!existingAdvisorId) {
+						toast.error("Select existing advisor");
+						setLoading(false);
+						return;
+					}
+					result = await setAdvisorParent(existingAdvisorId, parentAdvisorId);
+				} else {
+					result = await createSubAdvisor({
+						...values,
+						parent_advisor_id: parentAdvisorId,
+					});
+				}
 			} else {
 				result = await createAdvisor(values);
 			}
@@ -227,14 +245,52 @@ export function AdvisorForm({
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						{variant === "sub" && mode === "create" ? (
 							<div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3">
+								<p className="text-xs font-semibold text-zinc-700 mb-2">Mode</p>
+								<div className="flex flex-wrap gap-2 mb-3">
+									<Button
+										type="button"
+										size="sm"
+										variant={subMode === "new" ? "default" : "outline"}
+										onClick={() => setSubMode("new")}
+									>
+										Create New Sub-advisor
+									</Button>
+									<Button
+										type="button"
+										size="sm"
+										variant={subMode === "existing" ? "default" : "outline"}
+										onClick={() => setSubMode("existing")}
+									>
+										Use Existing Advisor
+									</Button>
+								</div>
+								{subMode === "existing" ? (
+									<>
+										<p className="text-xs font-semibold text-zinc-700 mb-2">Existing advisor *</p>
+										<SearchableCombobox
+											options={existingAdvisorOptions.map((p) => ({
+												value: p.id,
+												label: p.name,
+												subtitle: p.code,
+												keywords: p.phone ?? "",
+											}))}
+											value={existingAdvisorId}
+											onChange={setExistingAdvisorId}
+											placeholder="Search advisor with no sub-advisors…"
+											emptyMessage="No eligible advisors."
+										/>
+									</>
+								) : null}
 								<p className="text-xs font-semibold text-zinc-700 mb-2">Parent advisor *</p>
 								<SearchableCombobox
-									options={parentOptions.map((p) => ({
-										value: p.id,
-										label: p.name,
-										subtitle: p.code,
-										keywords: p.phone ?? "",
-									}))}
+									options={parentOptions
+										.filter((p) => p.id !== existingAdvisorId)
+										.map((p) => ({
+											value: p.id,
+											label: p.name,
+											subtitle: p.code,
+											keywords: p.phone ?? "",
+										}))}
 									value={parentAdvisorId}
 									onChange={setParentAdvisorId}
 									placeholder="Search main advisor…"
@@ -242,6 +298,7 @@ export function AdvisorForm({
 								/>
 							</div>
 						) : null}
+						{subMode !== "existing" ? (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 							<FormField
 								control={form.control}
@@ -329,8 +386,9 @@ export function AdvisorForm({
 								)}
 							/>
 						</div>
+						) : null}
 
-						{mode === "create" && (
+						{mode === "create" && subMode !== "existing" && (
 							<div className="rounded-lg border border-zinc-200 p-3 space-y-2 bg-zinc-50/50">
 								<h3 className="text-sm font-semibold">Login Credentials</h3>
 								<p className="text-xs text-zinc-500">
@@ -379,6 +437,7 @@ export function AdvisorForm({
 							</div>
 						)}
 
+						{subMode !== "existing" ? (
 						<FormField
 							control={form.control}
 							name="address"
@@ -395,7 +454,9 @@ export function AdvisorForm({
 								</FormItem>
 							)}
 						/>
+						) : null}
 
+						{subMode !== "existing" ? (
 						<div className="rounded-lg border border-zinc-200 p-3 bg-zinc-50/50">
 							<p className="text-sm font-semibold text-zinc-900">
 								Commission (Project-wise)
@@ -404,7 +465,9 @@ export function AdvisorForm({
 								Commission is set per project when assigning an advisor.
 							</p>
 						</div>
+						) : null}
 
+						{subMode !== "existing" ? (
 						<FormField
 							control={form.control}
 							name="notes"
@@ -422,6 +485,7 @@ export function AdvisorForm({
 								</FormItem>
 							)}
 						/>
+						) : null}
 
 						<div className="flex gap-3 pt-4">
 							<Button
@@ -442,7 +506,13 @@ export function AdvisorForm({
 								className={`transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}
 							>
 								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								{loading ? "Submitting..." : mode === "edit" ? "Update Advisor" : "Create Advisor"}
+								{loading
+									? "Submitting..."
+									: mode === "edit"
+										? "Update Advisor"
+										: variant === "sub" && subMode === "existing"
+											? "Make Sub-advisor"
+											: "Create Advisor"}
 							</Button>
 						</div>
 						{submitStatus !== "idle" && (

@@ -296,8 +296,9 @@ export function PlotLayoutGrid({
 							</div>
 						) : null}
 						{filteredPlotsForGrid.map((plot) => {
+							const plotId = String(plot.id ?? "");
 							const rawStatus = normalizePlotStatus(plot.status);
-							const planned = String(plot.id ?? "").startsWith("planned-");
+							const planned = plotId.startsWith("planned-");
 							const statusKey: StatusKey =
 								rawStatus === "token"
 									? "token"
@@ -310,7 +311,7 @@ export function PlotLayoutGrid({
 
 							return (
 								<button
-									key={plot.id}
+									key={plotId}
 									type="button"
 									onClick={() => {
 										if (multiSelectMode) {
@@ -323,14 +324,14 @@ export function PlotLayoutGrid({
 												return;
 											}
 											setMultiSelectedPlotIds((prev) =>
-												prev.includes(plot.id)
-													? prev.filter((x) => x !== plot.id)
-													: [...prev, plot.id]
+												prev.includes(plotId)
+													? prev.filter((x) => x !== plotId)
+													: [...prev, plotId]
 											);
-											setSelectedPlotId(plot.id);
+											setSelectedPlotId(plotId);
 											return;
 										}
-										setSelectedPlotId(plot.id);
+										setSelectedPlotId(plotId);
 									}}
 									title={
 										statusKey === "sold"
@@ -348,8 +349,8 @@ export function PlotLayoutGrid({
 										cfg.className,
 										planned ? "opacity-75" : "",
 										(multiSelectMode
-											? multiSelectedPlotIds.includes(plot.id)
-											: selectedPlotId === plot.id)
+											? multiSelectedPlotIds.includes(plotId)
+											: selectedPlotId === plotId)
 											? "ring-2 ring-sky-500 ring-offset-2"
 											: "",
 									].join(" ")}

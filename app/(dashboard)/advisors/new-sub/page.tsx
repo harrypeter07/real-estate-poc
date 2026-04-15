@@ -39,6 +39,7 @@ export default async function NewSubAdvisorPage() {
 					variant="sub"
 					parentOptions={parentOptions}
 					existingAdvisorOptions={existingAdvisorOptions}
+					redirectToList={false}
 				/>
 			</div>
 		</div>

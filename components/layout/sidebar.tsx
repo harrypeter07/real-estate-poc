@@ -20,6 +20,7 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
   const pathname = usePathname();
   const baseItems = items ?? ADMIN_NAV_ITEMS;
   const [enabledModules, setEnabledModules] = useState<Set<string> | null>(null);
+  const [businessDisplayName, setBusinessDisplayName] = useState("Business name not set");
 
   useEffect(() => {
     // Only filter when using default ADMIN_NAV_ITEMS (dashboard sidebar).
@@ -58,6 +59,20 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
       window.clearInterval(interval);
     };
   }, [items]);
+
+  useEffect(() => {
+    function syncBusinessName() {
+      try {
+        const next = String(localStorage.getItem("app_business_display_name") ?? "").trim();
+        setBusinessDisplayName(next || "Business name not set");
+      } catch {
+        setBusinessDisplayName("Business name not set");
+      }
+    }
+    syncBusinessName();
+    const interval = window.setInterval(syncBusinessName, 2000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const navItems = useMemo(() => {
     // If enabledModules is null => don't filter (compat mode).
@@ -131,12 +146,7 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-zinc-800">
           <p className="text-[11px] text-zinc-500">
-            © {new Date().getFullYear()}{" "}
-            <span suppressHydrationWarning>
-              {typeof window !== "undefined"
-                ? (localStorage.getItem("app_business_display_name") ?? "Business name not set")
-                : "Business name not set"}
-            </span>
+            © {new Date().getFullYear()} <span>{businessDisplayName}</span>
           </p>
         </div>
       </aside>

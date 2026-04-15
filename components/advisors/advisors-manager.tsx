@@ -39,6 +39,7 @@ export type AdvisorSubRow = {
 	phone: string;
 	email?: string | null;
 	is_active?: boolean | null;
+	parent_advisor_id?: string | null;
 	derived_password: string;
 };
 
@@ -56,7 +57,6 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 	const [openTeam, setOpenTeam] = useState(false);
 	const [openDelete, setOpenDelete] = useState(false);
 	const [selected, setSelected] = useState<AdvisorSubRow | null>(null);
-	const [teamMode, setTeamMode] = useState<"main" | "sub">("main");
 	const [targetParentId, setTargetParentId] = useState("");
 	const [deleteMode, setDeleteMode] = useState<"detach" | "hard">("detach");
 	const [confirmText, setConfirmText] = useState("");
@@ -72,6 +72,11 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 			subtitle: a.code,
 			keywords: a.phone,
 		}));
+	}, [advisors]);
+	const mainAdvisorNameById = useMemo(() => {
+		const m = new Map<string, string>();
+		for (const a of advisors) m.set(a.id, a.name);
+		return m;
 	}, [advisors]);
 
 	const filtered = useMemo(() => {
@@ -126,16 +131,40 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 	async function handleTeamSave() {
 		if (!selected) return;
 		setTeamLoading(true);
-		const parentId = teamMode === "main" ? null : targetParentId || null;
+		const parentId = targetParentId || null;
 		const res = await setAdvisorParent(selected.id, parentId);
 		setTeamLoading(false);
 		if (!res.success) {
 			toast.error("Team update failed", { description: res.error });
 			return;
 		}
-		toast.success("Advisor hierarchy updated");
+		toast.success(
+			selected.parent_advisor_id
+				? "Sub-advisor parent updated"
+				: "Advisor is now a sub-advisor",
+		);
 		setOpenTeam(false);
 		router.refresh();
+	}
+
+	async function handleRemoveAsSubAdvisor() {
+		if (!selected) return;
+		setTeamLoading(true);
+		const res = await setAdvisorParent(selected.id, null);
+		setTeamLoading(false);
+		if (!res.success) {
+			toast.error("Could not remove sub-advisor", { description: res.error });
+			return;
+		}
+		toast.success("Advisor is now a main advisor");
+		setOpenTeam(false);
+		router.refresh();
+	}
+
+	function openTeamDialog(row: AdvisorSubRow) {
+		setSelected(row);
+		setTargetParentId(row.parent_advisor_id ?? "");
+		setOpenTeam(true);
 	}
 
 	async function handleDelete() {
@@ -303,49 +332,46 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-8 w-8 p-0"
+														className="h-9 w-9 p-0"
 														onClick={() => {
 															setSelected(a);
 															setOpenView(true);
 														}}
 													>
-														<Eye className="h-4.5 w-4.5" />
+														<Eye className="h-5 w-5" />
 													</Button>
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-8 w-8 p-0"
+														className="h-9 w-9 p-0"
 														title="Change team"
 														onClick={() => {
-															setSelected(a);
-															setTeamMode("main");
-															setTargetParentId("");
-															setOpenTeam(true);
+															openTeamDialog(a);
 														}}
 													>
-														<GitBranch className="h-4.5 w-4.5" />
+														<GitBranch className="h-5 w-5" />
 													</Button>
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+														className="h-9 w-9 p-0 text-red-600 hover:text-red-700"
 														title="Delete advisor"
 														onClick={() => {
 															void openDeleteDialog(a);
 														}}
 													>
-														<Trash2 className="h-4.5 w-4.5" />
+														<Trash2 className="h-5 w-5" />
 													</Button>
 													<Button
 														size="sm"
 														variant="ghost"
-														className="h-8 w-8 p-0"
+														className="h-9 w-9 p-0"
 														onClick={() => {
 															setSelected(a);
 															setOpenEdit(true);
 														}}
 													>
-														<Pencil className="h-4.5 w-4.5" />
+														<Pencil className="h-5 w-5" />
 													</Button>
 												</div>
 											</TableCell>
@@ -387,10 +413,7 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 																			variant="ghost"
 																			className="h-7 px-2"
 																			onClick={() => {
-																				setSelected(s);
-																				setTeamMode("main");
-																				setTargetParentId("");
-																				setOpenTeam(true);
+																				openTeamDialog(s);
 																			}}
 																		>
 																			Team
@@ -530,52 +553,65 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 						<DialogTitle>Manage Advisor Team</DialogTitle>
 					</DialogHeader>
 					{selected ? (
-						<div className="space-y-3 text-sm">
-							<div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-								<div className="font-semibold">{selected.name}</div>
-								<div className="text-xs text-zinc-500 font-mono">{selected.code}</div>
+						<div className="space-y-4 text-sm">
+							<div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4">
+								<div className="text-base font-semibold text-zinc-900">{selected.name}</div>
+								<div className="text-xs text-zinc-500 font-mono mt-0.5">{selected.code}</div>
 							</div>
-							<div className="flex gap-2">
-								<Button
-									type="button"
-									variant={teamMode === "main" ? "default" : "outline"}
-									size="sm"
-									onClick={() => setTeamMode("main")}
-								>
-									Make Main Advisor
-								</Button>
-								<Button
-									type="button"
-									variant={teamMode === "sub" ? "default" : "outline"}
-									size="sm"
-									onClick={() => setTeamMode("sub")}
-								>
-									Make Sub-advisor
-								</Button>
-							</div>
-							{teamMode === "sub" ? (
-								<div>
-									<label className="text-xs font-semibold text-zinc-600">Parent main advisor</label>
-									<SearchableCombobox
-										options={mainAdvisorOptions.filter((o) => o.value !== selected.id)}
-										value={targetParentId}
-										onChange={setTargetParentId}
-										placeholder="Search main advisor…"
-										emptyMessage="No main advisor available."
-									/>
+							{selected.parent_advisor_id ? (
+								<div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+									<div className="text-xs font-semibold">Current role: Sub-advisor</div>
+									<div className="text-xs mt-1">
+										Current main advisor:{" "}
+										<strong>
+											{mainAdvisorNameById.get(selected.parent_advisor_id) ?? "Unknown main advisor"}
+										</strong>
+									</div>
 								</div>
-							) : null}
-							<div className="flex justify-end gap-2 pt-2">
+							) : (
+								<div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-zinc-700 text-xs">
+									Current role: <strong>Main advisor</strong>
+								</div>
+							)}
+							<div className="flex flex-wrap gap-2">
+								{selected.parent_advisor_id ? (
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										disabled={teamLoading}
+										onClick={() => void handleRemoveAsSubAdvisor()}
+										className="h-9"
+									>
+										{teamLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+										Remove as Sub-advisor
+									</Button>
+								) : null}
+							</div>
+							<div className="rounded-lg border border-zinc-200 bg-white p-3">
+								<label className="text-xs font-semibold text-zinc-600 block mb-1.5">
+									{selected.parent_advisor_id ? "Update main advisor" : "Assign main advisor"}
+								</label>
+								<SearchableCombobox
+									options={mainAdvisorOptions.filter((o) => o.value !== selected.id)}
+									value={targetParentId}
+									onChange={setTargetParentId}
+									placeholder="Search main advisor…"
+									emptyMessage="No main advisor available."
+								/>
+							</div>
+							<div className="flex justify-end gap-2 pt-1">
 								<Button type="button" variant="outline" onClick={() => setOpenTeam(false)}>
 									Cancel
 								</Button>
 								<Button
 									type="button"
-									disabled={teamLoading || (teamMode === "sub" && !targetParentId)}
+									disabled={teamLoading || !targetParentId || targetParentId === (selected.parent_advisor_id ?? "")}
 									onClick={() => void handleTeamSave()}
+									className="min-w-36"
 								>
 									{teamLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-									Save Team
+									{selected.parent_advisor_id ? "Update Main Advisor" : "Make Sub-advisor"}
 								</Button>
 							</div>
 						</div>

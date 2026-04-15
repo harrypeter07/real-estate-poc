@@ -14,6 +14,7 @@ function mapAdvisorRow(a: any) {
 		phone: a.phone,
 		email: a.email ?? null,
 		is_active: a.is_active ?? true,
+		parent_advisor_id: a.parent_advisor_id ?? null,
 		derived_password: buildAdvisorPasswordFromNameAndPhone(a.name ?? "", a.phone ?? ""),
 	};
 }

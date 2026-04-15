@@ -145,6 +145,30 @@ export function AdvisorForm({
 		} catch {}
 	};
 
+	async function assignExistingAdvisorsAsSubAdvisors() {
+		if (!parentAdvisorId) {
+			toast.error("Select parent advisor");
+			return { success: false, error: "Parent advisor is required." };
+		}
+		if (existingAdvisorIds.length === 0) {
+			toast.error("Select at least one existing advisor");
+			return { success: false, error: "Existing advisor is required." };
+		}
+		let ok = 0;
+		let lastErr = "";
+		for (const aid of existingAdvisorIds) {
+			const r = await setAdvisorParent(aid, parentAdvisorId);
+			if (r.success) ok += 1;
+			else lastErr = r.error ?? "Failed";
+		}
+		return ok === existingAdvisorIds.length
+			? { success: true as const }
+			: {
+					success: false as const,
+					error: `Updated ${ok}/${existingAdvisorIds.length}. ${lastErr}`,
+			  };
+	}
+
 	async function onSubmit(values: AdvisorFormValues) {
 		setLoading(true);
 		setSubmitStatus("idle");
@@ -154,32 +178,14 @@ export function AdvisorForm({
 			if (mode === "edit" && initialData?.id) {
 				result = await updateAdvisor(initialData.id, values);
 			} else if (variant === "sub") {
-				if (!parentAdvisorId) {
-					toast.error("Select parent advisor");
-					setLoading(false);
-					return;
-				}
 				if (subMode === "existing") {
-					if (existingAdvisorIds.length === 0) {
-						toast.error("Select at least one existing advisor");
+					result = await assignExistingAdvisorsAsSubAdvisors();
+				} else {
+					if (!parentAdvisorId) {
+						toast.error("Select parent advisor");
 						setLoading(false);
 						return;
 					}
-					let ok = 0;
-					let lastErr = "";
-					for (const aid of existingAdvisorIds) {
-						const r = await setAdvisorParent(aid, parentAdvisorId);
-						if (r.success) ok += 1;
-						else lastErr = r.error ?? "Failed";
-					}
-					result =
-						ok === existingAdvisorIds.length
-							? { success: true }
-							: {
-									success: false,
-									error: `Updated ${ok}/${existingAdvisorIds.length}. ${lastErr}`,
-							  };
-				} else {
 					result = await createSubAdvisor({
 						...values,
 						parent_advisor_id: parentAdvisorId,
@@ -201,7 +207,9 @@ export function AdvisorForm({
 				mode === "edit"
 					? "Advisor updated"
 					: variant === "sub"
-						? "Sub-advisor created"
+						? subMode === "existing"
+							? "Sub-advisor assignment updated"
+							: "Sub-advisor created"
 						: "Advisor created",
 			);
 			setSubmitStatus("success");
@@ -209,10 +217,30 @@ export function AdvisorForm({
 				mode === "edit"
 					? "Advisor updated successfully."
 					: variant === "sub"
-						? "Sub-advisor created successfully."
+						? subMode === "existing"
+							? "Sub-advisor assignment saved successfully."
+							: "Sub-advisor created successfully."
 						: "Advisor created successfully.",
 			);
 			playSubmitTone("success");
+			if (variant === "sub" && mode === "create" && !redirectToList) {
+				setExistingAdvisorIds([]);
+				setExistingComboKey((k) => k + 1);
+				if (subMode === "new") {
+					form.reset({
+						name: "",
+						code: "",
+						phone: "",
+						email: "",
+						address: "",
+						birth_date: "",
+						password: "",
+						use_phone_as_password: true,
+						notes: "",
+						is_active: true,
+					});
+				}
+			}
 			onSuccess?.();
 			if (redirectToList) router.push("/advisors");
 			router.refresh();
@@ -226,8 +254,43 @@ export function AdvisorForm({
 		}
 	}
 
+	async function handleExistingSubmit() {
+		setLoading(true);
+		setSubmitStatus("idle");
+		setStatusText("");
+		try {
+			const result = await assignExistingAdvisorsAsSubAdvisors();
+			if (!result.success) {
+				toast.error("Error", { description: result.error });
+				setSubmitStatus("error");
+				setStatusText(result.error ?? "Failed to save advisor");
+				playSubmitTone("error");
+				return;
+			}
+			toast.success("Sub-advisor assignment updated");
+			setSubmitStatus("success");
+			setStatusText("Sub-advisor assignment saved successfully.");
+			playSubmitTone("success");
+			if (variant === "sub" && mode === "create" && !redirectToList) {
+				setExistingAdvisorIds([]);
+				setExistingComboKey((k) => k + 1);
+			}
+			onSuccess?.();
+			if (redirectToList) router.push("/advisors");
+			router.refresh();
+		} catch {
+			toast.error("Something went wrong");
+			setSubmitStatus("error");
+			setStatusText("Something went wrong while saving advisor.");
+			playSubmitTone("error");
+		} finally {
+			setLoading(false);
+		}
+	}
+
 	const parentName =
 		parentOptions.find((p) => p.id === parentAdvisorId)?.name ?? "selected main advisor";
+	const canPickExisting = Boolean(parentAdvisorId);
 	const selectedExistingNames = existingAdvisorIds
 		.map((id) => existingAdvisorOptions.find((p) => p.id === id)?.name)
 		.filter(Boolean) as string[];
@@ -284,13 +347,33 @@ export function AdvisorForm({
 										Use Existing Advisor
 									</Button>
 								</div>
+								<p className="text-xs font-semibold text-zinc-700 mb-2">Parent advisor *</p>
+								<SearchableCombobox
+									options={parentOptions
+										.filter((p) => !existingAdvisorIds.includes(p.id))
+										.map((p) => ({
+											value: p.id,
+											label: p.name,
+											subtitle: p.code,
+											keywords: p.phone ?? "",
+										}))}
+									value={parentAdvisorId}
+									onChange={(id) => {
+										setParentAdvisorId(id);
+										if (id && existingAdvisorIds.includes(id)) {
+											setExistingAdvisorIds((prev) => prev.filter((x) => x !== id));
+										}
+									}}
+									placeholder="Search main advisor…"
+									emptyMessage="No advisor matches."
+								/>
 								{subMode === "existing" ? (
 									<>
 										<p className="text-xs font-semibold text-zinc-700 mb-2">Existing advisor *</p>
 										<SearchableCombobox
 											key={existingComboKey}
 											options={existingAdvisorOptions
-												.filter((p) => !existingAdvisorIds.includes(p.id))
+												.filter((p) => !existingAdvisorIds.includes(p.id) && p.id !== parentAdvisorId)
 												.map((p) => ({
 												value: p.id,
 												label: p.name,
@@ -299,13 +382,23 @@ export function AdvisorForm({
 											}))}
 											value=""
 											onChange={(id) => {
+												if (!canPickExisting) return;
 												if (id && !existingAdvisorIds.includes(id)) {
 													setExistingAdvisorIds((prev) => [...prev, id]);
 													setExistingComboKey((k) => k + 1);
 												}
 											}}
-											placeholder="Search advisor with no sub-advisors…"
-											emptyMessage="No eligible advisors."
+											placeholder={
+												canPickExisting
+													? "Search advisor with no sub-advisors…"
+													: "Select parent advisor first"
+											}
+											emptyMessage={
+												canPickExisting
+													? "No eligible advisors."
+													: "Choose parent advisor first."
+											}
+											disabled={!canPickExisting}
 										/>
 										{existingAdvisorIds.length > 0 ? (
 											<div className="mt-2 flex flex-wrap gap-1.5">
@@ -329,21 +422,6 @@ export function AdvisorForm({
 										) : null}
 									</>
 								) : null}
-								<p className="text-xs font-semibold text-zinc-700 mb-2">Parent advisor *</p>
-								<SearchableCombobox
-									options={parentOptions
-										.filter((p) => !existingAdvisorIds.includes(p.id))
-										.map((p) => ({
-											value: p.id,
-											label: p.name,
-											subtitle: p.code,
-											keywords: p.phone ?? "",
-										}))}
-									value={parentAdvisorId}
-									onChange={setParentAdvisorId}
-									placeholder="Search main advisor…"
-									emptyMessage="No advisor matches."
-								/>
 								{subMode === "existing" && existingAdvisorIds.length > 0 && parentAdvisorId ? (
 									<p className="mt-2 text-xs text-zinc-700">
 										<strong>{selectedExistingNames.join(", ")}</strong>{" "}
@@ -554,13 +632,18 @@ export function AdvisorForm({
 								Cancel
 							</Button>
 							<Button
-								type="submit"
+								type={variant === "sub" && subMode === "existing" ? "button" : "submit"}
 								disabled={
 									loading ||
 									(mode === "edit" && !form.formState.isDirty) ||
 									(variant === "sub" && subMode === "existing" && (existingAdvisorIds.length === 0 || !parentAdvisorId))
 								}
 								className={`transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}
+								onClick={
+									variant === "sub" && subMode === "existing"
+										? () => void handleExistingSubmit()
+										: undefined
+								}
 							>
 								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 								{loading

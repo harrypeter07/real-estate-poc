@@ -55,13 +55,14 @@
 
 /* Hide number input spinners (all browsers) */
 input[type="number"] {
-	-moz-appearance: textfield;
-	appearance: textfield;
+	-moz-appearance: textfield !important;
+	appearance: textfield !important;
 }
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
-	-webkit-appearance: none;
-	margin: 0;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	margin: 0 !important;
 }
 
 @layer base {

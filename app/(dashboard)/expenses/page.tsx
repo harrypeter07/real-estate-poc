@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { getExpenses } from "@/app/actions/expenses";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { ReceiptViewButton } from "@/components/shared/receipt-view-button";
+import { ExpenseRowActions } from "@/components/expenses/expense-row-actions";
 
 const CATEGORY_LIST = [
   "all",
@@ -304,6 +305,7 @@ export default async function ExpensesPage({
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Receipt</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -317,7 +319,7 @@ export default async function ExpensesPage({
                   if (expense.__group) {
                     return (
                       <TableRow key={`group-${expense.projectName}-${idx}`} className="bg-zinc-50">
-                        <TableCell colSpan={5} className="font-semibold text-zinc-700">
+                        <TableCell colSpan={6} className="font-semibold text-zinc-700">
                           {expense.projectName} — {formatCurrency(expense.total)}
                         </TableCell>
                       </TableRow>
@@ -369,6 +371,9 @@ export default async function ExpensesPage({
                             title="Expense Receipt"
                           />
                         </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <ExpenseRowActions expenseId={expense.id} />
                       </TableCell>
                     </TableRow>
                   );

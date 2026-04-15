@@ -29,13 +29,17 @@ import {
 } from "@/components/ui";
 import { expenseSchema, type ExpenseFormValues } from "@/lib/validations/expense";
 import { isDev } from "@/lib/is-dev";
-import { createExpense } from "@/app/actions/expenses";
+import { createExpense, updateExpense } from "@/app/actions/expenses";
 import { ReceiptUpload } from "@/components/shared/receipt-upload";
 
 export function ExpenseForm({
   projects = [],
+  mode = "create",
+  initialData = null,
 }: {
   projects?: Array<{ id: string; name: string }>;
+  mode?: "create" | "edit";
+  initialData?: any | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -50,15 +54,15 @@ export function ExpenseForm({
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema) as any,
     defaultValues: {
-      description: "",
-      amount: undefined as any,
-      paid_amount: undefined as any,
-      expense_date: new Date().toISOString().split('T')[0],
-      payment_type: "cash",
-      category: "misc",
-      project_id: null,
-      receipt_note: "",
-      receipt_path: "",
+      description: initialData?.description ?? "",
+      amount: initialData?.amount ?? (undefined as any),
+      paid_amount: initialData?.paid_amount ?? (undefined as any),
+      expense_date: initialData?.expense_date ?? new Date().toISOString().split('T')[0],
+      payment_type: initialData?.payment_type ?? "cash",
+      category: initialData?.category ?? "misc",
+      project_id: initialData?.project_id ?? null,
+      receipt_note: initialData?.receipt_note ?? "",
+      receipt_path: initialData?.receipt_path ?? "",
     },
   });
 
@@ -117,7 +121,10 @@ export function ExpenseForm({
     setSubmitStatus("idle");
     setStatusText("");
     try {
-      const result = await createExpense(values);
+      const result =
+        mode === "edit" && initialData?.id
+          ? await updateExpense(initialData.id, values)
+          : await createExpense(values);
       if (!result.success) {
         toast.error("Error", { description: result.error });
         setSubmitStatus("error");
@@ -126,9 +133,9 @@ export function ExpenseForm({
         return;
       }
 
-      toast.success("Expense recorded successfully");
+      toast.success(mode === "edit" ? "Expense updated successfully" : "Expense recorded successfully");
       setSubmitStatus("success");
-      setStatusText("Expense recorded successfully.");
+      setStatusText(mode === "edit" ? "Expense updated successfully." : "Expense recorded successfully.");
       playSubmitTone("success");
       router.push("/expenses");
       router.refresh();
@@ -146,8 +153,12 @@ export function ExpenseForm({
     <Card className="max-w-2xl w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle>Add Expense</CardTitle>
-          <CardDescription>Record office or site related expenses</CardDescription>
+          <CardTitle>{mode === "edit" ? "Edit Expense" : "Add Expense"}</CardTitle>
+          <CardDescription>
+            {mode === "edit"
+              ? "Update office or site related expense details"
+              : "Record office or site related expenses"}
+          </CardDescription>
         </div>
         {isDev ? (
           <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
@@ -348,7 +359,7 @@ export function ExpenseForm({
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
               <Button type="submit" disabled={loading} className={`min-w-[120px] transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? "Submitting..." : "Record Expense"}
+                {loading ? "Submitting..." : mode === "edit" ? "Update Expense" : "Record Expense"}
               </Button>
             </div>
             {submitStatus !== "idle" && (

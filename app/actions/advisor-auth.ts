@@ -10,6 +10,30 @@ export type ActionResponse<T = void> = {
 	data?: T;
 };
 
+export async function getAdvisorDefaultCredential(advisorId: string): Promise<
+	ActionResponse<{ email: string; phone: string; derivedPassword: string }>
+> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const { data: advisor, error } = await supabase
+		.from("advisors")
+		.select("id, name, phone, email")
+		.eq("id", advisorId)
+		.maybeSingle();
+
+	if (error || !advisor?.id) return { success: false, error: "Advisor not found" };
+
+	const phone = String(advisor.phone ?? "");
+	const email = String(advisor.email ?? "").trim() || toAdvisorEmail(phone);
+	const derivedPassword = buildAdvisorPasswordFromNameAndPhone(
+		String((advisor as { name?: string }).name ?? ""),
+		phone,
+	);
+
+	return { success: true, data: { email, phone, derivedPassword } };
+}
+
 function toAdvisorEmail(phone: string): string {
 	const sanitized = phone.replace(/\D/g, "").slice(-10) || "0";
 	return `adv_${sanitized}@mginfra.local`;

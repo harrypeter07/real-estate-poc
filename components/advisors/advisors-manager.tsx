@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Pencil, Eye, ChevronDown, GitBranch, Trash2, Loader2 } from "lucide-react";
 import {
 	Button,
@@ -29,6 +29,7 @@ import {
 	setAdvisorParent,
 	type AdvisorDeleteImpact,
 } from "@/app/actions/advisors";
+import { getAdvisorDefaultCredential } from "@/app/actions/advisor-auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -64,6 +65,32 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [teamLoading, setTeamLoading] = useState(false);
 	const [deleteImpact, setDeleteImpact] = useState<AdvisorDeleteImpact | null>(null);
+	const [credentialLoading, setCredentialLoading] = useState(false);
+	const [liveCredential, setLiveCredential] = useState<{
+		email: string;
+		phone: string;
+		derivedPassword: string;
+	} | null>(null);
+
+	useEffect(() => {
+		let active = true;
+		async function loadCredential() {
+			if (!openView || !selected?.id) {
+				setLiveCredential(null);
+				return;
+			}
+			setCredentialLoading(true);
+			const res = await getAdvisorDefaultCredential(selected.id);
+			if (active) {
+				setLiveCredential(res.success ? (res.data ?? null) : null);
+				setCredentialLoading(false);
+			}
+		}
+		void loadCredential();
+		return () => {
+			active = false;
+		};
+	}, [openView, selected?.id]);
 
 	const mainAdvisorOptions = useMemo(() => {
 		return advisors.map((a) => ({
@@ -200,8 +227,9 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 				</div>
 
 				<p className="text-[10px] text-zinc-500">
-					Default login password is derived from name + phone (see column). It does not update Auth
-					automatically if you change name or phone — reset password or run the sync script.
+					Default login password is derived from current advisor name + phone from DB (see column). It
+					does not update Auth automatically if you change name or phone — reset password or run the sync
+					script.
 				</p>
 
 				<div className="overflow-x-auto rounded-md border border-zinc-100">
@@ -489,19 +517,24 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 								<div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 text-sm space-y-1">
 									<p>
 										<span className="text-zinc-500">Phone:</span>{" "}
-										<span className="font-medium">{selected.phone}</span>
+										<span className="font-medium">{liveCredential?.phone ?? selected.phone}</span>
 									</p>
 									<p>
 										<span className="text-zinc-500">Login email:</span>{" "}
-										<span className="font-medium">{selected.email || "(auto-generated)"}</span>
+										<span className="font-medium">
+											{(liveCredential?.email ?? selected.email) || "(auto-generated)"}
+										</span>
 									</p>
 									<p>
 										<span className="text-zinc-500">Default password (derived):</span>{" "}
-										<span className="font-mono text-xs break-all">{selected.derived_password}</span>
+										<span className="font-mono text-xs break-all">
+											{liveCredential?.derivedPassword ?? selected.derived_password}
+										</span>
 									</p>
 									<p className="text-[11px] text-zinc-500 pt-1">
-										If name or phone was changed without a password reset, the real login password may
-										differ.
+										{credentialLoading
+											? "Refreshing credential preview from database..."
+											: "Credential preview is fetched from latest advisor data in database."}
 									</p>
 								</div>
 								<div className="flex gap-2 pt-2">

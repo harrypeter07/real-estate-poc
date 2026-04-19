@@ -10,15 +10,13 @@ dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env" });
 
 function buildAdvisorPasswordFromNameAndPhone(name, phone) {
-	const digits = (phone || "").replace(/\D/g, "");
-	const last10 = digits.length >= 10 ? digits.slice(-10) : digits.padStart(10, "0");
-	const slug = (name || "")
+	const namePart = String(name)
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, "")
-		.slice(0, 32);
-	const base = `${slug || "adv"}${last10}`;
-	if (base.length >= 6) return base;
-	return (base + "0000000000").slice(0, 6);
+		.slice(0, 4)
+		.padEnd(4, "x");
+	const phonePart = String(phone).replace(/\D/g, "").slice(0, 4).padEnd(4, "0");
+	return `${namePart}${phonePart}`;
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

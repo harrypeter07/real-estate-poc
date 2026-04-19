@@ -129,18 +129,20 @@ export async function signInWithEmailOrPhone(
 				: defaultPw.length >= 6
 					? defaultPw
 					: defaultPw.padEnd(6, "0");
+		const defaultPasswordNormalized = defaultPw.length >= 6 ? defaultPw : defaultPw.padEnd(6, "0");
+		const advisorMetadata = {
+			role: "advisor",
+			advisor_id: match.id,
+			business_id: match.business_id,
+			parent_advisor_id: match.parent_advisor_id ?? null,
+		};
 
 		if (!match.auth_user_id) {
 			const { data: authUser, error: authError } = await admin.auth.admin.createUser({
 				email: resolvedEmail,
 				password: effectivePassword,
 				email_confirm: true,
-				user_metadata: {
-					role: "advisor",
-					advisor_id: match.id,
-					business_id: match.business_id,
-					parent_advisor_id: match.parent_advisor_id ?? null,
-				},
+				user_metadata: advisorMetadata,
 			});
 
 			if (!authError && authUser?.user?.id) {
@@ -149,12 +151,38 @@ export async function signInWithEmailOrPhone(
 					.update({ auth_user_id: authUser.user.id, email: resolvedEmail })
 					.eq("id", match.id);
 			}
+		} else {
+			// Keep advisor auth profile aligned after phone/email/parent updates.
+			await admin.auth.admin.updateUserById(String(match.auth_user_id), {
+				email: resolvedEmail,
+				user_metadata: advisorMetadata,
+			});
+			await admin.from("advisors").update({ email: resolvedEmail }).eq("id", match.id);
 		}
 
-		const { error: finalErr } = await supabase.auth.signInWithPassword({
+		let { error: finalErr } = await supabase.auth.signInWithPassword({
 			email: resolvedEmail,
 			password: effectivePassword,
 		});
+		if (finalErr && match.auth_user_id) {
+			const isUsingDefaultPassword =
+				rawPassword.length === 0 ||
+				rawPassword === defaultPw ||
+				rawPassword === defaultPasswordNormalized;
+			if (isUsingDefaultPassword) {
+				await admin.auth.admin.updateUserById(String(match.auth_user_id), {
+					email: resolvedEmail,
+					password: defaultPasswordNormalized,
+					user_metadata: advisorMetadata,
+				});
+				await admin.from("advisors").update({ email: resolvedEmail }).eq("id", match.id);
+				const retry = await supabase.auth.signInWithPassword({
+					email: resolvedEmail,
+					password: defaultPasswordNormalized,
+				});
+				finalErr = retry.error;
+			}
+		}
 
 		if (finalErr) {
 			await recordLoginFailure(keyHash);

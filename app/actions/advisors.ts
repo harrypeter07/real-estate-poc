@@ -103,6 +103,7 @@ export async function createAdvisor(
 
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+	const admin = createAdminClient();
 
 	const advisorEmail = parsed.data.email?.trim() || toAdvisorEmail(parsed.data.phone);
 	const password =
@@ -224,7 +225,7 @@ export async function updateAdvisor(
 			updated_at: new Date().toISOString(),
 		})
 		.eq("id", id)
-		.select("id, name, phone, birth_date")
+		.select("id, name, phone, birth_date, email, auth_user_id, business_id, parent_advisor_id")
 		.single();
 
 	if (error) {
@@ -253,6 +254,19 @@ export async function updateAdvisor(
 
 	if (updatedAdvisor?.id) {
 		await syncAdvisorBirthdayReminder(supabase, updatedAdvisor);
+	}
+	if (updatedAdvisor?.id && admin && updatedAdvisor.auth_user_id) {
+		const authEmail =
+			String(updatedAdvisor.email ?? "").trim() || toAdvisorEmail(String(updatedAdvisor.phone ?? ""));
+		await admin.auth.admin.updateUserById(String(updatedAdvisor.auth_user_id), {
+			email: authEmail,
+			user_metadata: {
+				role: "advisor",
+				advisor_id: updatedAdvisor.id,
+				business_id: updatedAdvisor.business_id ?? null,
+				parent_advisor_id: updatedAdvisor.parent_advisor_id ?? null,
+			},
+		});
 	}
 
 	revalidatePath("/advisors");

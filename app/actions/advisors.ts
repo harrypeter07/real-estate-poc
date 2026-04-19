@@ -171,7 +171,6 @@ export async function createAdvisor(
 	}
 
 	// Create Supabase Auth user for advisor login (requires SUPABASE_SERVICE_ROLE_KEY)
-	const admin = createAdminClient();
 	if (admin && advisor?.id) {
 		const pw = password.length >= 6 ? password : String(password).padEnd(6, "0");
 		const { data: authUser, error: authError } = await admin.auth.admin.createUser({
@@ -207,6 +206,7 @@ export async function updateAdvisor(
 
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+	const admin = createAdminClient();
 
 	const { data: updatedAdvisor, error } = await supabase
 		.from("advisors")

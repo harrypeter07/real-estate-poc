@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Pencil, Eye, ChevronDown, GitBranch, Trash2, Loader2 } from "lucide-react";
+import { Search, Pencil, Eye, ChevronDown, GitBranch, Trash2, Loader2, Copy } from "lucide-react";
 import {
 	Button,
 	Card,
@@ -209,6 +209,15 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 		toast.success("Advisor deleted");
 		setOpenDelete(false);
 		router.refresh();
+	}
+
+	async function copyText(value: string, label: string) {
+		try {
+			await navigator.clipboard.writeText(value);
+			toast.success(`${label} copied`);
+		} catch {
+			toast.error(`Failed to copy ${label.toLowerCase()}`);
+		}
 	}
 
 	return (
@@ -527,8 +536,25 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 									</p>
 									<p>
 										<span className="text-zinc-500">Default password (derived):</span>{" "}
-										<span className="font-mono text-xs break-all">
-											{liveCredential?.derivedPassword ?? selected.derived_password}
+										<span className="inline-flex items-center gap-1.5">
+											<span className="font-mono text-xs break-all">
+												{liveCredential?.derivedPassword ?? selected.derived_password}
+											</span>
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												className="h-6 w-6 p-0"
+												title="Copy password"
+												onClick={() =>
+													void copyText(
+														liveCredential?.derivedPassword ?? selected.derived_password,
+														"Password",
+													)
+												}
+											>
+												<Copy className="h-3.5 w-3.5" />
+											</Button>
 										</span>
 									</p>
 									<p className="text-[11px] text-zinc-500 pt-1">

@@ -265,8 +265,8 @@ export async function saPurgeBusinessStep(input: {
 			if (delErr) return { ok: false, error: delErr.message };
 			deleted = matched;
 		} else {
-			// Capture auth IDs before deleting advisor/admin rows.
-			if (step.key === "business_admins" || step.key === "advisors") {
+			// Capture auth IDs before deleting advisor rows.
+			if (step.key === "advisors") {
 				const { data: authRows, error: authRowsErr } = await (supabase as any)
 					.from(step.table)
 					.select("auth_user_id")

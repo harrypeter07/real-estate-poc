@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
 	saCreateBusiness,
 	saCreateBusinessWithOwner,
 	saCreateTenantAdmin,
 	saDeleteTenantAdmin,
 	saChangeTenantAdminPassword,
+	saGetBusinessDeleteSnapshot,
+	saGetBusinessPurgeSteps,
 	saListBusinesses,
 	saListTenantAdmins,
+	saPurgeBusinessStep,
 	saSetAdminActive,
 	saUpdateTenantAdmin,
 } from "@/app/actions/superadmin";
@@ -19,7 +22,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { Eye, EyeOff } from "lucide-react";
+
+type PurgeStepState = {
+	key: string;
+	label: string;
+	status: "pending" | "running" | "done" | "error" | "stopped";
+	matched: number;
+	deleted: number;
+	deletedAuthUsers: number;
+	error?: string;
+};
 
 export default function SuperAdminAdminsPage() {
 	const [biz, setBiz] = useState<Array<{ id: string; name: string; status: string }>>([]);
@@ -39,6 +53,18 @@ export default function SuperAdminAdminsPage() {
 	const [showAdminPassword, setShowAdminPassword] = useState(false);
 
 	const [searchQuery, setSearchQuery] = useState("");
+	const [purgeBusinessId, setPurgeBusinessId] = useState("");
+	const [purgeConfirmText, setPurgeConfirmText] = useState("");
+	const [purgeSteps, setPurgeSteps] = useState<PurgeStepState[]>([]);
+	const [purging, setPurging] = useState(false);
+	const purgeAbortRef = useRef(false);
+	const [purgeAdvisorCount, setPurgeAdvisorCount] = useState(0);
+	const [purgeBusinessName, setPurgeBusinessName] = useState("");
+	const [purgeAdmins, setPurgeAdmins] = useState<
+		Array<{ id: string; name: string | null; email: string | null; is_active: boolean }>
+	>([]);
+	const [purgeAdminPasswords, setPurgeAdminPasswords] = useState<Record<string, string>>({});
+	const [purgePwdSavingId, setPurgePwdSavingId] = useState<string | null>(null);
 
 	// Details dialog states
 	const [detailsOpen, setDetailsOpen] = useState(false);
@@ -82,6 +108,39 @@ export default function SuperAdminAdminsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	useEffect(() => {
+		let cancelled = false;
+		async function loadDeleteSnapshot() {
+			if (!purgeBusinessId) {
+				if (!cancelled) {
+					setPurgeBusinessName("");
+					setPurgeAdvisorCount(0);
+					setPurgeAdmins([]);
+					setPurgeAdminPasswords({});
+				}
+				return;
+			}
+			const res = await saGetBusinessDeleteSnapshot({ business_id: purgeBusinessId });
+			if (cancelled) return;
+			if (!res.ok) {
+				setErr(res.error);
+				setPurgeBusinessName("");
+				setPurgeAdvisorCount(0);
+				setPurgeAdmins([]);
+				setPurgeAdminPasswords({});
+				return;
+			}
+			setPurgeBusinessName(res.data.business_name);
+			setPurgeAdvisorCount(res.data.advisor_count);
+			setPurgeAdmins(res.data.admins);
+			setPurgeAdminPasswords({});
+		}
+		void loadDeleteSnapshot();
+		return () => {
+			cancelled = true;
+		};
+	}, [purgeBusinessId]);
+
 	async function openDetails(a: any) {
 		setDetailsAdmin(a);
 		setDetailsName(a.name ?? "");
@@ -90,6 +149,92 @@ export default function SuperAdminAdminsPage() {
 		setDetailsPassword("");
 		setShowDetailsPassword(false);
 		setDetailsOpen(true);
+	}
+
+	const purgeTargetBiz = useMemo(
+		() => biz.find((b) => b.id === purgeBusinessId) ?? null,
+		[biz, purgeBusinessId]
+	);
+	const purgeExpectedBusinessName = (purgeBusinessName || purgeTargetBiz?.name || "").trim();
+	const purgeExpectedConfirm = purgeExpectedBusinessName ? `DELETE ${purgeExpectedBusinessName}` : "";
+	const purgeDoneCount = purgeSteps.filter((s) => s.status === "done").length;
+	const purgeProgressValue =
+		purgeSteps.length > 0 ? Math.round((purgeDoneCount / purgeSteps.length) * 100) : 0;
+
+	async function runBusinessPurge() {
+		setErr(null);
+		if (!purgeBusinessId) {
+			setErr("Select a business to purge");
+			return;
+		}
+		if (!purgeTargetBiz || purgeConfirmText.trim() !== purgeExpectedConfirm) {
+			setErr("Type the exact confirmation text before deleting");
+			return;
+		}
+
+		setPurging(true);
+		purgeAbortRef.current = false;
+		try {
+			const stepsRes = await saGetBusinessPurgeSteps();
+			if (!stepsRes.ok) throw new Error(stepsRes.error);
+
+			let steps: PurgeStepState[] = stepsRes.data.map((s) => ({
+				key: s.key,
+				label: s.label,
+				status: "pending",
+				matched: 0,
+				deleted: 0,
+				deletedAuthUsers: 0,
+			}));
+			setPurgeSteps(steps);
+
+			for (let i = 0; i < steps.length; i++) {
+				if (purgeAbortRef.current) {
+					steps = steps.map((s, idx) =>
+						idx >= i && s.status === "pending" ? { ...s, status: "stopped" } : s
+					);
+					setPurgeSteps(steps);
+					throw new Error("Deletion stopped by user");
+				}
+
+				const step = steps[i];
+				steps = steps.map((s, idx) => (idx === i ? { ...s, status: "running" } : s));
+				setPurgeSteps(steps);
+
+				const res = await saPurgeBusinessStep({
+					business_id: purgeBusinessId,
+					step_key: step.key as any,
+				});
+
+				if (!res.ok) {
+					steps = steps.map((s, idx) =>
+						idx === i ? { ...s, status: "error", error: res.error } : s
+					);
+					setPurgeSteps(steps);
+					throw new Error(`${step.label}: ${res.error}`);
+				}
+
+				steps = steps.map((s, idx) =>
+					idx === i
+						? {
+								...s,
+								status: "done",
+								matched: res.data.matched,
+								deleted: res.data.deleted,
+								deletedAuthUsers: Number(res.data.deleted_auth_users ?? 0),
+						  }
+						: s
+				);
+				setPurgeSteps(steps);
+			}
+
+			setPurgeConfirmText("");
+			await load();
+		} catch (e: any) {
+			setErr(e?.message ?? "Business purge failed");
+		} finally {
+			setPurging(false);
+		}
 	}
 
 	async function saveDetailsProfile() {
@@ -275,6 +420,200 @@ export default function SuperAdminAdminsPage() {
 					</CardContent>
 				</Card>
 			</div>
+
+			<Card className="border-red-200">
+				<CardHeader>
+					<CardTitle className="text-sm font-bold text-red-700">
+						Danger Zone: Delete Single Business Data
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-3">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						<div className="space-y-1">
+							<div className="text-xs font-semibold text-zinc-600">Business to delete</div>
+							<Select value={purgeBusinessId} onValueChange={setPurgeBusinessId} disabled={purging}>
+								<SelectTrigger>
+									<SelectValue placeholder="Select business" />
+								</SelectTrigger>
+								<SelectContent>
+									{biz.map((b) => (
+										<SelectItem key={b.id} value={b.id}>
+											{b.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="space-y-1">
+							<div className="text-xs font-semibold text-zinc-600">
+								Confirmation text
+							</div>
+							<div className="text-[11px] text-zinc-500">
+								{purgeExpectedConfirm ? (
+									<>
+										Type exactly:{" "}
+										<span className="font-mono font-semibold text-red-700">
+											{purgeExpectedConfirm}
+										</span>
+									</>
+								) : (
+									"Select a business first to see required confirmation text."
+								)}
+							</div>
+							<Input
+								value={purgeConfirmText}
+								onChange={(e) => setPurgeConfirmText(e.target.value)}
+								placeholder={purgeExpectedConfirm || "Select business first"}
+								disabled={purging || !purgeBusinessId}
+							/>
+						</div>
+					</div>
+					<div className="text-xs text-zinc-600">
+						This deletes only rows mapped to the selected business, table-by-table with
+						live progress.
+					</div>
+					{purgeBusinessId ? (
+						<div className="rounded-md border bg-zinc-50 p-3 space-y-2">
+							<div className="text-xs">
+								<span className="font-semibold text-zinc-700">Advisors in this business:</span>{" "}
+								<span className="font-mono">{purgeAdvisorCount}</span>
+							</div>
+							<div className="text-xs font-semibold text-zinc-700">Business admins</div>
+							{purgeAdmins.length === 0 ? (
+								<div className="text-xs text-zinc-500">
+									No tenant admin login accounts found for this business.
+								</div>
+							) : (
+								<div className="space-y-2">
+									{purgeAdmins.map((a) => (
+										<div key={a.id} className="rounded border bg-white p-2 space-y-2">
+											<div className="text-xs flex items-center justify-between gap-2">
+												<span className="font-medium text-zinc-800">
+													{a.name || "Unnamed admin"}
+												</span>
+												<span className="font-mono text-zinc-600">{a.email || "—"}</span>
+											</div>
+											<div className="text-[11px] text-zinc-500">
+												Status: {a.is_active ? "active" : "disabled"}
+											</div>
+											<div className="text-[11px] text-amber-700">
+												Existing password is not readable (securely stored). Set a temporary password below if needed.
+											</div>
+											<div className="flex flex-wrap items-center gap-2">
+												<Input
+													type="text"
+													placeholder="Set temporary password (min 6)"
+													value={purgeAdminPasswords[a.id] ?? ""}
+													onChange={(e) =>
+														setPurgeAdminPasswords((prev) => ({
+															...prev,
+															[a.id]: e.target.value,
+														}))
+													}
+													disabled={purging || purgePwdSavingId === a.id}
+													className="h-8 max-w-xs"
+												/>
+												<Button
+													type="button"
+													size="sm"
+													variant="outline"
+													disabled={
+														purging ||
+														purgePwdSavingId === a.id ||
+														String(purgeAdminPasswords[a.id] ?? "").trim().length < 6
+													}
+													onClick={() => {
+														startTransition(async () => {
+															setErr(null);
+															setPurgePwdSavingId(a.id);
+															try {
+																const res = await saChangeTenantAdminPassword({
+																	business_admin_id: a.id,
+																	newPassword: String(
+																		purgeAdminPasswords[a.id] ?? ""
+																	).trim(),
+																});
+																if (!res.ok) {
+																	setErr(res.error);
+																	return;
+																}
+																setPurgeAdminPasswords((prev) => ({
+																	...prev,
+																	[a.id]: "",
+																}));
+															} finally {
+																setPurgePwdSavingId(null);
+															}
+														});
+													}}
+												>
+													{purgePwdSavingId === a.id ? "Saving..." : "Set temp password"}
+												</Button>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					) : null}
+					{purgeSteps.length > 0 ? (
+						<div className="space-y-2">
+							<Progress value={purgeProgressValue} />
+							<div className="text-xs text-zinc-600">
+								{purgeDoneCount}/{purgeSteps.length} steps completed
+							</div>
+							<div className="max-h-52 overflow-auto rounded-md border p-2 space-y-1">
+								{purgeSteps.map((s) => (
+									<div key={s.key} className="text-xs flex items-center justify-between gap-3">
+										<span className="truncate">{s.label}</span>
+										<span className="font-mono text-zinc-600">
+											{s.status === "done"
+												? `done (${s.deleted}/${s.matched})${s.deletedAuthUsers ? ` +auth:${s.deletedAuthUsers}` : ""}`
+												: s.status === "running"
+													? "running..."
+													: s.status === "stopped"
+														? "stopped"
+													: s.status === "error"
+														? `error: ${s.error ?? "failed"}`
+														: "pending"}
+										</span>
+									</div>
+								))}
+							</div>
+						</div>
+					) : null}
+					<Button
+						variant="destructive"
+						disabled={
+							purging ||
+							!purgeBusinessId ||
+							!purgeTargetBiz ||
+							purgeConfirmText.trim() !== purgeExpectedConfirm
+						}
+						onClick={() => {
+							const ok = window.confirm(
+								"This will delete only selected business data from all tenant tables. Continue?"
+							);
+							if (!ok) return;
+							startTransition(() => void runBusinessPurge());
+						}}
+					>
+						{purging ? "Deleting business data..." : "Delete this business data"}
+					</Button>
+					{purging ? (
+						<Button
+							type="button"
+							variant="outline"
+							className="ml-2 border-amber-300 text-amber-800 hover:bg-amber-50"
+							onClick={() => {
+								purgeAbortRef.current = true;
+							}}
+						>
+							Stop deletion
+						</Button>
+					) : null}
+				</CardContent>
+			</Card>
 
 			{editId ? (
 				<Card>

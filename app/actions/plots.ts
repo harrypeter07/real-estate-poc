@@ -483,38 +483,56 @@ export type PlotWithSaleInfo = {
 export async function getPlotsByProject(
 	projectId: string
 ): Promise<PlotWithSaleInfo[]> {
-	const supabase = await createClient();
-	if (!supabase) return [];
+	let plots: any[] | null = null;
+	let lastError: string | null = null;
 
-	// Fetch all plots for this project
-	const { data: plots, error } = await supabase
-		.from("plots")
-		.select("*")
-		.eq("project_id", projectId)
-		.order("plot_number", { ascending: true });
+	// Retry a few times because we occasionally see transient fetch failures from auth/session.
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		const supabase = await createClient();
+		if (!supabase) return [];
+		const { data, error } = await supabase
+			.from("plots")
+			.select("*")
+			.eq("project_id", projectId)
+			.order("plot_number", { ascending: true });
+		if (!error) {
+			plots = data ?? [];
+			lastError = null;
+			break;
+		}
+		lastError = error.message;
+	}
 
-	if (error) throw new Error(error.message);
+	if (lastError) {
+		console.warn("[plots] getPlotsByProject failed after retries", {
+			projectId,
+			error: lastError,
+		});
+		return [];
+	}
 	if (!plots) return [];
 
 	// Fetch sales for these plots
 	const plotIds = plots.map((p) => p.id);
-
+	if (!plotIds.length) return [];
+	const supabase = await createClient();
+	if (!supabase) return [];
 	const { data: sales } = await supabase
 		.from("plot_sales")
 		.select(
 			`
-      id,
-      plot_id,
-      total_sale_amount,
-      amount_paid,
-      remaining_amount,
-      sale_phase,
-      token_date,
-      agreement_date,
-      monthly_emi,
-      customers(name),
-      advisors(name)
-    `
+				id,
+				plot_id,
+				total_sale_amount,
+				amount_paid,
+				remaining_amount,
+				sale_phase,
+				token_date,
+				agreement_date,
+				monthly_emi,
+				customers(name),
+				advisors(name)
+			`
 		)
 		.in("plot_id", plotIds)
 		.eq("is_cancelled", false);

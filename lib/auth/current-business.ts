@@ -22,6 +22,15 @@ export async function getCurrentBusinessId(): Promise<string | null> {
 			.maybeSingle();
 		const fromAdminMap = String((adminMap as any)?.business_id ?? "").trim();
 		if (fromAdminMap) return fromAdminMap;
+
+		// Advisor fallback: resolve business directly by auth user mapping.
+		const { data: advisorMap } = await supabase
+			.from("advisors")
+			.select("business_id")
+			.eq("auth_user_id", user.id)
+			.maybeSingle();
+		const fromAdvisorMap = String((advisorMap as any)?.business_id ?? "").trim();
+		if (fromAdvisorMap) return fromAdvisorMap;
 	}
 
 	const { data } = await supabase

@@ -43,7 +43,16 @@ export function BusinessBrand({
 				businessId = String((adminMap as { business_id?: string } | null)?.business_id ?? "").trim();
 			}
 
-			if (!businessId && meta.advisor_id) {
+			if (!businessId && user.id) {
+				const { data: advisorByAuth } = await supabase
+					.from("advisors")
+					.select("business_id")
+					.eq("auth_user_id", user.id)
+					.maybeSingle();
+				businessId = String((advisorByAuth as { business_id?: string } | null)?.business_id ?? "").trim();
+			}
+
+			if (!businessId) {
 				const advisorId = String(meta.advisor_id ?? "").trim();
 				if (advisorId) {
 					const { data: advisor } = await supabase

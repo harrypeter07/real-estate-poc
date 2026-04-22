@@ -60,30 +60,36 @@ export default async function ProjectDetailPage({
 	}, 0);
 
 	const plannedCount = Number(project.total_plots_count ?? 0);
-	const plotByNumber = new Map(plots.map((p) => [p.plot_number, p]));
-	const layoutPlots =
-		plannedCount > 0
-			? Array.from({ length: plannedCount }, (_, idx) => {
-					const plotNumber = String(idx + 1);
-					return (
-						plotByNumber.get(plotNumber) ?? {
-							id: `planned-${plotNumber}`,
-							project_id: project.id,
-							plot_number: plotNumber,
-							size_sqft: 0,
-							rate_per_sqft: 0,
-							total_amount: 0,
-							status: "available" as const,
-							facing: null,
-							notes: null,
-							created_at: new Date().toISOString(),
-							updated_at: new Date().toISOString(),
-							sale: null,
-							payments: [],
-						}
-					);
-				})
-			: plots;
+	const startPlotNumber = Number(project.starting_plot_number ?? 1);
+	const numericPlotRows = plots.filter((p) => /^\d+$/.test(String(p.plot_number ?? "").trim()));
+	const canRenderPlannedSlots =
+		plannedCount > 0 && (plots.length === 0 || numericPlotRows.length === plots.length);
+	const plotByNumericNumber = new Map(
+		numericPlotRows.map((p) => [Number.parseInt(String(p.plot_number), 10), p]),
+	);
+	const layoutPlots = canRenderPlannedSlots
+		? Array.from({ length: plannedCount }, (_, idx) => {
+				const num = startPlotNumber + idx;
+				const plotNumber = String(num);
+				return (
+					plotByNumericNumber.get(num) ?? {
+						id: `planned-${plotNumber}`,
+						project_id: project.id,
+						plot_number: plotNumber,
+						size_sqft: 0,
+						rate_per_sqft: 0,
+						total_amount: 0,
+						status: "available" as const,
+						facing: null,
+						notes: null,
+						created_at: new Date().toISOString(),
+						updated_at: new Date().toISOString(),
+						sale: null,
+						payments: [],
+					}
+				);
+			})
+		: plots;
 
 	// If ?edit=true, show the edit form
 	if (edit === "true") {

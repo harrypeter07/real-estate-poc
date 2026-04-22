@@ -7,6 +7,70 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 type SAResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
+type DeleteStepKey =
+	| "advisor_commission_payments"
+	| "advisor_commissions"
+	| "payments"
+	| "plot_sales"
+	| "customer_documents"
+	| "project_documents"
+	| "reminders"
+	| "office_expenses"
+	| "enquiry_customers"
+	| "advisor_project_commissions"
+	| "plots"
+	| "customers"
+	| "hr_employee_payouts"
+	| "hr_attendance"
+	| "hr_payout_batches"
+	| "hr_employees"
+	| "staff_attendance"
+	| "staff"
+	| "advisors"
+	| "projects"
+	| "business_modules";
+
+type DeleteStepSpec = {
+	key: DeleteStepKey;
+	label: string;
+	table: string;
+	column: "business_id" | "target_business_id" | "id" | "project_id";
+};
+
+const BUSINESS_PURGE_STEPS: DeleteStepSpec[] = [
+	{
+		key: "advisor_commission_payments",
+		label: "Advisor commission payments",
+		table: "advisor_commission_payments",
+		column: "business_id",
+	},
+	{ key: "advisor_commissions", label: "Advisor commissions", table: "advisor_commissions", column: "business_id" },
+	{ key: "payments", label: "Customer payments", table: "payments", column: "business_id" },
+	{ key: "plot_sales", label: "Plot sales", table: "plot_sales", column: "business_id" },
+	{ key: "customer_documents", label: "Customer documents", table: "customer_documents", column: "business_id" },
+	{ key: "project_documents", label: "Project documents", table: "project_documents", column: "project_id" },
+	{ key: "reminders", label: "Reminders", table: "reminders", column: "business_id" },
+	{ key: "office_expenses", label: "Office expenses", table: "office_expenses", column: "business_id" },
+	{ key: "enquiry_customers", label: "Enquiry customers", table: "enquiry_customers", column: "business_id" },
+	{
+		key: "advisor_project_commissions",
+		label: "Advisor project commissions",
+		table: "advisor_project_commissions",
+		column: "business_id",
+	},
+	{ key: "plots", label: "Plots", table: "plots", column: "business_id" },
+	{ key: "customers", label: "Customers", table: "customers", column: "business_id" },
+	{ key: "hr_employee_payouts", label: "HR employee payouts", table: "hr_employee_payouts", column: "business_id" },
+	{ key: "hr_attendance", label: "HR attendance", table: "hr_attendance", column: "business_id" },
+	{ key: "hr_payout_batches", label: "HR payout batches", table: "hr_payout_batches", column: "business_id" },
+	{ key: "hr_employees", label: "HR employees", table: "hr_employees", column: "business_id" },
+	{ key: "staff_attendance", label: "Legacy staff attendance", table: "staff_attendance", column: "business_id" },
+	{ key: "staff", label: "Legacy staff", table: "staff", column: "business_id" },
+	{ key: "advisors", label: "Advisors", table: "advisors", column: "business_id" },
+	{ key: "projects", label: "Projects", table: "projects", column: "business_id" },
+	{ key: "business_modules", label: "Business modules", table: "business_modules", column: "business_id" },
+];
+
 function roleOf(user: any): string {
 	return String(user?.user_metadata?.role ?? "").trim().toLowerCase();
 }
@@ -19,6 +83,250 @@ async function requireSA() {
 	} = await supabase.auth.getUser();
 	if (!user || roleOf(user) !== "superadmin") throw new Error("Forbidden");
 	return { supabase, user };
+}
+
+async function countByEq(
+	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+	table: string,
+	column: string,
+	value: string,
+) {
+	const { count, error } = await (supabase as any)
+		.from(table)
+		.select("id", { head: true, count: "exact" })
+		.eq(column, value);
+	if (error) throw new Error(error.message);
+	return Number(count ?? 0);
+}
+
+async function deleteByEq(
+	supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+	table: string,
+	column: string,
+	value: string,
+) {
+	const { error } = await (supabase as any).from(table).delete().eq(column, value);
+	if (error) throw new Error(error.message);
+}
+
+export async function saGetBusinessPurgeSteps(): Promise<
+	SAResult<Array<{ key: DeleteStepKey; label: string }>>
+> {
+	try {
+		await requireSA();
+		return {
+			ok: true,
+			data: BUSINESS_PURGE_STEPS.map((s) => ({ key: s.key, label: s.label })),
+		};
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saGetBusinessDeleteSnapshot(input: {
+	business_id: string;
+}): Promise<
+	SAResult<{
+		business_name: string;
+		advisor_count: number;
+		admins: Array<{
+			id: string;
+			name: string | null;
+			email: string | null;
+			is_active: boolean;
+		}>;
+	}>
+> {
+	try {
+		const { supabase } = await requireSA();
+		const admin = createAdminClient();
+		if (!admin) return { ok: false, error: "Missing service role key" };
+		const businessId = String(input.business_id ?? "").trim();
+		if (!businessId) return { ok: false, error: "Business is required" };
+
+		const { data: business, error: businessErr } = await supabase
+			.from("businesses")
+			.select("id, name")
+			.eq("id", businessId)
+			.maybeSingle();
+		if (businessErr) return { ok: false, error: businessErr.message };
+		if (!business?.id) return { ok: false, error: "Business not found" };
+
+		const { count: advisorCount, error: advisorErr } = await supabase
+			.from("advisors")
+			.select("id", { head: true, count: "exact" })
+			.eq("business_id", businessId);
+		if (advisorErr) return { ok: false, error: advisorErr.message };
+
+		const { data: admins, error: adminErr } = await supabase
+			.from("business_admins")
+			.select("id, name, email, is_active, auth_user_id")
+			.eq("business_id", businessId)
+			.order("created_at", { ascending: true });
+		if (adminErr) return { ok: false, error: adminErr.message };
+
+		const mapped = (admins ?? []) as Array<{
+			id: string;
+			name: string | null;
+			email: string | null;
+			is_active: boolean;
+			auth_user_id: string;
+		}>;
+		const roleByAuthId = new Map<string, string>();
+
+		await Promise.all(
+			mapped.map(async (a) => {
+				const authId = String(a.auth_user_id ?? "").trim();
+				if (!authId) return;
+				try {
+					const { data } = await admin.auth.admin.getUserById(authId);
+					const role = String((data?.user?.user_metadata as any)?.role ?? "")
+						.trim()
+						.toLowerCase();
+					roleByAuthId.set(authId, role);
+				} catch {
+					roleByAuthId.set(authId, "");
+				}
+			}),
+		);
+
+		// Show only true tenant admin accounts (exclude advisor-linked rows).
+		const tenantAdmins = mapped
+			.filter((a) => {
+				const role = roleByAuthId.get(String(a.auth_user_id ?? "").trim()) ?? "";
+				return role === "admin" || role === "superadmin";
+			})
+			.map((a) => ({
+				id: a.id,
+				name: a.name,
+				email: a.email,
+				is_active: a.is_active,
+			}));
+
+		return {
+			ok: true,
+			data: {
+				business_name: String(business.name ?? ""),
+				advisor_count: Number(advisorCount ?? 0),
+				admins: tenantAdmins,
+			},
+		};
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saPurgeBusinessStep(input: {
+	business_id: string;
+	step_key: DeleteStepKey;
+}): Promise<
+	SAResult<{
+		step_key: DeleteStepKey;
+		label: string;
+		matched: number;
+		deleted: number;
+		deleted_auth_users?: number;
+	}>
+> {
+	try {
+		const { supabase, user } = await requireSA();
+		const admin = createAdminClient();
+		if (!admin) return { ok: false, error: "Missing service role key" };
+
+		const businessId = String(input.business_id ?? "").trim();
+		const step = BUSINESS_PURGE_STEPS.find((s) => s.key === input.step_key);
+		if (!businessId) return { ok: false, error: "Business is required" };
+		if (!step) return { ok: false, error: "Invalid step key" };
+
+		const authUserIdsToTryDelete = new Set<string>();
+		let matched = 0;
+		let deleted = 0;
+
+		if (step.key === "project_documents") {
+			const { data: projects, error: projectErr } = await supabase
+				.from("projects")
+				.select("id")
+				.eq("business_id", businessId);
+			if (projectErr) return { ok: false, error: projectErr.message };
+			const projectIds = (projects ?? []).map((p: { id: string }) => p.id);
+			if (!projectIds.length) {
+				return { ok: true, data: { step_key: step.key, label: step.label, matched: 0, deleted: 0 } };
+			}
+			const { count, error: countErr } = await (supabase as any)
+				.from("project_documents")
+				.select("id", { head: true, count: "exact" })
+				.in("project_id", projectIds);
+			if (countErr) return { ok: false, error: countErr.message };
+			matched = Number(count ?? 0);
+			const { error: delErr } = await (supabase as any)
+				.from("project_documents")
+				.delete()
+				.in("project_id", projectIds);
+			if (delErr) return { ok: false, error: delErr.message };
+			deleted = matched;
+		} else {
+			// Capture auth IDs before deleting advisor/admin rows.
+			if (step.key === "business_admins" || step.key === "advisors") {
+				const { data: authRows, error: authRowsErr } = await (supabase as any)
+					.from(step.table)
+					.select("auth_user_id")
+					.eq(step.column, businessId)
+					.not("auth_user_id", "is", null);
+				if (authRowsErr) return { ok: false, error: authRowsErr.message };
+				for (const r of authRows ?? []) {
+					const id = String((r as { auth_user_id?: string }).auth_user_id ?? "").trim();
+					if (id) authUserIdsToTryDelete.add(id);
+				}
+			}
+
+			matched = await countByEq(supabase, step.table, step.column, businessId);
+			await deleteByEq(supabase, step.table, step.column, businessId);
+			deleted = matched;
+		}
+
+		let deletedAuthUsers = 0;
+		if (authUserIdsToTryDelete.size > 0) {
+			for (const authUserId of authUserIdsToTryDelete) {
+				const remainingAdminRefs = await countByEq(
+					supabase,
+					"business_admins",
+					"auth_user_id",
+					authUserId,
+				);
+				const remainingAdvisorRefs = await countByEq(supabase, "advisors", "auth_user_id", authUserId);
+				if (remainingAdminRefs > 0 || remainingAdvisorRefs > 0) continue;
+				const { error: authDelErr } = await admin.auth.admin.deleteUser(authUserId);
+				if (!authDelErr) deletedAuthUsers++;
+			}
+		}
+
+		await audit({
+			actorId: user.id,
+			action: "business.data_purge.step",
+			targetBusinessId: businessId,
+			after: {
+				step_key: step.key,
+				table: step.table,
+				matched,
+				deleted,
+				deleted_auth_users: deletedAuthUsers,
+			},
+		});
+
+		return {
+			ok: true,
+			data: {
+				step_key: step.key,
+				label: step.label,
+				matched,
+				deleted,
+				deleted_auth_users: deletedAuthUsers,
+			},
+		};
+	} catch (e: any) {
+		if (isRedirectError(e)) throw e;
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
 }
 
 async function audit(params: {
@@ -46,10 +354,16 @@ export async function saListBusinesses(): Promise<SAResult<Array<{ id: string; n
 		const { supabase } = await requireSA();
 		const { data, error } = await supabase
 			.from("businesses")
-			.select("id, name, status")
+			.select("id, name, display_name, status")
 			.order("created_at", { ascending: false });
 		if (error) return { ok: false, error: error.message };
-		return { ok: true, data: (data ?? []) as any };
+		const mapped =
+			(data ?? []).map((b: any) => ({
+				id: String(b.id),
+				name: String((b.display_name ?? b.name ?? "")).trim() || String(b.name ?? "Unnamed business"),
+				status: String(b.status ?? "active"),
+			})) ?? [];
+		return { ok: true, data: mapped };
 	} catch (e: any) {
 		return { ok: false, error: e?.message ?? "Failed" };
 	}

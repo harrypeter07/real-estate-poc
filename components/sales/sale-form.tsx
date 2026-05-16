@@ -116,7 +116,9 @@ export function SaleForm({
     (advisorAssignments ?? []).forEach((a) => {
       if (a.advisor_id === selectedAdvisorId) set.add(a.project_id);
     });
-    return set;
+    // Empty set = advisor has no rows in loaded assignments; do not treat as a real
+    // filter (otherwise every plot is excluded and plot_id is cleared — breaks Sell dialog).
+    return set.size > 0 ? set : null;
   }, [advisorAssignments, selectedAdvisorId]);
 
   const allowedAdvisorIdsForProject = useMemo(() => {
@@ -125,7 +127,7 @@ export function SaleForm({
     (advisorAssignments ?? []).forEach((a) => {
       if (a.project_id === selectedProjectId) set.add(a.advisor_id);
     });
-    return set;
+    return set.size > 0 ? set : null;
   }, [advisorAssignments, selectedProjectId]);
 
   const filteredPlots = useMemo(() => {
@@ -562,8 +564,8 @@ export function SaleForm({
 
   return (
     <>
-    <Card className="max-w-4xl w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+    <Card className="w-full max-w-4xl">
+      <CardHeader className="flex flex-row justify-between items-center p-4 space-y-0">
         <div>
           <CardTitle className="text-lg">New Sale / Booking</CardTitle>
           <CardDescription className="text-xs">Record a new plot transaction</CardDescription>
@@ -577,7 +579,7 @@ export function SaleForm({
       <CardContent className="p-4 pt-0">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {/* Selections */}
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold border-b pb-1.5 uppercase tracking-wider text-zinc-500">
@@ -686,7 +688,7 @@ export function SaleForm({
                 )}
 
                 {!soldByAdmin && selectedAdvisorId && subOptions.length > 0 ? (
-                  <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 space-y-2">
+                  <div className="p-3 space-y-2 rounded-md border border-zinc-200 bg-zinc-50/80">
                     <div className="text-xs font-semibold text-zinc-700">
                       Sub-advisors (optional)
                     </div>
@@ -743,7 +745,7 @@ export function SaleForm({
                 ) : null}
 
                 {!soldByAdmin && selectedAdvisorId && finance.profit > 0.001 && commissionParticipantIds.length > 1 ? (
-                  <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+                  <div className="p-3 space-y-2 rounded-md border border-amber-200 bg-amber-50/50">
                     <div className="text-xs font-semibold text-amber-900">
                       Commission split (₹ from total profit)
                     </div>
@@ -758,10 +760,10 @@ export function SaleForm({
                           ? `${adv?.name ?? "Main"} (main)`
                           : `${adv?.name ?? "Sub"}`;
                       return (
-                        <div key={aid} className="flex items-center gap-2 text-sm">
-                          <span className="min-w-0 flex-1 truncate text-zinc-700">{label}</span>
+                        <div key={aid} className="flex gap-2 items-center text-sm">
+                          <span className="flex-1 min-w-0 truncate text-zinc-700">{label}</span>
                           {isLast ? (
-                            <span className="font-mono tabular-nums font-semibold text-zinc-900 w-28 text-right">
+                            <span className="w-28 font-mono font-semibold tabular-nums text-right text-zinc-900">
                               {formatCurrency(splitLastAuto)}
                             </span>
                           ) : (
@@ -769,7 +771,7 @@ export function SaleForm({
                               type="number"
                               min={0}
                               step={0.01}
-                              className="h-8 w-28 text-right font-mono text-xs"
+                              className="w-28 h-8 font-mono text-xs text-right"
                               value={splitByAdvisor[aid] ?? ""}
                               onChange={(e) =>
                                 setSplitByAdvisor((prev) => ({
@@ -868,16 +870,16 @@ export function SaleForm({
                   />
                 ) : null}
 
-                <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
+                <h3 className="pb-2 text-xs font-semibold tracking-wider uppercase border-b text-zinc-500">
                   Sale Details
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   <FormField
                     control={form.control}
                     name="sale_phase"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-1 min-w-0">
+                      <FormItem className="min-w-0 sm:col-span-1">
                         <FormLabel>Sale Phase *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -899,7 +901,7 @@ export function SaleForm({
                     control={form.control}
                     name={phaseDateFieldName as "token_date" | "agreement_date"}
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-1 min-w-0">
+                      <FormItem className="min-w-0 sm:col-span-1">
                         <FormLabel>{phaseDateLabel}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />
@@ -935,7 +937,7 @@ export function SaleForm({
 
               {/* Financials */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold border-b pb-2 uppercase tracking-wider text-zinc-500">
+                <h3 className="pb-2 text-xs font-semibold tracking-wider uppercase border-b text-zinc-500">
                   Financials
                 </h3>
                 
@@ -997,7 +999,7 @@ export function SaleForm({
                   />
                 </div>
 
-                <div className="rounded-lg bg-zinc-50 p-3 border border-zinc-200 space-y-1">
+                <div className="p-3 space-y-1 rounded-lg border bg-zinc-50 border-zinc-200">
                   <div className="flex justify-between text-xs">
                     <span className="text-zinc-500">Remaining Balance:</span>
                     <span className="font-bold">{formatCurrency(remaining)}</span>
@@ -1022,12 +1024,12 @@ export function SaleForm({
                 )}
 
                 {selectedPlot ? (
-                  <div className="rounded-lg bg-zinc-50 p-3 border border-zinc-200 space-y-2">
-                    <h4 className="text-xs font-semibold text-zinc-700 uppercase tracking-wide">
+                  <div className="p-3 space-y-2 rounded-lg border bg-zinc-50 border-zinc-200">
+                    <h4 className="text-xs font-semibold tracking-wide uppercase text-zinc-700">
                       {soldByAdmin ? "Pricing (Admin Direct - No Commission)" : "Pricing, Profit & Advisor Earnings"}
                     </h4>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
                           Plot base rate / sqft
@@ -1040,7 +1042,7 @@ export function SaleForm({
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
                           Plot Size
                         </div>
-                        <div className="font-semibold text-zinc-900 text-right">
+                        <div className="font-semibold text-right text-zinc-900">
                           {plotSize.toLocaleString("en-IN")} sqft
                         </div>
                       </div>
@@ -1057,7 +1059,7 @@ export function SaleForm({
                         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
                           {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor selling price / sqft"}
                         </div>
-                        <div className="font-semibold text-zinc-900 text-right">
+                        <div className="font-semibold text-right text-zinc-900">
                           {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
                         </div>
                         {advisorRateInvalid ? (
@@ -1090,7 +1092,7 @@ export function SaleForm({
                             <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
                               Advisor Earned (Based on Received)
                             </div>
-                            <div className="font-semibold text-zinc-900 text-right">
+                            <div className="font-semibold text-right text-zinc-900">
                               {formatCurrency(finance.advisorEarned)}
                             </div>
                             <div className="text-[11px] text-zinc-500 text-right">
@@ -1108,7 +1110,7 @@ export function SaleForm({
                         </span>
                         <span>{Math.round(finance.ratio * 100)}%</span>
                       </div>
-                      <div className="h-2 rounded-full bg-zinc-200 overflow-hidden">
+                      <div className="overflow-hidden h-2 rounded-full bg-zinc-200">
                         <div
                           className="h-full bg-zinc-900"
                           style={{ width: `${Math.round(finance.ratio * 100)}%` }}
@@ -1118,7 +1120,7 @@ export function SaleForm({
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {selectedPhase !== "full_payment" && remaining > 0 && (
                     <FormField
                       control={form.control}
@@ -1218,7 +1220,7 @@ export function SaleForm({
                     : ""
                 }`}
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
                 {loading ? "Submitting..." : submitStatus === "success" ? "Submitted" : "Confirm Sale"}
               </Button>
             </div>
@@ -1231,9 +1233,9 @@ export function SaleForm({
                 }`}
               >
                 {submitStatus === "success" ? (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="w-4 h-4" />
                 ) : (
-                  <AlertCircle className="h-4 w-4" />
+                  <AlertCircle className="w-4 h-4" />
                 )}
                 <span>{statusText}</span>
               </div>

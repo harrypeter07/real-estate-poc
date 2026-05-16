@@ -96,6 +96,7 @@ CREATE TABLE advisor_project_commissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   advisor_id UUID NOT NULL REFERENCES advisors(id) ON DELETE CASCADE,
+  commission_rate DECIMAL(12,2) NOT NULL DEFAULT 0,
   commission_token DECIMAL(10,2) DEFAULT 0,
   commission_agreement DECIMAL(10,2) DEFAULT 0,
   commission_registry DECIMAL(10,2) DEFAULT 0,

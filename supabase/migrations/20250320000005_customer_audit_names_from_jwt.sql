@@ -64,8 +64,8 @@ execute function set_customer_audit_fields();
 -- This can be re-run anytime; it won't overwrite non-null names.
 update customers c
 set
-  created_by_name = coalesce(c.created_by_name, u.user_metadata ->> 'name', u.user_metadata ->> 'full_name'),
-  last_edited_by_name = coalesce(c.last_edited_by_name, u.user_metadata ->> 'name', u.user_metadata ->> 'full_name')
+  created_by_name = coalesce(c.created_by_name, u.raw_user_meta_data ->> 'name', u.raw_user_meta_data ->> 'full_name'),
+  last_edited_by_name = coalesce(c.last_edited_by_name, u.raw_user_meta_data ->> 'name', u.raw_user_meta_data ->> 'full_name')
 from auth.users u
 where (c.created_by is not null and u.id = c.created_by and (c.created_by_name is null or c.created_by_name = ''))
    or (c.last_edited_by is not null and u.id = c.last_edited_by and (c.last_edited_by_name is null or c.last_edited_by_name = ''));

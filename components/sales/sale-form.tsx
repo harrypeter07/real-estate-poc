@@ -116,7 +116,9 @@ export function SaleForm({
     (advisorAssignments ?? []).forEach((a) => {
       if (a.advisor_id === selectedAdvisorId) set.add(a.project_id);
     });
-    return set;
+    // Empty set = advisor has no rows in loaded assignments; do not treat as a real
+    // filter (otherwise every plot is excluded and plot_id is cleared — breaks Sell dialog).
+    return set.size > 0 ? set : null;
   }, [advisorAssignments, selectedAdvisorId]);
 
   const allowedAdvisorIdsForProject = useMemo(() => {
@@ -125,7 +127,7 @@ export function SaleForm({
     (advisorAssignments ?? []).forEach((a) => {
       if (a.project_id === selectedProjectId) set.add(a.advisor_id);
     });
-    return set;
+    return set.size > 0 ? set : null;
   }, [advisorAssignments, selectedProjectId]);
 
   const filteredPlots = useMemo(() => {

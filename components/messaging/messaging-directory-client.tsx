@@ -245,12 +245,12 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 			</Card>
 
 			<div className="relative">
-				<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+				<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" aria-hidden />
 				<Input
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
 					placeholder="Search by name, phone…"
-					className="h-11 rounded-xl border-zinc-200 pl-10 pr-12 dark:border-zinc-800"
+					className="h-11 rounded-xl border-zinc-200 pl-10 sm:pl-10 pr-12 dark:border-zinc-800"
 				/>
 				<button
 					type="button"

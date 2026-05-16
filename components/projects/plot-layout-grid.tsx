@@ -264,7 +264,7 @@ export function PlotLayoutGrid({
 							Search by plot number
 						</label>
 						<Search
-							className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
+							className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
 							aria-hidden
 						/>
 						<Input
@@ -275,7 +275,7 @@ export function PlotLayoutGrid({
 							placeholder="Plot #…"
 							value={plotNumberSearch}
 							onChange={(e) => setPlotNumberSearch(e.target.value)}
-							className="h-8 pl-8 text-sm"
+							className="h-8 pl-10 sm:pl-10 text-sm"
 						/>
 					</div>
 					{plotNumberSearch.trim() ? (

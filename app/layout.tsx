@@ -54,6 +54,7 @@ export const metadata: Metadata = {
 };
 
 import { LoadingBar } from "@/components/layout/loading-bar";
+import QueryProvider from "@/components/providers/query-provider";
 
 export default function RootLayout({
 	children,
@@ -67,10 +68,12 @@ export default function RootLayout({
 			suppressHydrationWarning
 		>
 			<body className={inter.className} suppressHydrationWarning>
-				<LoadingBar />
-				{children}
-				<BusinessDocumentTitle />
-				<Toaster position="top-right" richColors closeButton />
+				<QueryProvider>
+					<LoadingBar />
+					{children}
+					<BusinessDocumentTitle />
+					<Toaster position="top-right" richColors closeButton />
+				</QueryProvider>
 			</body>
 		</html>
 	);

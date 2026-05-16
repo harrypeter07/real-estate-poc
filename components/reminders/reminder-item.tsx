@@ -32,6 +32,8 @@ import {
 	AlertDialogTitle,
 	Dialog,
 	DialogContent,
+	DialogHeader,
+	DialogTitle,
 } from "@/components/ui";
 import { formatDate } from "@/lib/utils/formatters";
 import { toggleReminder, deleteReminder } from "@/app/actions/reminders";
@@ -260,6 +262,9 @@ export function ReminderItem({ reminder, customers = [] }: ReminderItemProps) {
 			{/* Edit Dialog */}
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
 				<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-2xl flex-col gap-0 overflow-hidden border border-border p-0 shadow-xl">
+					<DialogHeader className="p-4 sm:p-6 pb-0">
+						<DialogTitle>Edit Task</DialogTitle>
+					</DialogHeader>
 					<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
 						<div className="flex justify-end mb-4">
 							<Button

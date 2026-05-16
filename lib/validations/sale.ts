@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const saleSchema = z
   .object({
-    plot_id: z.string().uuid("Invalid plot selected"),
+    plot_id: z.string().uuid("Please select a plot from the list"),
     customer_id: z.string().uuid("Invalid customer selected"),
     sold_by_admin: z.boolean().default(false),
     advisor_id: z.string().uuid("Invalid advisor selected").optional().nullable(),
@@ -12,11 +12,26 @@ export const saleSchema = z
     sale_phase: z.enum(["token", "full_payment"]),
     token_date: z.string().optional().nullable(),
     agreement_date: z.string().optional().nullable(),
-    total_sale_amount: z.coerce.number().positive("Total sale amount must be positive"),
-    down_payment: z.coerce.number().min(0).default(0),
-    emi_months: z.coerce.number().min(1).max(120).optional().nullable(),
-    monthly_emi: z.coerce.number().min(0).optional().nullable(),
-    emi_day: z.coerce.number().min(1).max(31).optional().nullable(),
+    total_sale_amount: z.preprocess(
+      (val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+      z.number().min(1, "Please select a plot to calculate selling price")
+    ),
+    down_payment: z.preprocess(
+      (val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+      z.number().min(0, "Down payment cannot be negative")
+    ),
+    emi_months: z.preprocess(
+      (val) => (val === "" || val === undefined || val === null ? null : Number(val)),
+      z.number().min(1).max(120).optional().nullable()
+    ),
+    monthly_emi: z.preprocess(
+      (val) => (val === "" || val === undefined || val === null ? null : Number(val)),
+      z.number().min(0).optional().nullable()
+    ),
+    emi_day: z.preprocess(
+      (val) => (val === "" || val === undefined || val === null ? null : Number(val)),
+      z.number().min(1).max(31).optional().nullable()
+    ),
     followup_date: z.string().optional().nullable(),
     notes: z.string().optional().default(""),
     /** Per-sqft price the advisor sells at; optional override of project default from Manage. */
@@ -33,7 +48,10 @@ export const saleSchema = z
       .array(
         z.object({
           advisor_id: z.string().uuid(),
-          amount: z.coerce.number().min(0),
+          amount: z.preprocess(
+            (val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+            z.number().min(0)
+          ),
         }),
       )
       .optional(),
@@ -47,11 +65,14 @@ export const saleSchema = z
     path: ["advisor_id"],
   })
   .refine(
-    (data) =>
-      data.sale_phase === "full_payment" ||
-      Number(data.down_payment ?? 0) <= Number(data.total_sale_amount ?? 0),
+    (data) => {
+      // Only validate down payment against total if total is actually set
+      if (!data.total_sale_amount || data.total_sale_amount <= 0) return true;
+      if (data.sale_phase === "full_payment") return true;
+      return Number(data.down_payment ?? 0) <= Number(data.total_sale_amount);
+    },
     {
-      message: "Amount cannot be greater than payment amount",
+      message: "Down payment cannot exceed selling price",
       path: ["down_payment"],
     },
   );

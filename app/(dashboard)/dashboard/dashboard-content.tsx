@@ -9,8 +9,9 @@ import {
 	Wallet,
 	Target,
 	FileText,
+	Clock3,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, Progress } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle, Progress, Badge } from "@/components/ui";
 import { getReportStats } from "@/app/actions/reports";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { SalesTrendLineChart } from "@/components/reports/sales-trend-line-chart";
@@ -165,6 +166,46 @@ export default async function DashboardContent({
 			</Card>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-600">
+							<Clock3 className="h-4 w-4" /> Upcoming Follow-ups
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-3">
+							{(stats as any).upcomingFollowUps?.length > 0 ? (
+								(stats as any).upcomingFollowUps.map((f: any) => (
+									<div
+										key={f.id}
+										className="flex items-center justify-between p-2.5 rounded-lg border border-zinc-100 bg-zinc-50/50 transition-colors hover:bg-zinc-50"
+									>
+										<div className="min-w-0">
+											<p className="text-sm font-bold truncate text-zinc-900">{f.name}</p>
+											<p className="text-[10px] text-zinc-500 font-medium">
+												{f.phone} • <span className="text-zinc-400">{f.category}</span>
+											</p>
+										</div>
+										<div className="text-right shrink-0">
+											<Badge
+												variant="outline"
+												className="text-[10px] font-bold border-amber-200 bg-amber-50 text-amber-800"
+											>
+												{f.follow_up_date}
+											</Badge>
+										</div>
+									</div>
+								))
+							) : (
+								<div className="flex flex-col items-center justify-center py-8 text-center">
+									<Clock3 className="h-8 w-8 text-zinc-200 mb-2" />
+									<p className="text-xs text-zinc-500">No upcoming follow-ups scheduled</p>
+								</div>
+							)}
+						</div>
+					</CardContent>
+				</Card>
+
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-sm font-bold flex items-center gap-2">

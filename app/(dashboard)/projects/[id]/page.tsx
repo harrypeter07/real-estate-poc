@@ -24,7 +24,7 @@ import { getAdvisors } from "@/app/actions/advisors";
 import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 import { ProjectAdvisorAssignmentsModal } from "@/components/projects/project-advisor-assignments-modal";
 import { PlotForm } from "@/components/projects/plot-form";
-import { Dialog, DialogClose, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProjectDocumentsModal } from "@/components/projects/project-documents-modal";
 import { getProjectDocuments } from "@/app/actions/project-documents";
 import { RecentSalesList } from "@/components/projects/recent-sales-list";
@@ -128,15 +128,12 @@ export default async function ProjectDetailPage({
 								</Button>
 							</DialogTrigger>
 							<DialogContent className="max-w-2xl">
-								<div className="flex items-center justify-between gap-3 border-b border-zinc-100 p-4">
-									<div className="text-sm font-medium text-zinc-700">Add Single Plot</div>
-									<DialogClose asChild>
-										<Button variant="outline" size="sm" className="h-8">
-											Close
-										</Button>
-									</DialogClose>
+								<DialogHeader>
+									<DialogTitle>Add Single Plot</DialogTitle>
+								</DialogHeader>
+								<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+									<PlotForm mode="create" projectId={project.id} />
 								</div>
-								<PlotForm mode="create" projectId={project.id} />
 							</DialogContent>
 						</Dialog>
 						<ProjectDocumentsModal projectId={project.id} initialDocs={projectDocs as any[]} />

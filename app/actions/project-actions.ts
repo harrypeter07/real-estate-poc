@@ -250,23 +250,23 @@ export async function getProjectWithStats(
 	let totalRevenue = 0;
 	let recentSales: ProjectWithStats["recentSales"] = [];
 
+	const { data: payRows } = await supabase
+		.from("payments")
+		.select(`
+			amount,
+			plot_sales!inner(
+				plots!inner(project_id)
+			)
+		`)
+		.eq("is_confirmed", true)
+		.eq("plot_sales.plots.project_id", id);
+
+	totalRevenue = (payRows ?? []).reduce(
+		(sum, p) => sum + Number((p as any).amount ?? 0),
+		0,
+	);
+
 	if (plotIds.length > 0) {
-		const { data: saleIdsRows } = await supabase
-			.from("plot_sales")
-			.select("id")
-			.in("plot_id", plotIds);
-		const saleIds = (saleIdsRows ?? []).map((r) => r.id);
-		if (saleIds.length > 0) {
-			const { data: payRows } = await supabase
-				.from("payments")
-				.select("amount")
-				.eq("is_confirmed", true)
-				.in("sale_id", saleIds);
-			totalRevenue = (payRows ?? []).reduce(
-				(sum, p) => sum + Number((p as { amount?: number }).amount ?? 0),
-				0,
-			);
-		}
 
 		const { data: salesRaw } = await supabase
 			.from("plot_sales")

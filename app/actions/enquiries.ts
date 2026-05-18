@@ -214,24 +214,73 @@ export async function getEnquiryTempCustomersForModal(): Promise<EnquiryTempCust
 	});
 }
 
-export async function getEnquiryCustomers(): Promise<EnquiryRow[]> {
-	const supabase = await createClient();
-	if (!supabase) return [];
+export async function getEnquiryCustomers(options?: {
+	page?: number;
+	pageSize?: number;
+	search?: string;
+	category?: string;
+	projectId?: string;
+	status?: "all" | "active" | "upgraded";
+}): Promise<{ data: EnquiryRow[]; total: number }> {
+	const {
+		page = 1,
+		pageSize = 20,
+		search = "",
+		category = "all",
+		projectId = "all",
+		status = "all",
+	} = options ?? {};
+	const start = (page - 1) * pageSize;
+	const end = start + pageSize - 1;
 
-	const { data, error } = await supabase
+	const supabase = await createClient();
+	if (!supabase) return { data: [], total: 0 };
+
+	const businessId = await getCurrentBusinessId();
+
+	let query = supabase
 		.from("enquiry_customers")
 		.select(
 			`
       *,
       projects(name)
-    `
-		)
-		.eq("is_active", true)
-		.order("created_at", { ascending: false });
+    `,
+			{ count: "exact" }
+		);
+
+	if (businessId) {
+		query = query.eq("business_id", businessId);
+	}
+
+	if (status === "active") {
+		query = query.eq("is_active", true);
+	} else if (status === "upgraded") {
+		query = query.eq("is_active", false);
+	}
+
+	if (category !== "all") {
+		query = query.eq("category", category);
+	}
+
+	if (projectId !== "all") {
+		if (projectId === "none") {
+			query = query.is("project_id", null);
+		} else {
+			query = query.eq("project_id", projectId);
+		}
+	}
+
+	if (search) {
+		query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,category.ilike.%${search}%`);
+	}
+
+	const { data, count, error } = await query
+		.order("created_at", { ascending: false })
+		.range(start, end);
 
 	if (error) throw new Error(error.message);
 
-	return (data ?? []).map((e: any) => ({
+	const mapped = (data ?? []).map((e: any) => ({
 		id: e.id,
 		name: e.name,
 		phone: e.phone,
@@ -255,6 +304,8 @@ export async function getEnquiryCustomers(): Promise<EnquiryRow[]> {
 		follow_up_date: e.follow_up_date ?? null,
 		enquiry_status: e.enquiry_status ?? "new",
 	})) as EnquiryRow[];
+
+	return { data: mapped, total: count ?? 0 };
 }
 
 export async function createEnquiryCustomer(

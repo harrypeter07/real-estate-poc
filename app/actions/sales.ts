@@ -450,20 +450,12 @@ export async function getCustomerPlotSales(customerId: string) {
 		| string
 		| undefined;
 
-	// Advisors should only see sales for their own customers.
 	let query = supabase
 		.from("plot_sales")
 		.select(
 			`
-      id,
-      sale_phase,
-      token_date,
-      agreement_date,
-      total_sale_amount,
-      amount_paid,
-      remaining_amount,
-      created_at,
-      plots(plot_number, projects(name))
+      *,
+      plots(plot_number, projects(id, name))
     `
 		)
 		.eq("customer_id", customerId)
@@ -474,7 +466,26 @@ export async function getCustomerPlotSales(customerId: string) {
 	}
 
 	const { data, error } = await query;
-
 	if (error) throw new Error(error.message);
-	return data || [];
+
+	const saleIds = (data ?? []).map((s: any) => s.id);
+	let lastPayments: any[] = [];
+	if (saleIds.length > 0) {
+		const { data: lp } = await supabase
+			.from("payments")
+			.select("id, sale_id, amount, payment_date, slip_number, payment_mode, is_confirmed")
+			.in("sale_id", saleIds)
+			.eq("is_confirmed", true)
+			.order("payment_date", { ascending: false });
+		lastPayments = lp ?? [];
+	}
+
+	return (data ?? []).map((sale: any) => {
+		const lastPayment = lastPayments.find((p) => p.sale_id === sale.id);
+		return {
+			...sale,
+			last_payment: lastPayment || null,
+			payment_due_meta: computePaymentDueMeta(sale, lastPayment?.payment_date),
+		};
+	});
 }

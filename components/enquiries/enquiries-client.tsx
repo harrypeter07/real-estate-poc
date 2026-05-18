@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
 	Badge,
@@ -16,24 +17,30 @@ import {
 	TableRow,
 } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
-import type { EnquiryRow } from "@/app/actions/enquiries";
+import { getEnquiryCustomers, type EnquiryRow } from "@/app/actions/enquiries";
 import { EnquiryCreateModal } from "@/components/enquiries/enquiry-create-modal";
 import { EnquiryEditModal } from "@/components/enquiries/enquiry-edit-modal";
 import { EnquiryTempCustomersModal } from "@/components/enquiries/enquiry-temp-customers-modal";
-import { Calendar, Building2, User, CheckCircle2, Clock3, UserCheck, XCircle } from "lucide-react";
+import { Calendar, Building2, User, CheckCircle2, Clock3, UserCheck, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { useDebounce } from "@/lib/hooks/use-debounce";
+import { TableSkeleton } from "@/components/shared/skeletons";
+import { cn } from "@/lib/utils";
 
 export function EnquiriesClient({
 	initialEnquiries,
+	initialTotal,
 	projects,
 	advisors,
 }: {
 	initialEnquiries: EnquiryRow[];
+	initialTotal: number;
 	projects: Array<{ id: string; name: string }>;
 	advisors: Array<{ id: string; name: string }>;
 }) {
 	const router = useRouter();
+	const [page, setPage] = useState(1);
 	const [query, setQuery] = useState("");
 	const [categoryFilter, setCategoryFilter] = useState("all");
 	const [projectFilter, setProjectFilter] = useState("all");
@@ -41,6 +48,32 @@ export function EnquiriesClient({
 	const [createOpen, setCreateOpen] = useState(false);
 	const [tempCustomersOpen, setTempCustomersOpen] = useState(false);
 	const [editEnquiry, setEditEnquiry] = useState<EnquiryRow | null>(null);
+
+	const pageSize = 20;
+	const debouncedQuery = useDebounce(query, 400);
+
+	// Reset to page 1 on filter change
+	useEffect(() => {
+		setPage(1);
+	}, [debouncedQuery, categoryFilter, projectFilter, statusFilter]);
+
+	const { data: response, isLoading, isPlaceholderData } = useQuery({
+		queryKey: ["enquiries", page, debouncedQuery, categoryFilter, projectFilter, statusFilter],
+		queryFn: () =>
+			getEnquiryCustomers({
+				page,
+				pageSize,
+				search: debouncedQuery,
+				category: categoryFilter,
+				projectId: projectFilter,
+				status: statusFilter as any,
+			}),
+		placeholderData: (prev) => prev,
+	});
+
+	const enquiries = response?.data ?? (page === 1 ? initialEnquiries : []);
+	const total = response?.total ?? (page === 1 ? initialTotal : 0);
+	const totalPages = Math.ceil(total / pageSize);
 
 	const advisorById = useMemo(() => {
 		return new Map(advisors.map((a) => [a.id, a.name]));
@@ -80,19 +113,6 @@ export function EnquiriesClient({
 		}
 	};
 
-	const filtered = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		return initialEnquiries.filter((e) => {
-			if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
-			if (projectFilter !== "all" && (e.project_id ?? "none") !== projectFilter) return false;
-			if (statusFilter === "active" && !e.is_active) return false;
-			if (statusFilter === "upgraded" && e.is_active) return false;
-			if (!q) return true;
-			const hay = `${e.name} ${e.phone} ${e.category} ${e.project_name ?? ""}`.toLowerCase();
-			return hay.includes(q);
-		});
-	}, [initialEnquiries, query, categoryFilter, projectFilter, statusFilter]);
-
 	const categories = useMemo(
 		() => Array.from(new Set(initialEnquiries.map((e) => e.category))).sort(),
 		[initialEnquiries]
@@ -102,7 +122,7 @@ export function EnquiriesClient({
 		<div className="space-y-6">
 			<PageHeader
 				title="Enquiries"
-				subtitle={`${initialEnquiries.length} active enquiries`}
+				subtitle={`${total} active enquiries`}
 				action={
 					<div className="flex gap-2 flex-wrap">
 						<Button
@@ -120,14 +140,14 @@ export function EnquiriesClient({
 			/>
 
 			<div className="flex flex-wrap gap-3 items-center justify-between">
-				<div className="flex-1">
+				<div className="flex-1 min-w-[300px]">
 					<Input
 						value={query}
 						placeholder="Search by name, phone, category..."
 						onChange={(e) => setQuery(e.target.value)}
 					/>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex flex-wrap items-center gap-2">
 					<select
 						className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm"
 						value={categoryFilter}
@@ -177,107 +197,148 @@ export function EnquiriesClient({
 
 			<Card>
 				<CardContent className="p-0 overflow-x-auto">
-					<Table>
-						<TableHeader>
-								<TableRow>
-									<TableHead>Customer</TableHead>
-									<TableHead>Requirements</TableHead>
-									<TableHead>Pipeline Status</TableHead>
-									<TableHead>Budget</TableHead>
-									<TableHead>Advisor</TableHead>
-									<TableHead>Project</TableHead>
-									<TableHead>Date</TableHead>
-								</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filtered.length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={7} className="text-center text-zinc-500 py-10">
-										No enquiries found.
-									</TableCell>
-								</TableRow>
-							) : (
-								filtered.map((enq) => (
-									<TableRow
-										key={enq.id}
-										className="hover:bg-zinc-50 cursor-pointer"
-										onClick={() => setEditEnquiry(enq)}
-									>
-										<TableCell>
-											<div className="min-w-0">
-												<div className="flex items-center gap-2">
-													<User className="h-4 w-4 text-zinc-400" />
-													<div className="font-semibold text-sm truncate">{enq.name}</div>
-												</div>
-												<div className="text-xs text-zinc-500 font-mono mt-0.5">{enq.phone}</div>
-												{enq.email_id ? (
-													<div className="text-[11px] text-zinc-400 truncate">{enq.email_id}</div>
-												) : null}
-											</div>
-										</TableCell>
-										<TableCell>
-											<div className="flex flex-col gap-1">
-												<div className="flex flex-wrap gap-1.5">
-													{enq.property_type ? (
-														<Badge variant="secondary">{enq.property_type}</Badge>
-													) : null}
-													{enq.segment ? (
-														<Badge variant="outline">{enq.segment}</Badge>
-													) : null}
-												</div>
-												<div className="text-xs text-zinc-600 truncate max-w-[240px]">
-													{enq.bhk_size_requirement ?? enq.details ?? "—"}
-												</div>
-											</div>
-										</TableCell>
-										<TableCell>
-											<Badge variant="outline" className="font-normal capitalize">
-												{(() => {
-													const { badge, Icon } = pipelineBadge(enq.enquiry_status ?? "new");
-													return (
-														<span className="flex items-center gap-1">
-															<Icon className="h-3.5 w-3.5" />
-															<span className="whitespace-nowrap">
-																{pipelineLabel(enq.enquiry_status ?? "new")}
-															</span>
-														</span>
-													);
-												})()}
-											</Badge>
-										</TableCell>
-										<TableCell className="text-sm text-zinc-700 whitespace-nowrap">
-											{enq.budget_min != null || enq.budget_max != null ? (
-												<>
-													{enq.budget_min != null ? formatCurrency(Number(enq.budget_min)) : "—"}{" "}
-													-{" "}
-													{enq.budget_max != null ? formatCurrency(Number(enq.budget_max)) : "—"}
-												</>
-											) : (
-												"—"
-											)}
-										</TableCell>
-										<TableCell className="text-sm text-zinc-700">
-											{enq.assigned_advisor_id ? advisorById.get(enq.assigned_advisor_id) ?? "—" : "Unassigned"}
-										</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												<Building2 className="h-4 w-4 text-zinc-400" />
-												<span className="text-sm text-zinc-700 truncate max-w-[180px]">
-													{enq.project_name ?? "—"}
-												</span>
-											</div>
-										</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2 text-sm text-zinc-700">
-												<Calendar className="h-4 w-4 text-zinc-400" />
-												{String(enq.created_at).slice(0, 10)}
-											</div>
-										</TableCell>
+					{isLoading && !enquiries.length ? (
+						<div className="p-6">
+							<TableSkeleton rows={8} />
+						</div>
+					) : (
+						<>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Customer</TableHead>
+										<TableHead>Requirements</TableHead>
+										<TableHead>Pipeline Status</TableHead>
+										<TableHead>Budget</TableHead>
+										<TableHead>Advisor</TableHead>
+										<TableHead>Project</TableHead>
+										<TableHead>Date</TableHead>
 									</TableRow>
-								))
+								</TableHeader>
+								<TableBody className={cn(isPlaceholderData ? "opacity-50" : "")}>
+									{enquiries.length === 0 ? (
+										<TableRow>
+											<TableCell colSpan={7} className="text-center text-zinc-500 py-10">
+												No enquiries found.
+											</TableCell>
+										</TableRow>
+									) : (
+										enquiries.map((enq) => (
+											<TableRow
+												key={enq.id}
+												className="hover:bg-zinc-50 cursor-pointer"
+												onClick={() => setEditEnquiry(enq)}
+											>
+												<TableCell>
+													<div className="min-w-0">
+														<div className="flex items-center gap-2">
+															<User className="h-4 w-4 text-zinc-400" />
+															<div className="font-semibold text-sm truncate">{enq.name}</div>
+														</div>
+														<div className="text-xs text-zinc-500 font-mono mt-0.5">{enq.phone}</div>
+														{enq.email_id ? (
+															<div className="text-[11px] text-zinc-400 truncate">{enq.email_id}</div>
+														) : null}
+													</div>
+												</TableCell>
+												<TableCell>
+													<div className="flex flex-col gap-1">
+														<div className="flex flex-wrap gap-1.5">
+															{enq.property_type ? (
+																<Badge variant="secondary">{enq.property_type}</Badge>
+															) : null}
+															{enq.segment ? (
+																<Badge variant="outline">{enq.segment}</Badge>
+															) : null}
+														</div>
+														<div className="text-xs text-zinc-600 truncate max-w-[240px]">
+															{enq.bhk_size_requirement ?? enq.details ?? "—"}
+														</div>
+													</div>
+												</TableCell>
+												<TableCell>
+													<Badge variant="outline" className="font-normal capitalize">
+														{(() => {
+															const { Icon } = pipelineBadge(enq.enquiry_status ?? "new");
+															return (
+																<span className="flex items-center gap-1">
+																	<Icon className="h-3.5 w-3.5" />
+																	<span className="whitespace-nowrap">
+																		{pipelineLabel(enq.enquiry_status ?? "new")}
+																	</span>
+																</span>
+															);
+														})()}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-sm text-zinc-700 whitespace-nowrap">
+													{enq.budget_min != null || enq.budget_max != null ? (
+														<>
+															{enq.budget_min != null ? formatCurrency(Number(enq.budget_min)) : "—"}{" "}
+															-{" "}
+															{enq.budget_max != null ? formatCurrency(Number(enq.budget_max)) : "—"}
+														</>
+													) : (
+														"—"
+													)}
+												</TableCell>
+												<TableCell className="text-sm text-zinc-700">
+													{enq.assigned_advisor_id ? advisorById.get(enq.assigned_advisor_id) ?? "—" : "Unassigned"}
+												</TableCell>
+												<TableCell>
+													<div className="flex items-center gap-2">
+														<Building2 className="h-4 w-4 text-zinc-400" />
+														<span className="text-sm text-zinc-700 truncate max-w-[180px]">
+															{enq.project_name ?? "—"}
+														</span>
+													</div>
+												</TableCell>
+												<TableCell>
+													<div className="flex items-center gap-2 text-sm text-zinc-700">
+														<Calendar className="h-4 w-4 text-zinc-400" />
+														{String(enq.created_at).slice(0, 10)}
+													</div>
+												</TableCell>
+											</TableRow>
+										))
+									)}
+								</TableBody>
+							</Table>
+
+							{/* Pagination footer */}
+							{totalPages > 1 && (
+								<div className="flex items-center justify-between border-t border-zinc-100 p-4">
+									<div className="text-xs text-zinc-500">
+										Showing {(page - 1) * pageSize + 1} to{" "}
+										{Math.min(page * pageSize, total)} of {total} entries
+									</div>
+									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setPage((p) => Math.max(1, p - 1))}
+											disabled={page === 1}
+										>
+											<ChevronLeft className="h-4 w-4 mr-1" />
+											Previous
+										</Button>
+										<div className="text-sm font-medium px-4">
+											Page {page} of {totalPages}
+										</div>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+											disabled={page === totalPages}
+										>
+											Next
+											<ChevronRight className="h-4 w-4 ml-1" />
+										</Button>
+									</div>
+								</div>
 							)}
-						</TableBody>
-					</Table>
+						</>
+					)}
 				</CardContent>
 			</Card>
 

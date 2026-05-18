@@ -83,7 +83,7 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center justify-between gap-2">
         {effectiveSearchKeys.length > 0 && (
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
             <Input
               placeholder={searchPlaceholder}
               value={globalQuery}
@@ -95,7 +95,7 @@ export function DataTable<TData, TValue>({
                   table.getColumn(k)?.setFilterValue(q)
                 );
               }}
-              className="pl-9"
+              className="pl-10 sm:pl-10"
             />
           </div>
         )}

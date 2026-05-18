@@ -102,12 +102,12 @@ export function PaymentsEmiDuePageClient({
 
 					<div className="flex flex-col sm:flex-row sm:items-center gap-2">
 						<div className="relative flex-1 max-w-xl">
-							<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+							<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 							<Input
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 								placeholder="Search by customer, phone, plot, project, seller…"
-								className="h-9 pl-8 text-sm"
+								className="h-9 pl-9 sm:pl-9 text-sm"
 							/>
 						</div>
 						<Button

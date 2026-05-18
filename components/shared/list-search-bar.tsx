@@ -20,14 +20,14 @@ export function ListSearchBar({
 	return (
 		<div className={cn("relative w-full max-w-md", className)}>
 			<Search
-				className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+				className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
 				aria-hidden
 			/>
 			<Input
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={placeholder}
-				className={cn("pl-9", inputClassName)}
+				className={cn("pl-10 sm:pl-10", inputClassName)}
 				autoComplete="off"
 			/>
 		</div>

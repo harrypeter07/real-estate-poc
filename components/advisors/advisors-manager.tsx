@@ -225,12 +225,12 @@ export function AdvisorsManager({ advisors }: { advisors: MainAdvisorRow[] }) {
 			<CardContent className="p-3 md:p-4 space-y-3">
 				<div className="flex flex-col sm:flex-row sm:items-center gap-3">
 					<div className="relative flex-1 max-w-md">
-						<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+						<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 						<Input
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search by name, code, phone, password hint…"
-							className="pl-8 h-8 text-sm"
+							className="pl-9 sm:pl-9 h-8 text-sm"
 						/>
 					</div>
 				</div>

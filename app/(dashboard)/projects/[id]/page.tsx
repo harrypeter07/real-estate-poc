@@ -27,6 +27,8 @@ import { PlotForm } from "@/components/projects/plot-form";
 import { Dialog, DialogClose, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ProjectDocumentsModal } from "@/components/projects/project-documents-modal";
 import { getProjectDocuments } from "@/app/actions/project-documents";
+import { RecentSalesList } from "@/components/projects/recent-sales-list";
+
 
 interface Props {
 	params: Promise<{ id: string }>;
@@ -257,53 +259,8 @@ export default async function ProjectDetailPage({
 			)}
 
 			{/* Recent Sales */}
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Recent Sales</CardTitle>
-				</CardHeader>
-				<CardContent>
-					{recentSales.length === 0 ? (
-						<p className="text-sm text-zinc-400 py-4 text-center">
-							No sales yet for this project
-						</p>
-					) : (
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="border-b text-left text-zinc-500">
-										<th className="pb-2 pr-4 font-medium">Plot</th>
-										<th className="pb-2 pr-4 font-medium">Customer</th>
-										<th className="pb-2 pr-4 font-medium">Advisor</th>
-										<th className="pb-2 pr-4 font-medium">Amount</th>
-										<th className="pb-2 pr-4 font-medium">Phase</th>
-										<th className="pb-2 font-medium">Date</th>
-									</tr>
-								</thead>
-								<tbody>
-									{recentSales.map((sale) => (
-										<tr key={sale.id} className="border-b last:border-0">
-											<td className="py-2.5 pr-4 font-medium">
-												{sale.plot_number}
-											</td>
-											<td className="py-2.5 pr-4">{sale.customer_name}</td>
-											<td className="py-2.5 pr-4">{sale.advisor_name}</td>
-											<td className="py-2.5 pr-4">
-												{formatCurrency(sale.total_sale_amount)}
-											</td>
-											<td className="py-2.5 pr-4">
-												<Badge variant="secondary">{sale.sale_phase}</Badge>
-											</td>
-											<td className="py-2.5">
-												{sale.token_date ? formatDate(sale.token_date) : "—"}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					)}
-				</CardContent>
-			</Card>
+			<RecentSalesList recentSales={recentSales} />
+
 		</div>
 	);
 }

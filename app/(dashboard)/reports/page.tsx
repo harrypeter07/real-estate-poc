@@ -195,59 +195,62 @@ export default async function ReportsPage({
 									Quick Actions
 								</CardTitle>
 							</CardHeader>
-							<CardContent className="grid grid-cols-2 gap-3">
-								<Link href="/sales/new">
-									<Button
-										variant="outline"
-										className="w-full justify-start h-auto py-3 px-4 flex-col items-start gap-1"
-									>
-										<span className="font-bold text-sm text-zinc-900">
+							<CardContent className="grid grid-cols-2 gap-x-4 gap-y-6">
+								<div className="flex flex-col gap-2">
+									<Link href="/sales/new">
+										<Button
+											variant="outline"
+											className="w-full justify-start h-10 px-4 font-bold text-sm text-zinc-900 hover:bg-zinc-50 transition-colors"
+										>
 											New Sale
-										</span>
-										<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">
-											Record booking
-										</span>
-									</Button>
-								</Link>
-								<Link href="/payments/new">
-									<Button
-										variant="outline"
-										className="w-full justify-start h-auto py-3 px-4 flex-col items-start gap-1"
-									>
-										<span className="font-bold text-sm text-zinc-900">
+										</Button>
+									</Link>
+									<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight px-1">
+										Record booking
+									</span>
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<Link href="/payments/new">
+										<Button
+											variant="outline"
+											className="w-full justify-start h-10 px-4 font-bold text-sm text-zinc-900 hover:bg-zinc-50 transition-colors"
+										>
 											Collect Payment
-										</span>
-										<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">
-											Record installment
-										</span>
-									</Button>
-								</Link>
-								<Link href="/customers/new">
-									<Button
-										variant="outline"
-										className="w-full justify-start h-auto py-3 px-4 flex-col items-start gap-1"
-									>
-										<span className="font-bold text-sm text-zinc-900">
+										</Button>
+									</Link>
+									<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight px-1">
+										Record installment
+									</span>
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<Link href="/customers/new">
+										<Button
+											variant="outline"
+											className="w-full justify-start h-10 px-4 font-bold text-sm text-zinc-900 hover:bg-zinc-50 transition-colors"
+										>
 											Add Customer
-										</span>
-										<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">
-											New lead/buyer
-										</span>
-									</Button>
-								</Link>
-								<Link href="/expenses/new">
-									<Button
-										variant="outline"
-										className="w-full justify-start h-auto py-3 px-4 flex-col items-start gap-1"
-									>
-										<span className="font-bold text-sm text-zinc-900">
+										</Button>
+									</Link>
+									<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight px-1">
+										New lead/buyer
+									</span>
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<Link href="/expenses/new">
+										<Button
+											variant="outline"
+											className="w-full justify-start h-10 px-4 font-bold text-sm text-zinc-900 hover:bg-zinc-50 transition-colors"
+										>
 											Add Expense
-										</span>
-										<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">
-											Office outflow
-										</span>
-									</Button>
-								</Link>
+										</Button>
+									</Link>
+									<span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight px-1">
+										Office outflow
+									</span>
+								</div>
 							</CardContent>
 						</Card>
 					</div>

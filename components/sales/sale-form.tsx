@@ -70,7 +70,7 @@ export function SaleForm({
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
     mode: "onSubmit",
-    revalidateMode: "onBlur",
+    reValidateMode: "onBlur",
     defaultValues: {
       plot_id: initialPlotId || "",
       customer_id: "",

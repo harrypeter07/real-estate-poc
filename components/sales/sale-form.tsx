@@ -64,9 +64,13 @@ export function SaleForm({
   const [subComboKey, setSubComboKey] = useState(0);
   const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = isDev;
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
 
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
     defaultValues: {
       plot_id: initialPlotId || "",
       customer_id: "",
@@ -75,10 +79,10 @@ export function SaleForm({
       sale_phase: "token",
       token_date: new Date().toISOString().split('T')[0],
       agreement_date: "",
-      total_sale_amount: undefined as any,
-      down_payment: undefined as any,
-      emi_months: undefined as any,
-      monthly_emi: undefined as any,
+      total_sale_amount: 0,
+      down_payment: 0,
+      emi_months: 0,
+      monthly_emi: 0,
       emi_day: 5,
       followup_date: "",
       notes: "",
@@ -96,8 +100,8 @@ export function SaleForm({
   const downPayment = form.watch("down_payment") ?? 0;
   const isDownPaymentFull =
     Number(totalSaleAmount) > 0 && Number(downPayment) >= Number(totalSaleAmount);
-  const emiMonths = form.watch("emi_months");
-  const remaining = totalSaleAmount - downPayment;
+  const emiMonths = form.watch("emi_months") || 0;
+  const remaining = totalSaleAmount > 0 ? totalSaleAmount - downPayment : 0;
   const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
   const phaseDateLabel =
     selectedPhase === "token" ? "Token Date" : "Full Payment Date";
@@ -145,9 +149,18 @@ export function SaleForm({
   );
 
   const filteredAdvisors = useMemo(() => {
-    if (!allowedAdvisorIdsForProject) return topLevelAdvisors;
-    return topLevelAdvisors.filter((a) => allowedAdvisorIdsForProject.has(a.id));
+    if (!allowedAdvisorIdsForProject) {
+      console.log("[SaleForm] No project filter, using all top-level advisors:", topLevelAdvisors);
+      return topLevelAdvisors;
+    }
+    const matches = topLevelAdvisors.filter((a) => allowedAdvisorIdsForProject.has(a.id));
+    console.log(`[SaleForm] Project filter active. Top-level: ${topLevelAdvisors.length} | Matches project: ${matches.length}`, matches);
+    return matches;
   }, [topLevelAdvisors, allowedAdvisorIdsForProject]);
+
+  useEffect(() => {
+    console.log("[SaleForm] Raw advisors from props:", advisors);
+  }, [advisors]);
 
   // keep selections consistent when filters change
   useEffect(() => {
@@ -382,16 +395,17 @@ export function SaleForm({
         ? finance.profit
         : 0;
 
-  // Auto-fill selling price when plot/advisor/phase changes
   useEffect(() => {
-    if (!selectedPlotId) return;
-    if (plotSize <= 0) return;
-    if (plotBaseRatePerSqft <= 0) return;
+    if (!selectedPlotId || plotSize <= 0 || plotBaseRatePerSqft <= 0) {
+      form.setValue("total_sale_amount", 0);
+      return;
+    }
     const rate = soldByAdmin ? plotBaseRatePerSqft : assignedFaceRatePerSqft;
-    if (rate <= 0) return;
-    if (!soldByAdmin && !selectedAdvisorId) return;
-    if (!soldByAdmin && rate < plotBaseRatePerSqft) return;
-    let selling: number;
+    if (rate <= 0 || (!soldByAdmin && !selectedAdvisorId) || (!soldByAdmin && rate < plotBaseRatePerSqft)) {
+      form.setValue("total_sale_amount", 0);
+      return;
+    }
+    let selling = 0;
     try {
       selling = calculateFinance({
         plotSizeSqft: plotSize,
@@ -401,9 +415,9 @@ export function SaleForm({
         otherPayments: 0,
       }).sellingPrice;
     } catch {
-      return;
+      selling = 0;
     }
-    if (selling > 0) form.setValue("total_sale_amount", selling);
+    form.setValue("total_sale_amount", selling > 0 ? selling : 0);
   }, [
     assignedFaceRatePerSqft,
     form,
@@ -414,6 +428,14 @@ export function SaleForm({
     soldByAdmin,
     advisorSellingOverride,
   ]);
+
+  // Clear numeric fields if plot is unselected
+  useEffect(() => {
+    if (!selectedPlotId) {
+      form.setValue("total_sale_amount", 0);
+      form.setValue("down_payment", 0);
+    }
+  }, [selectedPlotId, form]);
 
   const fillMockData = () => {
     if (plots.length === 0 || customers.length === 0 || advisors.length === 0) {
@@ -467,6 +489,7 @@ export function SaleForm({
       advisor_selling_price_per_sqft:
         randomAdvisorRate > 0 ? randomAdvisorRate : undefined,
     });
+    setTouched({});
   };
 
   const playSubmitTone = (kind: "success" | "error") => {
@@ -498,6 +521,7 @@ export function SaleForm({
   };
 
   async function onSubmit(values: SaleFormValues) {
+    setTouched({ plot_id: true, customer_id: true, advisor_id: true, sale_phase: true });
     if (commissionSplitOverflow) {
       toast.error("Commission split too high", {
         description: `Entered amounts cannot exceed total profit (${formatCurrency(finance.profit)}).`,
@@ -592,9 +616,15 @@ export function SaleForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Select Plot *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select 
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          markTouched("plot_id");
+                        }} 
+                        value={field.value}
+                      >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger onBlur={() => markTouched("plot_id")}>
                             <SelectValue placeholder="Choose an available plot" />
                           </SelectTrigger>
                         </FormControl>
@@ -606,7 +636,7 @@ export function SaleForm({
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      {touched.plot_id && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -625,12 +655,16 @@ export function SaleForm({
                             subtitle: String(c.phone ?? ""),
                           }))}
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(v) => {
+                            field.onChange(v);
+                            markTouched("customer_id");
+                          }}
+                          onBlur={() => markTouched("customer_id")}
                           placeholder="Search customer by name or phone…"
                           emptyMessage="No customer matches."
                         />
                       </FormControl>
-                      <FormMessage />
+                      {touched.customer_id && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -676,12 +710,16 @@ export function SaleForm({
                               keywords: String(a.phone ?? ""),
                             }))}
                             value={field.value ?? ""}
-                            onChange={(id) => field.onChange(id || null)}
+                            onChange={(id) => {
+                              field.onChange(id || null);
+                              markTouched("advisor_id");
+                            }}
+                            onBlur={() => markTouched("advisor_id")}
                             placeholder="Search advisor by name, code, or phone…"
                             emptyMessage="No advisor matches."
                           />
                         </FormControl>
-                        <FormMessage />
+                        {touched.advisor_id && <FormMessage />}
                       </FormItem>
                     )}
                   />
@@ -864,7 +902,7 @@ export function SaleForm({
                             % of selling price
                           </p>
                         ) : null}
-                        <FormMessage />
+                        {touched.advisor_id && <FormMessage />}
                       </FormItem>
                     )}
                   />
@@ -881,9 +919,15 @@ export function SaleForm({
                     render={({ field }) => (
                       <FormItem className="min-w-0 sm:col-span-1">
                         <FormLabel>Sale Phase *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(v) => {
+                            field.onChange(v);
+                            markTouched("sale_phase");
+                          }} 
+                          value={field.value}
+                        >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger onBlur={() => markTouched("sale_phase")}>
                               <SelectValue placeholder="Select phase" />
                             </SelectTrigger>
                           </FormControl>
@@ -892,7 +936,7 @@ export function SaleForm({
                             <SelectItem value="full_payment">Payment completed / Sold</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        {touched.sale_phase && <FormMessage />}
                       </FormItem>
                     )}
                   />
@@ -904,13 +948,18 @@ export function SaleForm({
                       <FormItem className="min-w-0 sm:col-span-1">
                         <FormLabel>{phaseDateLabel}</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} value={field.value || ""} />
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            value={field.value || ""} 
+                            onBlur={() => markTouched("sale_phase")}
+                          />
                         </FormControl>
                         <p className="text-[11px] text-zinc-500">
                           Stored on the sale as{" "}
                           {selectedPhase === "token" ? "token date" : "full payment date"}.
                         </p>
-                        <FormMessage />
+                        {touched.sale_phase && <FormMessage />}
                       </FormItem>
                     )}
                   />
@@ -929,7 +978,7 @@ export function SaleForm({
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage />
+                      {touched.notes && <FormMessage />}
                     </FormItem>
                   )}
                 />
@@ -961,7 +1010,7 @@ export function SaleForm({
                             }}
                           />
                         </FormControl>
-                        <FormMessage />
+                        {touched.plot_id && <FormMessage />}
                       </FormItem>
                     )}
                   />
@@ -985,7 +1034,9 @@ export function SaleForm({
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
                               field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                              markTouched("down_payment");
                             }}
+                            onBlur={() => markTouched("down_payment")}
                           />
                         </FormControl>
                         {selectedPhase === "full_payment" ? (
@@ -993,7 +1044,7 @@ export function SaleForm({
                             Matches selling price — no EMI for full payment.
                           </p>
                         ) : null}
-                        <FormMessage />
+                        {touched.down_payment && <FormMessage />}
                       </FormItem>
                     )}
                   />

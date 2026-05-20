@@ -19,15 +19,16 @@ export default async function EnquiriesPage() {
 	const role = (user.user_metadata as any)?.role ?? "admin";
 	if (role === "advisor") redirect("/advisor");
 
-	const [enquiries, projects, advisors] = await Promise.all([
-		getEnquiryCustomers(),
+	const [enqResponse, projects, advisors] = await Promise.all([
+		getEnquiryCustomers({ page: 1, pageSize: 20, status: "all" }),
 		getProjects(),
 		getAdvisors(),
 	]);
 
 	return (
 		<EnquiriesClient
-			initialEnquiries={enquiries}
+			initialEnquiries={enqResponse.data}
+			initialTotal={enqResponse.total}
 			projects={projects}
 			advisors={advisors}
 		/>

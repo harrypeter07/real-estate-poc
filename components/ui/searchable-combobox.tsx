@@ -29,6 +29,7 @@ export function SearchableCombobox({
 	placeholder = "Search…",
 	emptyMessage = "No matches.",
 	formatSelected: formatSelectedProp,
+	onBlur,
 }: {
 	options: SearchableComboboxOption[];
 	value: string;
@@ -38,6 +39,7 @@ export function SearchableCombobox({
 	emptyMessage?: string;
 	/** How the input shows the current selection */
 	formatSelected?: (opt: SearchableComboboxOption) => string;
+	onBlur?: () => void;
 }) {
 	const formatSelectedRef = useRef(formatSelectedProp ?? defaultFormatSelected);
 	formatSelectedRef.current = formatSelectedProp ?? defaultFormatSelected;
@@ -68,18 +70,24 @@ export function SearchableCombobox({
 				const s = optionsRef.current.find((o) => o.value === value);
 				if (s) setQuery(formatSelectedRef.current(s));
 				else setQuery("");
+				onBlur?.();
 			}
 		}
 		document.addEventListener("mousedown", onDocMouseDown);
 		return () => document.removeEventListener("mousedown", onDocMouseDown);
-	}, [value]);
+	}, [value, onBlur]);
 
 	const filtered = useMemo(() => {
 		const q = query.trim();
 		if (!q) return options;
-		return options.filter((opt) =>
+		const matches = options.filter((opt) =>
 			matchesTextSearch(q, opt.label, opt.subtitle, opt.keywords),
 		);
+		console.log(`[SearchableCombobox] Query: "${q}" | Options: ${options.length} | Matches: ${matches.length}`);
+		if (q.length > 5 && matches.length === 0) {
+			console.log("[SearchableCombobox] No matches for query, debug options:", options);
+		}
+		return matches;
 	}, [options, query]);
 
 	return (
@@ -107,6 +115,7 @@ export function SearchableCombobox({
 							}
 						}
 					}}
+					onBlur={onBlur}
 					onFocus={() => setOpen(true)}
 					className="pr-2"
 					autoComplete="off"

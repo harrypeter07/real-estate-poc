@@ -7,7 +7,8 @@ import { getCustomerById } from "@/app/actions/customers";
 import { getCustomerDocuments } from "@/app/actions/customer-documents";
 import { getCustomerPlotSales } from "@/app/actions/sales";
 import { CustomerDocuments } from "@/components/customers/customer-documents";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { cn } from "@/lib/utils";
 
 export default async function CustomerDetailPage({
   params,
@@ -74,35 +75,68 @@ export default async function CustomerDetailPage({
                 <div className="text-sm text-zinc-500">No sales recorded for this customer.</div>
               ) : (
                 <div className="space-y-2">
-                  {plotSales.map((sale: any) => (
-                    <div
-                      key={sale.id}
-                      className="rounded-md border border-zinc-200 bg-white p-3 space-y-1"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-zinc-900 truncate">
-                            {sale.plots?.plot_number ?? "—"} • {sale.plots?.projects?.name ?? "—"}
-                          </div>
-                          <div className="text-[11px] text-zinc-500">
-                            Phase: {sale.sale_phase ?? "—"}
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="text-[10px] shrink-0">
-                          {sale.amount_paid >= (sale.total_sale_amount ?? 0) ? "Paid" : "Due"}
-                        </Badge>
-                      </div>
+                  {plotSales.map((sale: any) => {
+                    const isOverdue = sale.payment_due_meta?.is_payment_due;
+                    const nextDue = sale.payment_due_meta?.next_emi_due;
+                    const lastPayment = sale.last_payment;
+                    const isFullyPaid = (sale.remaining_amount ?? 0) <= 0.01;
 
-                      <div className="flex items-center justify-between gap-3 text-[12px]">
-                        <span className="text-zinc-500">Paid</span>
-                        <span className="font-semibold text-green-700">{formatCurrency(sale.amount_paid ?? 0)}</span>
+                    return (
+                      <div
+                        key={sale.id}
+                        className={cn(
+                          "rounded-md border border-zinc-200 bg-white p-3 space-y-1.5",
+                          isOverdue && !isFullyPaid ? "border-red-200 bg-red-50/30" : ""
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-zinc-900 truncate">
+                              {sale.plots?.plot_number ?? "—"} • {sale.plots?.projects?.name ?? "—"}
+                            </div>
+                            <div className="text-[10px] text-zinc-500 uppercase">
+                              {sale.sale_phase ?? "—"}
+                            </div>
+                          </div>
+                          <Badge 
+                            variant={isFullyPaid ? "default" : isOverdue ? "destructive" : "secondary"} 
+                            className="text-[10px] shrink-0"
+                          >
+                            {isFullyPaid ? "Paid" : isOverdue ? "Overdue" : "Due"}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-3 text-[12px]">
+                            <span className="text-zinc-500">Total</span>
+                            <span className="font-medium text-zinc-900">{formatCurrency(sale.total_sale_amount ?? 0)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 text-[12px]">
+                            <span className="text-zinc-500">Remaining</span>
+                            <span className={cn("font-bold", isFullyPaid ? "text-zinc-500" : "text-red-700")}>
+                              {formatCurrency(sale.remaining_amount ?? 0)}
+                            </span>
+                          </div>
+
+                          {lastPayment && (
+                            <div className="flex items-center justify-between gap-3 text-[11px] border-t border-zinc-100 pt-1 mt-1">
+                              <span className="text-zinc-500">Last Paid ({formatDate(lastPayment.payment_date)})</span>
+                              <span className="font-semibold text-green-700">{formatCurrency(lastPayment.amount)}</span>
+                            </div>
+                          )}
+
+                          {nextDue && !isFullyPaid && (
+                            <div className="flex items-center justify-between gap-3 text-[11px]">
+                              <span className="text-zinc-500">Next EMI Due</span>
+                              <span className={cn("font-bold", isOverdue ? "text-red-700" : "text-zinc-900")}>
+                                {formatDate(nextDue)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3 text-[12px]">
-                        <span className="text-zinc-500">Remaining</span>
-                        <span className="font-semibold text-red-700">{formatCurrency(sale.remaining_amount ?? 0)}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

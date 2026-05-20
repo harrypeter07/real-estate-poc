@@ -102,12 +102,12 @@ export function AdvisorAnalyticsTable({
 			<Card>
 				<CardContent className="p-3 md:p-4 pb-0">
 					<div className="relative max-w-md">
-						<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+						<Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 						<Input
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search by name, code, phone, or main advisor…"
-							className="h-8 pl-8 text-sm"
+							className="h-8 pl-9 sm:pl-9 text-sm"
 						/>
 					</div>
 				</CardContent>

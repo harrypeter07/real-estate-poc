@@ -39,58 +39,108 @@ export default async function DashboardContent({
 	return (
 		<>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-				<Card className="bg-zinc-900 text-white border-zinc-800">
-					<CardHeader className="pb-2">
-						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
-							<IndianRupee className="h-3 w-3" /> Total Sales Value
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">{formatCurrency(stats.summary.totalSalesValue)}</p>
-						<p className="text-[11px] text-zinc-400 mt-0.5">{stats.summary.salesCount} sales</p>
+				<Card className="group bg-zinc-900 text-white border-zinc-800 shadow-sm transition-all duration-300 hover:-translate-y-1 select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(255,255,255,0.03)]">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 border border-zinc-700/40 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<IndianRupee className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 truncate flex-1">
+								Total Sales Value
+							</p>
+						</div>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl font-extrabold tracking-tight leading-tight truncate">
+								{formatCurrency(stats.summary.totalSalesValue)}
+							</p>
+							<p className="text-xs text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
+								{stats.summary.salesCount} sales
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
-							<TrendingUp className="h-3 w-3 text-green-500" /> Revenue Collected
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold text-green-600">{formatCurrency(stats.summary.totalRevenueCollected)}</p>
-						<p className="text-[11px] text-zinc-500 mt-0.5">{stats.summary.paymentsCount} payments</p>
+
+				<Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(16,185,129,0.08)]">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<TrendingUp className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Revenue Collected
+							</p>
+						</div>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl font-extrabold tracking-tight leading-tight text-emerald-600 dark:text-emerald-400 truncate">
+								{formatCurrency(stats.summary.totalRevenueCollected)}
+							</p>
+							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
+								{stats.summary.paymentsCount} payments
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
-							<TrendingDown className="h-3 w-3 text-red-500" /> Total Expenses
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold text-red-600">{formatCurrency(stats.summary.totalExpenses)}</p>
+
+				<Card className="group bg-gradient-to-br from-white to-rose-50/[0.12] dark:from-zinc-950 dark:to-rose-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-rose-200 dark:hover:border-rose-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(244,63,94,0.08)]">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/10 to-pink-500/5 text-rose-600 dark:text-rose-400 border border-rose-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<TrendingDown className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Total Expenses
+							</p>
+						</div>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl font-extrabold tracking-tight leading-tight text-red-600 dark:text-rose-400 truncate">
+								{formatCurrency(stats.summary.totalExpenses)}
+							</p>
+							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
+								&nbsp;
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
-							<Wallet className="h-3 w-3 text-blue-500" /> Net Profit (Cash)
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.summary.netProfit)}</p>
+
+				<Card className="group bg-gradient-to-br from-white to-blue-50/[0.12] dark:from-zinc-950 dark:to-blue-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(59,130,246,0.08)]">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<Wallet className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Net Profit (Cash)
+							</p>
+						</div>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl font-extrabold tracking-tight leading-tight text-blue-600 dark:text-blue-400 truncate">
+								{formatCurrency(stats.summary.netProfit)}
+							</p>
+							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
+								&nbsp;
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
-							<IndianRupee className="h-3 w-3 text-amber-600" /> Extra Commission Paid
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold text-amber-700">
-							{formatCurrency((stats.summary as any).totalExtraCommissionPaid ?? 0)}
-						</p>
+
+				<Card className="group bg-gradient-to-br from-white to-amber-50/[0.12] dark:from-zinc-950 dark:to-amber-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-amber-200 dark:hover:border-amber-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(245,158,11,0.08)]">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-amber-600 dark:text-amber-400 border border-amber-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<IndianRupee className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Extra Commission Paid
+							</p>
+						</div>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl font-extrabold tracking-tight leading-tight text-amber-700 dark:text-amber-500 truncate">
+								{formatCurrency((stats.summary as any).totalExtraCommissionPaid ?? 0)}
+							</p>
+							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
+								&nbsp;
+							</p>
+						</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -103,17 +153,17 @@ export default async function DashboardContent({
 				</CardHeader>
 				<CardContent>
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-						<div className="rounded-lg border border-zinc-200 p-4">
-							<div className="text-[10px] font-semibold uppercase text-zinc-500">Converted enquiries</div>
-							<div className="text-xl font-bold text-zinc-900">{stats.summary.enquiryConvertedCustomers}</div>
+						<div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-5 transition-all duration-300 hover:border-zinc-300 dark:hover:border-zinc-700">
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Converted enquiries</div>
+							<div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">{stats.summary.enquiryConvertedCustomers}</div>
 						</div>
-						<div className="rounded-lg border border-zinc-200 p-4">
-							<div className="text-[10px] font-semibold uppercase text-zinc-500">Converted customers who bought plots</div>
-							<div className="text-xl font-bold text-green-700">{stats.summary.enquiryConvertedCustomersBoughtPlots}</div>
+						<div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-5 transition-all duration-300 hover:border-emerald-200 dark:hover:border-emerald-900/30">
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Converted customers who bought plots</div>
+							<div className="text-2xl font-extrabold text-green-700 dark:text-emerald-400 mt-1.5">{stats.summary.enquiryConvertedCustomersBoughtPlots}</div>
 						</div>
-						<div className="rounded-lg border border-zinc-200 p-4">
-							<div className="text-[10px] font-semibold uppercase text-zinc-500">Revenue from converted customers</div>
-							<div className="text-xl font-bold text-blue-700">{formatCurrency(stats.summary.enquiryConvertedRevenue)}</div>
+						<div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-5 transition-all duration-300 hover:border-blue-200 dark:hover:border-blue-900/30">
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Revenue from converted customers</div>
+							<div className="text-2xl font-extrabold text-blue-700 dark:text-blue-400 mt-1.5">{formatCurrency(stats.summary.enquiryConvertedRevenue)}</div>
 						</div>
 					</div>
 					{stats.enquiryConversionTopCategories.length > 0 ? (
@@ -140,17 +190,17 @@ export default async function DashboardContent({
 				</CardHeader>
 				<CardContent>
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-						<div className="rounded-lg border border-zinc-200 p-4">
-							<div className="text-[10px] font-semibold uppercase text-zinc-500">Collected</div>
-							<div className="text-xl font-bold text-green-600">{formatCurrency(stats.collectionsVsOutstanding.collected)}</div>
+						<div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-5 transition-all duration-300 hover:border-emerald-200 dark:hover:border-emerald-900/30">
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Collected</div>
+							<div className="text-2xl font-extrabold text-green-600 dark:text-emerald-400 mt-1.5">{formatCurrency(stats.collectionsVsOutstanding.collected)}</div>
 						</div>
-						<div className="rounded-lg border border-zinc-200 p-4">
-							<div className="text-[10px] font-semibold uppercase text-zinc-500">Outstanding</div>
-							<div className="text-xl font-bold text-red-600">{formatCurrency(stats.collectionsVsOutstanding.outstanding)}</div>
+						<div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-5 transition-all duration-300 hover:border-red-200 dark:hover:border-red-900/30">
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Outstanding</div>
+							<div className="text-2xl font-extrabold text-red-600 dark:text-rose-400 mt-1.5">{formatCurrency(stats.collectionsVsOutstanding.outstanding)}</div>
 						</div>
-						<div className="rounded-lg border border-zinc-200 p-4">
-							<div className="text-[10px] font-semibold uppercase text-zinc-500">Total Sales</div>
-							<div className="text-xl font-bold">{formatCurrency(stats.collectionsVsOutstanding.total)}</div>
+						<div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-5 transition-all duration-300 hover:border-zinc-300 dark:hover:border-zinc-700">
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Sales</div>
+							<div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">{formatCurrency(stats.collectionsVsOutstanding.total)}</div>
 						</div>
 					</div>
 					{stats.collectionsVsOutstanding.total > 0 && (

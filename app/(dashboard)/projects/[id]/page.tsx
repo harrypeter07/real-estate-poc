@@ -207,34 +207,88 @@ export default async function ProjectDetailPage({
 
 			{/* Revenue + Info */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium text-zinc-500">
-							Revenue collected
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-						<p className="text-xs text-zinc-400 mt-1">
-							Confirmed payments (including revoked sales). Showing {recentSales.length}{" "}
-							recent active sale(s) below.
-						</p>
+				<Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 hover:shadow-[0_12px_32px_-4px_rgba(16,185,129,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center justify-between gap-3.5 w-full">
+							<div className="flex items-center gap-3.5">
+								<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+									<IndianRupee className="h-5 w-5" />
+								</div>
+								<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+									Revenue collected
+								</p>
+							</div>
+							
+							<span className="inline-flex items-center gap-0.5 rounded px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 uppercase tracking-wider">
+								▲ Inflow Active
+							</span>
+						</div>
+						
+						<div className="mt-4 flex items-center justify-between gap-4">
+							<div className="space-y-1 flex-1">
+								<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+									{formatCurrency(totalRevenue)}
+								</p>
+								<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-normal mt-1 flex items-center gap-1.5 truncate">
+									Confirmed payments. Showing {recentSales.length} recent active sale(s).
+								</p>
+							</div>
+
+							{/* Premium Sparkline Visual Graphic */}
+							<div className="h-10 w-20 shrink-0 flex items-center justify-end">
+								<svg className="w-16 h-8 text-emerald-500 shrink-0 opacity-80" viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M0,25 Q15,12 30,22 T60,8 T90,18 L100,12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+									<path d="M0,25 Q15,12 30,22 T60,8 T90,18 L100,12 L100,30 L0,30 Z" fill="url(#sparkline-gradient-rev)" opacity="0.15" />
+									<defs>
+										<linearGradient id="sparkline-gradient-rev" x1="0" y1="0" x2="0" y2="1">
+											<stop offset="0%" stopColor="currentColor" />
+											<stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+										</linearGradient>
+									</defs>
+								</svg>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium text-zinc-500">
-							Plot Capacity
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">
-							{plotCounts.total}{" "}
-							<span className="text-base font-normal text-zinc-400">
-								/ {project.total_plots_count} planned
+				<Card className="group bg-gradient-to-br from-white to-blue-50/[0.12] dark:from-zinc-950 dark:to-blue-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 hover:shadow-[0_12px_32px_-4px_rgba(59,130,246,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center justify-between gap-3.5 w-full">
+							<div className="flex items-center gap-3.5">
+								<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+									<LayoutGrid className="h-5 w-5" />
+								</div>
+								<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+									Plot Capacity
+								</p>
+							</div>
+							
+							<span className="inline-flex items-center gap-0.5 rounded px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 uppercase tracking-wider">
+								{plannedCount > 0 ? Math.min(100, Math.round((plotCounts.total / plannedCount) * 100)) : 0}% Created
 							</span>
-						</p>
+						</div>
+
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+								{plotCounts.total}{" "}
+								<span className="text-base font-normal text-zinc-400 dark:text-zinc-500">
+									/ {project.total_plots_count} planned
+								</span>
+							</p>
+
+							{/* Visual Utilization Progress Bar */}
+							<div className="mt-3">
+								<div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+									<div 
+										className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+										style={{ width: `${plannedCount > 0 ? Math.min(100, Math.round((plotCounts.total / plannedCount) * 100)) : 0}%` }}
+									/>
+								</div>
+								<p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5 font-medium">
+									{plotCounts.total} of {project.total_plots_count} planned plots created inside layout.
+								</p>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 			</div>

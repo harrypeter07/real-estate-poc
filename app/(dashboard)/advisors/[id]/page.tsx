@@ -116,44 +116,93 @@ export default async function AdvisorDetailPage({
 
 			{/* Analytics Cards */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-				<Card>
-					<CardContent className="p-5">
-						<div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs font-bold uppercase tracking-wider">
-							<Handshake className="h-4 w-4" /> Sales
+				<Card className="group bg-gradient-to-br from-white to-zinc-50/40 dark:from-zinc-950 dark:to-zinc-900/10 border border-zinc-200/60 dark:border-zinc-800/80 hover:border-zinc-300 hover:shadow-[0_12px_32px_-4px_rgba(113,113,122,0.05)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-500/10 to-slate-500/5 text-zinc-600 dark:text-zinc-400 border border-zinc-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<Handshake className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Sales
+							</p>
 						</div>
-						<p className="text-2xl font-bold">{salesCount}</p>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+								{salesCount}
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardContent className="p-5">
-						<div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs font-bold uppercase tracking-wider">
-							<TrendingUp className="h-4 w-4" /> Revenue
+
+				<Card className="group bg-gradient-to-br from-white to-blue-50/[0.12] dark:from-zinc-950 dark:to-blue-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 hover:shadow-[0_12px_32px_-4px_rgba(59,130,246,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<TrendingUp className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Revenue
+							</p>
 						</div>
-						<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400 leading-tight truncate">
+								{formatCurrency(totalRevenue)}
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardContent className="p-5">
-						<div className="flex items-center gap-2 text-zinc-500 mb-2 text-xs font-bold uppercase tracking-wider">
-							<IndianRupee className="h-4 w-4" /> Total Commission
+
+				<Card className="group bg-gradient-to-br from-white to-zinc-50/40 dark:from-zinc-950 dark:to-zinc-900/10 border border-zinc-200/60 dark:border-zinc-800/80 hover:border-zinc-300 hover:shadow-[0_12px_32px_-4px_rgba(113,113,122,0.05)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-500/10 to-slate-500/5 text-zinc-600 dark:text-zinc-400 border border-zinc-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<IndianRupee className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Total Commission
+							</p>
 						</div>
-						<p className="text-2xl font-bold">{formatCurrency(totalCommission)}</p>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+								{formatCurrency(totalCommission)}
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardContent className="p-5">
-						<div className="flex items-center gap-2 text-green-500 mb-2 text-xs font-bold uppercase tracking-wider">
-							Paid
+
+				<Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 hover:shadow-[0_12px_32px_-4px_rgba(16,185,129,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<IndianRupee className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Paid
+							</p>
 						</div>
-						<p className="text-2xl font-bold text-green-600">{formatCurrency(commissionPaid)}</p>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-green-700 dark:text-emerald-400 leading-tight truncate">
+								{formatCurrency(commissionPaid)}
+							</p>
+						</div>
 					</CardContent>
 				</Card>
-				<Card>
-					<CardContent className="p-5">
-						<div className="flex items-center gap-2 text-amber-500 mb-2 text-xs font-bold uppercase tracking-wider">
-							<Clock className="h-4 w-4" /> Pending
+
+				<Card className="group bg-gradient-to-br from-white to-amber-50/[0.12] dark:from-zinc-950 dark:to-amber-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-amber-200 dark:hover:border-amber-900/30 hover:shadow-[0_12px_32px_-4px_rgba(245,158,11,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center gap-3.5 w-full">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-amber-600 dark:text-amber-400 border border-amber-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+								<Clock className="h-5 w-5" />
+							</div>
+							<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+								Pending
+							</p>
 						</div>
-						<p className="text-2xl font-bold text-amber-600">{formatCurrency(commissionPending)}</p>
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-700 dark:text-amber-500 leading-tight truncate">
+								{formatCurrency(commissionPending)}
+							</p>
+						</div>
 					</CardContent>
 				</Card>
 			</div>

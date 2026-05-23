@@ -586,113 +586,229 @@ export function SaleForm({
     }
   }
 
+  const currentStep = useMemo(() => {
+    if (!selectedCustomerId) return 1;
+    if (!soldByAdmin && !selectedAdvisorId) return 2;
+    if (!selectedPlotId || totalSaleAmount <= 0) return 3;
+    return 4;
+  }, [selectedCustomerId, soldByAdmin, selectedAdvisorId, selectedPlotId, totalSaleAmount]);
+
+  const stepper = useMemo(() => {
+    const steps = [
+      { num: 1, label: "Select Customer" },
+      { num: 2, label: "Assign Advisor" },
+      { num: 3, label: "Financials" },
+      { num: 4, label: "Confirm Sale" },
+    ];
+    
+    return (
+      <div className="flex items-center justify-between w-full gap-2 border-b border-zinc-150 pb-3 mb-4 overflow-x-auto dark:border-zinc-800 shrink-0">
+        {steps.map((step, idx) => {
+          const isCompleted = currentStep > step.num;
+          const isActive = currentStep === step.num;
+          return (
+            <div key={step.num} className="flex items-center gap-1.5 shrink-0">
+              <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200 ${
+                isCompleted 
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" 
+                  : isActive 
+                  ? "bg-indigo-650 bg-indigo-600 text-white shadow-sm" 
+                  : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800"
+              }`}>
+                {isCompleted ? "✓" : step.num}
+              </div>
+              <span className={`text-[10px] font-bold tracking-wide whitespace-nowrap transition-all duration-200 ${
+                isActive 
+                  ? "text-zinc-800 dark:text-zinc-100" 
+                  : "text-zinc-400"
+              }`}>
+                {step.label}
+              </span>
+              {idx < steps.length - 1 && (
+                <span className="text-zinc-200 dark:text-zinc-800 ml-1 text-[10px]">➔</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }, [currentStep]);
+
+  const analyticsBadges = useMemo(() => {
+    if (!selectedPlot || totalSaleAmount <= 0) return null;
+    const badges = [];
+    
+    if (finance.profit > 0) {
+      badges.push({
+        label: "PROFITABLE",
+        bg: "bg-emerald-50 text-emerald-750 border-emerald-100/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30",
+        icon: "🟢"
+      });
+    }
+    
+    const profitMargin = finance.sellingPrice > 0 ? (finance.profit / finance.sellingPrice) * 100 : 0;
+    if (profitMargin >= 20) {
+      badges.push({
+        label: "HIGH MARGIN",
+        bg: "bg-indigo-50 text-indigo-700 border-indigo-100/50 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30",
+        icon: "📈"
+      });
+    }
+    
+    if (!soldByAdmin) {
+      const pctOfSelling = finance.sellingPrice > 0 ? (finance.profit / finance.sellingPrice) * 100 : 0;
+      if (pctOfSelling >= 10) {
+        badges.push({
+          label: "GOOD MARGIN",
+          bg: "bg-amber-50 text-amber-700 border-amber-100/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30",
+          icon: "💰"
+        });
+      }
+    }
+    
+    return badges;
+  }, [finance.profit, finance.sellingPrice, soldByAdmin, selectedPlot, totalSaleAmount]);
+
   return (
     <>
-    <Card className="w-full max-w-4xl">
-      <CardHeader className="flex flex-row justify-between items-center p-4 space-y-0">
+    <Card className="w-full border-0 bg-transparent shadow-none max-w-4xl">
+      <CardHeader className="flex flex-row justify-between items-center p-0 pb-3 space-y-0">
         <div>
-          <CardTitle className="text-lg">New Sale / Booking</CardTitle>
-          <CardDescription className="text-xs">Record a new plot transaction</CardDescription>
+          <CardTitle className="text-base font-bold text-zinc-800 dark:text-zinc-100">New Sale / Booking</CardTitle>
+          <CardDescription className="text-[11px] text-zinc-500">Record a new plot transaction</CardDescription>
         </div>
         {showFillMock ? (
-          <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
+          <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2.5" onClick={fillMockData}>
             Fill Mock Data
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="p-4 pt-0">
+      <CardContent className="p-0">
+        {stepper}
+
+        {/* Selected Plot Summary Strip */}
+        {selectedPlot && (
+          <div className="flex flex-wrap items-center gap-3 md:gap-4 rounded-xl border border-zinc-200/50 bg-zinc-50/60 p-2.5 mb-4 text-[11px] font-medium dark:border-zinc-800 dark:bg-zinc-900/30 shadow-inner">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-zinc-150 text-zinc-700 dark:bg-zinc-850 dark:border-zinc-800 dark:text-zinc-300 shadow-sm font-semibold">
+              <span>🏠</span>
+              <span>Plot #{selectedPlot.plot_number}</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1 text-zinc-500">
+              <span>📐</span>
+              <span>Size: <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">{selectedPlot.size_sqft.toLocaleString("en-IN")} sqft</strong></span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1 text-zinc-500">
+              <span>📍</span>
+              <span>Project: <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">{selectedPlot.projects?.name || "Nagpur Project"}</strong></span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1 text-zinc-500">
+              <span>💰</span>
+              <span>Base Rate: <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">{formatCurrencyShort(selectedPlot.rate_per_sqft)}/sqft</strong></span>
+            </div>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {/* Selections */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold border-b pb-1.5 uppercase tracking-wider text-zinc-500">
-                  Entities
-                </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              
+              {/* LEFT SIDE: Entities & Sale Details */}
+              <div className="lg:col-span-7 space-y-4">
                 
-                <FormField
-                  control={form.control}
-                  name="plot_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Plot *</FormLabel>
-                      <Select 
-                        onValueChange={(v) => {
-                          field.onChange(v);
-                          markTouched("plot_id");
-                        }} 
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger onBlur={() => markTouched("plot_id")}>
-                            <SelectValue placeholder="Choose an available plot" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {filteredPlots.map((plot) => (
-                            <SelectItem key={plot.id} value={plot.id}>
-                              {plot.projects.name} - {plot.plot_number} ({plot.size_sqft} sqft)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {touched.plot_id && <FormMessage />}
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="customer_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Customer *</FormLabel>
-                      <FormControl>
-                        <SearchableCombobox
-                          options={customers.map((c) => ({
-                            value: c.id,
-                            label: String(c.name ?? ""),
-                            subtitle: String(c.phone ?? ""),
-                          }))}
-                          value={field.value}
-                          onChange={(v) => {
+                {/* 1. ENTITIES CARD */}
+                <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/10">
+                  <div className="flex items-center gap-2 border-b border-zinc-200/50 pb-2 dark:border-zinc-800">
+                    <span className="text-sm">👤</span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-350">
+                      Entities
+                    </h3>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="plot_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Select Plot *</FormLabel>
+                        <Select 
+                          onValueChange={(v) => {
                             field.onChange(v);
-                            markTouched("customer_id");
-                          }}
-                          onBlur={() => markTouched("customer_id")}
-                          placeholder="Search customer by name or phone…"
-                          emptyMessage="No customer matches."
-                        />
-                      </FormControl>
-                      {touched.customer_id && <FormMessage />}
-                    </FormItem>
-                  )}
-                />
+                            markTouched("plot_id");
+                          }} 
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger onBlur={() => markTouched("plot_id")} className="h-9 focus:ring-1 focus:ring-indigo-500/20">
+                              <SelectValue placeholder="Choose an available plot" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {filteredPlots.map((plot) => (
+                              <SelectItem key={plot.id} value={plot.id}>
+                                {plot.projects?.name || plot.projects?.id} - {plot.plot_number} ({plot.size_sqft} sqft)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {touched.plot_id && <FormMessage />}
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="sold_by_admin"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sold By</FormLabel>
-                      <Select
-                        onValueChange={(v) => field.onChange(v === "admin")}
-                        value={field.value ? "admin" : "advisor"}
-                      >
+                  <FormField
+                    control={form.control}
+                    name="customer_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Select Customer *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
+                          <SearchableCombobox
+                            options={customers.map((c) => ({
+                              value: c.id,
+                              label: String(c.name ?? ""),
+                              subtitle: String(c.phone ?? ""),
+                            }))}
+                            value={field.value}
+                            onChange={(v) => {
+                              field.onChange(v);
+                              markTouched("customer_id");
+                            }}
+                            onBlur={() => markTouched("customer_id")}
+                            placeholder="Search customer by name or phone…"
+                            emptyMessage="No customer matches."
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="advisor">Advisor</SelectItem>
-                          <SelectItem value="admin">Admin (Direct)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        {touched.customer_id && <FormMessage />}
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="sold_by_admin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Sold By</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(v === "admin")}
+                          value={field.value ? "admin" : "advisor"}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="advisor">Advisor</SelectItem>
+                            <SelectItem value="admin">Admin (Direct)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                 {!soldByAdmin && (
                   <FormField
@@ -700,7 +816,7 @@ export function SaleForm({
                     name="advisor_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Select Advisor *</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Select Advisor *</FormLabel>
                         <FormControl>
                           <SearchableCombobox
                             options={filteredAdvisors.map((a) => ({
@@ -726,11 +842,11 @@ export function SaleForm({
                 )}
 
                 {!soldByAdmin && selectedAdvisorId && subOptions.length > 0 ? (
-                  <div className="p-3 space-y-2 rounded-md border border-zinc-200 bg-zinc-50/80">
-                    <div className="text-xs font-semibold text-zinc-700">
+                  <div className="p-3.5 space-y-2 rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/20 shadow-inner">
+                    <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
                       Sub-advisors (optional)
                     </div>
-                    <p className="text-[11px] text-zinc-500">
+                    <p className="text-[10px] text-zinc-500 font-medium">
                       Add team members under this advisor. Commission (total profit ₹{" "}
                       {formatCurrency(finance.profit)}) is split below.
                     </p>
@@ -755,14 +871,14 @@ export function SaleForm({
                       emptyMessage="No more sub-advisors."
                     />
                     {subAdvisorIds.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5 pt-1.5">
                         {subAdvisorIds.map((sid) => {
                           const sub = subOptions.find((s) => s.id === sid);
                           return (
                             <button
                               key={sid}
                               type="button"
-                              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px]"
+                              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold text-zinc-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all dark:border-zinc-805 dark:bg-zinc-900"
                               onClick={() => {
                                 setSubAdvisorIds((prev) => prev.filter((x) => x !== sid));
                                 setSplitByAdvisor((prev) => {
@@ -773,77 +889,73 @@ export function SaleForm({
                               }}
                             >
                               {sub?.name ?? sid.slice(0, 8)}
-                              <span className="text-zinc-400">×</span>
+                              <span className="text-zinc-450">×</span>
                             </button>
                           );
                         })}
                       </div>
                     )}
-                  </div>
-                ) : null}
-
-                {!soldByAdmin && selectedAdvisorId && finance.profit > 0.001 && commissionParticipantIds.length > 1 ? (
-                  <div className="p-3 space-y-2 rounded-md border border-amber-200 bg-amber-50/50">
-                    <div className="text-xs font-semibold text-amber-900">
+                              {!soldByAdmin && selectedAdvisorId && finance.profit > 0.001 && commissionParticipantIds.length > 1 ? (
+                  <div className="p-3.5 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/30 dark:border-amber-905/30 dark:bg-amber-950/10">
+                    <div className="text-xs font-bold text-amber-900 dark:text-amber-400">
                       Commission split (₹ from total profit)
                     </div>
-                    {commissionParticipantIds.map((aid, idx) => {
-                      const isLast = idx === commissionParticipantIds.length - 1;
-                      const adv =
-                        aid === selectedAdvisorId
-                          ? filteredAdvisors.find((a) => a.id === aid)
-                          : subOptions.find((s) => s.id === aid);
-                      const label =
-                        aid === selectedAdvisorId
-                          ? `${adv?.name ?? "Main"} (main)`
-                          : `${adv?.name ?? "Sub"}`;
-                      return (
-                        <div key={aid} className="flex gap-2 items-center text-sm">
-                          <span className="flex-1 min-w-0 truncate text-zinc-700">{label}</span>
-                          {isLast ? (
-                            <span className="w-28 font-mono font-semibold tabular-nums text-right text-zinc-900">
-                              {formatCurrency(splitLastAuto)}
-                            </span>
-                          ) : (
-                            <Input
-                              type="number"
-                              min={0}
-                              step={0.01}
-                              className="w-28 h-8 font-mono text-xs text-right"
-                              value={splitByAdvisor[aid] ?? ""}
-                              onChange={(e) =>
-                                setSplitByAdvisor((prev) => ({
-                                  ...prev,
-                                  [aid]: e.target.value,
-                                }))
-                              }
-                              placeholder="0"
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                    <div className="space-y-1 text-[11px] text-amber-800">
-                      <p>
-                        Total split:{" "}
-                        <strong className="tabular-nums">{formatCurrency(commissionSplitTotal)}</strong>
-                        {" / "}
-                        <span className="tabular-nums">{formatCurrency(finance.profit)}</span>{" "}
-                        (total profit)
+                    <div className="space-y-1.5">
+                      {commissionParticipantIds.map((aid, idx) => {
+                        const isLast = idx === commissionParticipantIds.length - 1;
+                        const adv =
+                          aid === selectedAdvisorId
+                            ? filteredAdvisors.find((a) => a.id === aid)
+                            : subOptions.find((s) => s.id === aid);
+                        const label =
+                          aid === selectedAdvisorId
+                            ? `${adv?.name ?? "Main"} (main)`
+                            : `${adv?.name ?? "Sub"}`;
+                        return (
+                          <div key={aid} className="flex gap-2 items-center text-xs">
+                            <span className="flex-1 min-w-0 truncate text-zinc-700 dark:text-zinc-300">{label}</span>
+                            {isLast ? (
+                              <span className="w-28 font-mono font-bold tabular-nums text-right text-zinc-800 dark:text-zinc-200 bg-amber-100/50 dark:bg-amber-950/30 px-2 py-1 rounded">
+                                {formatCurrency(splitLastAuto)}
+                              </span>
+                            ) : (
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                className="w-28 h-8 font-mono text-xs text-right bg-white focus:ring-1 focus:ring-amber-500 focus:border-amber-450"
+                                value={splitByAdvisor[aid] ?? ""}
+                                onChange={(e) =>
+                                  setSplitByAdvisor((prev) => ({
+                                    ...prev,
+                                    [aid]: e.target.value,
+                                  }))
+                                }
+                                placeholder="0"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="space-y-1 text-[10px] text-amber-800 dark:text-amber-500 border-t border-amber-200/40 pt-2 font-medium">
+                      <p className="flex justify-between">
+                        <span>Total split:</span>
+                        <span className="font-bold tabular-nums">{formatCurrency(commissionSplitTotal)} / {formatCurrency(finance.profit)}</span>
                       </p>
-                      <p>
-                        Left after your entries:{" "}
-                        <strong className="tabular-nums">{formatCurrency(splitLastAuto)}</strong>{" "}
-                        → last advisor (auto)
+                      <p className="flex justify-between">
+                        <span>Left for {commissionParticipantIds[commissionParticipantIds.length - 1] === selectedAdvisorId ? "main" : "sub-advisor"} (auto):</span>
+                        <span className="font-bold tabular-nums">{formatCurrency(splitLastAuto)}</span>
                       </p>
                     </div>
                     {commissionSplitOverflow ? (
-                      <p className="text-[11px] font-medium text-red-700">
-                        Entered amounts exceed total profit. Reduce earlier rows so the last
-                        advisor&apos;s share is not negative.
+                      <p className="text-[10px] font-bold text-red-600">
+                        ⚠️ Entered amounts exceed total profit. Reduce earlier rows.
                       </p>
                     ) : null}
                   </div>
+                ) : null}
+                </div>
                 ) : null}
 
                 {!soldByAdmin && selectedAdvisorId ? (
@@ -852,12 +964,13 @@ export function SaleForm({
                     name="advisor_selling_price_per_sqft"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Advisor selling price (₹/sqft)</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Advisor selling price (₹/sqft)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min={0}
                             step={0.5}
+                            className="h-9"
                             placeholder="From project assignment"
                             value={field.value ?? ""}
                             onChange={(e) => {
@@ -872,34 +985,20 @@ export function SaleForm({
                             }}
                           />
                         </FormControl>
-                        <p className="text-[11px] text-zinc-500">
+                        <p className="text-[10px] text-zinc-400 mt-1">
                           Prefills from Manage on this project; edit for this plot only if needed.
                         </p>
                         {advisorRateInvalid ? (
-                          <p className="text-[11px] text-red-600">
-                            Cannot be less than this plot&apos;s admin rate (
-                            {formatCurrencyShort(plotBaseRatePerSqft)}/sqft). Increase the value to
-                            continue.
+                          <p className="text-[10px] font-bold text-red-600 mt-1 flex items-center gap-1">
+                            ⚠️ Price is less than plot admin rate ({formatCurrencyShort(plotBaseRatePerSqft)}/sqft).
                           </p>
                         ) : null}
                         {plotBaseRatePerSqft > 0 &&
                         Number(field.value ?? 0) > 0 &&
                         !advisorRateInvalid ? (
-                          <p className="text-[11px] text-zinc-600">
-                            Advisor share:{" "}
-                            {formatCurrencyShort(
-                              Number(field.value ?? 0) - plotBaseRatePerSqft
-                            )}
-                            /sqft · Commission:{" "}
-                            {(
-                              (Math.max(
-                                0,
-                                Number(field.value ?? 0) - plotBaseRatePerSqft
-                              ) /
-                                Number(field.value ?? 1)) *
-                              100
-                            ).toFixed(1)}
-                            % of selling price
+                          <p className="text-[10px] text-zinc-655 mt-1 bg-zinc-100/60 dark:bg-zinc-800/40 rounded px-2 py-1 flex flex-wrap justify-between font-medium">
+                            <span>Share: {formatCurrencyShort(Number(field.value ?? 0) - plotBaseRatePerSqft)}/sqft</span>
+                            <span>Commission: {((Math.max(0, Number(field.value ?? 0) - plotBaseRatePerSqft) / Number(field.value ?? 1)) * 100).toFixed(1)}%</span>
                           </p>
                         ) : null}
                         {touched.advisor_id && <FormMessage />}
@@ -907,310 +1006,117 @@ export function SaleForm({
                     )}
                   />
                 ) : null}
-
-                <h3 className="pb-2 text-xs font-semibold tracking-wider uppercase border-b text-zinc-500">
-                  Sale Details
-                </h3>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name="sale_phase"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0 sm:col-span-1">
-                        <FormLabel>Sale Phase *</FormLabel>
-                        <Select 
-                          onValueChange={(v) => {
-                            field.onChange(v);
-                            markTouched("sale_phase");
-                          }} 
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger onBlur={() => markTouched("sale_phase")}>
-                              <SelectValue placeholder="Select phase" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="token">Token / Booking</SelectItem>
-                            <SelectItem value="full_payment">Payment completed / Sold</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {touched.sale_phase && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    key={phaseDateFieldName}
-                    control={form.control}
-                    name={phaseDateFieldName as "token_date" | "agreement_date"}
-                    render={({ field }) => (
-                      <FormItem className="min-w-0 sm:col-span-1">
-                        <FormLabel>{phaseDateLabel}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date" 
-                            {...field} 
-                            value={field.value || ""} 
-                            onBlur={() => markTouched("sale_phase")}
-                          />
-                        </FormControl>
-                        <p className="text-[11px] text-zinc-500">
-                          Stored on the sale as{" "}
-                          {selectedPhase === "token" ? "token date" : "full payment date"}.
-                        </p>
-                        {touched.sale_phase && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={2}
-                          placeholder="Payment schedule, special requests, etc."
-                          {...field}
-                        />
-                      </FormControl>
-                      {touched.notes && <FormMessage />}
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Financials */}
-              <div className="space-y-3">
-                <h3 className="pb-2 text-xs font-semibold tracking-wider uppercase border-b text-zinc-500">
-                  Financials
-                </h3>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="total_sale_amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Selling Price (Auto)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            value={field.value ?? ""}
-                            disabled
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(sanitized === "" ? undefined : Number(sanitized));
-                            }}
-                          />
-                        </FormControl>
-                        {touched.plot_id && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="down_payment"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {selectedPhase === "full_payment" || isDownPaymentFull
-                            ? "Full Payment"
-                            : "Down Payment"}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            value={field.value ?? ""}
-                            disabled={selectedPhase === "full_payment"}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              field.onChange(sanitized === "" ? undefined : Number(sanitized));
-                              markTouched("down_payment");
-                            }}
-                            onBlur={() => markTouched("down_payment")}
-                          />
-                        </FormControl>
-                        {selectedPhase === "full_payment" ? (
-                          <p className="text-[11px] text-zinc-500">
-                            Matches selling price — no EMI for full payment.
-                          </p>
-                        ) : null}
-                        {touched.down_payment && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="p-3 space-y-1 rounded-lg border bg-zinc-50 border-zinc-200">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-zinc-500">Remaining Balance:</span>
-                    <span className="font-bold">{formatCurrency(remaining)}</span>
+                {/* 2. SALE DETAILS CARD */}
+                <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/10">
+                  <div className="flex items-center gap-2 border-b border-zinc-200/50 pb-2 dark:border-zinc-800">
+                    <span className="text-sm">📄</span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-350">
+                      Sale Details
+                    </h3>
                   </div>
-                </div>
 
-                {remaining > 0 && selectedPhase !== "full_payment" && (
-                  <FormField
-                    control={form.control}
-                    name="followup_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Follow-up Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value ?? ""} placeholder="Next payment follow-up" />
-                        </FormControl>
-                        <p className="text-[11px] text-zinc-500">Reminder will be created for this date</p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {selectedPlot ? (
-                  <div className="p-3 space-y-2 rounded-lg border bg-zinc-50 border-zinc-200">
-                    <h4 className="text-xs font-semibold tracking-wide uppercase text-zinc-700">
-                      {soldByAdmin ? "Pricing (Admin Direct - No Commission)" : "Pricing, Profit & Advisor Earnings"}
-                    </h4>
-
-                    <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-                      <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                          Plot base rate / sqft
-                        </div>
-                        <div className="font-semibold text-zinc-900">
-                          {formatCurrencyShort(plotBaseRatePerSqft)}/sqft
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                          Plot Size
-                        </div>
-                        <div className="font-semibold text-right text-zinc-900">
-                          {plotSize.toLocaleString("en-IN")} sqft
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                          Base Price (Total)
-                        </div>
-                        <div className="font-semibold text-zinc-900">
-                          {formatCurrency(finance.baseTotal)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                          {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor selling price / sqft"}
-                        </div>
-                        <div className="font-semibold text-right text-zinc-900">
-                          {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
-                        </div>
-                        {advisorRateInvalid ? (
-                          <div className="text-[11px] text-red-600 text-right">
-                            Below plot admin rate
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                          Selling Price (Total)
-                        </div>
-                        <div className="font-bold text-zinc-900">
-                          {formatCurrency(finance.sellingPrice)}
-                        </div>
-                      </div>
-
-                      {!soldByAdmin && (
-                        <>
-                          <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                              Total Profit
-                            </div>
-                            <div className="font-semibold text-zinc-900">
-                              {formatCurrency(finance.profit)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 text-right">
-                              Advisor Earned (Based on Received)
-                            </div>
-                            <div className="font-semibold text-right text-zinc-900">
-                              {formatCurrency(finance.advisorEarned)}
-                            </div>
-                            <div className="text-[11px] text-zinc-500 text-right">
-                              Remaining potential: {formatCurrency(finance.remainingPotential)}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="pt-1">
-                      <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
-                        <span>
-                          Received: ₹{receivedNow.toLocaleString("en-IN")}
-                        </span>
-                        <span>{Math.round(finance.ratio * 100)}%</span>
-                      </div>
-                      <div className="overflow-hidden h-2 rounded-full bg-zinc-200">
-                        <div
-                          className="h-full bg-zinc-900"
-                          style={{ width: `${Math.round(finance.ratio * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {selectedPhase !== "full_payment" && remaining > 0 && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="emi_months"
+                      name="sale_phase"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>EMI Months</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              value={field.value ?? ""}
-                              placeholder="e.g. 12"
-                              min={1}
-                              max={120}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                field.onChange(v === "" ? undefined : Number(v));
-                              }}
-                            />
-                          </FormControl>
-                          <p className="text-[11px] text-zinc-500">Auto-fills monthly EMI</p>
-                          <FormMessage />
+                        <FormItem className="min-w-0 sm:col-span-1">
+                          <FormLabel className="text-xs font-semibold text-zinc-500">Sale Phase *</FormLabel>
+                          <Select 
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              markTouched("sale_phase");
+                            }} 
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger onBlur={() => markTouched("sale_phase")} className="h-9 focus:ring-1 focus:ring-indigo-500/20">
+                                <SelectValue placeholder="Select phase" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="token">Token / Booking</SelectItem>
+                              <SelectItem value="full_payment">Payment completed / Sold</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {touched.sale_phase && <FormMessage />}
                         </FormItem>
                       )}
                     />
-                  )}
-                  {selectedPhase !== "full_payment" && (
+                    <FormField
+                      key={phaseDateFieldName}
+                      control={form.control}
+                      name={phaseDateFieldName as "token_date" | "agreement_date"}
+                      render={({ field }) => (
+                        <FormItem className="min-w-0 sm:col-span-1">
+                          <FormLabel className="text-xs font-semibold text-zinc-500">{phaseDateLabel}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              {...field} 
+                              value={field.value || ""} 
+                              onBlur={() => markTouched("sale_phase")}
+                              className="h-9 focus:ring-1 focus:ring-indigo-500/20"
+                            />
+                          </FormControl>
+                          <p className="text-[10px] text-zinc-400 mt-1">
+                            Stored as {selectedPhase === "token" ? "token date" : "full payment date"}.
+                          </p>
+                          {touched.sale_phase && <FormMessage />}
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Notes</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            rows={2}
+                            placeholder="Payment schedule, special requests, etc."
+                            {...field}
+                            className="focus:ring-1 focus:ring-indigo-500/20"
+                          />
+                        </FormControl>
+                        {touched.notes && <FormMessage />}
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* RIGHT SIDE: Financials & Profit / Earnings */}
+              <div className="lg:col-span-5 space-y-4">
+                
+                {/* 3. FINANCIALS CARD */}
+                <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/10">
+                  <div className="flex items-center gap-2 border-b border-zinc-200/50 pb-2 dark:border-zinc-800">
+                    <span className="text-sm">💰</span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-350">
+                      Financials
+                    </h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
-                      name="monthly_emi"
+                      name="total_sale_amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Monthly EMI</FormLabel>
+                          <FormLabel className="text-xs font-semibold text-zinc-500">Selling Price (Auto)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
+                              className="h-9 font-mono text-zinc-600 bg-zinc-100/50 dark:text-zinc-400 dark:bg-zinc-800/30"
                               {...field}
                               value={field.value ?? ""}
+                              disabled
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 const sanitized = raw.replace(/^0+(?=\d)/, "");
@@ -1218,43 +1124,269 @@ export function SaleForm({
                               }}
                             />
                           </FormControl>
-                          <FormMessage />
+                          {touched.plot_id && <FormMessage />}
                         </FormItem>
                       )}
                     />
-                  )}
-                  {selectedPhase !== "full_payment" && (
                     <FormField
                       control={form.control}
-                      name="emi_day"
+                      name="down_payment"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>EMI Day (1-31)</FormLabel>
+                          <FormLabel className="text-xs font-semibold text-zinc-500">
+                            {selectedPhase === "full_payment" || isDownPaymentFull
+                              ? "Full Payment"
+                              : "Down Payment"}
+                          </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
+                              className="h-9 focus:ring-1 focus:ring-indigo-500/20"
                               {...field}
                               value={field.value ?? ""}
+                              disabled={selectedPhase === "full_payment"}
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                field.onChange(
-                                  sanitized === "" ? undefined : Number(sanitized)
-                                );
+                                field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                markTouched("down_payment");
                               }}
+                              onBlur={() => markTouched("down_payment")}
                             />
                           </FormControl>
+                          {selectedPhase === "full_payment" ? (
+                            <p className="text-[10px] text-zinc-400 mt-1">
+                              Matches selling price — no EMI for full payment.
+                            </p>
+                          ) : null}
+                          {touched.down_payment && <FormMessage />}
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="p-3.5 space-y-1 rounded-xl border border-indigo-100 bg-indigo-50/20 dark:border-indigo-950/20 dark:bg-indigo-950/10 shadow-sm flex items-center justify-between text-xs">
+                    <span className="text-zinc-500 font-medium">Remaining Balance:</span>
+                    <span className="font-bold text-sm text-indigo-650 dark:text-indigo-400 tabular-nums">{formatCurrency(remaining)}</span>
+                  </div>
+
+                  {remaining > 0 && selectedPhase !== "full_payment" && (
+                    <FormField
+                      control={form.control}
+                      name="followup_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-zinc-500">Follow-up Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" className="h-9 focus:ring-1 focus:ring-indigo-500/20" {...field} value={field.value ?? ""} placeholder="Next payment follow-up" />
+                          </FormControl>
+                          <p className="text-[10px] text-zinc-455 mt-1">Reminder will be created for this date</p>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
                 </div>
-                {selectedPhase === "full_payment" ? (
-                  <p className="text-[11px] text-zinc-500">
-                    EMI fields are hidden when the sale is recorded as full payment.
-                  </p>
+
+                {/* 4. PROFIT & ADVISOR EARNINGS CARD */}
+                {selectedPlot ? (
+                  <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/10">
+                    <div className="flex items-center gap-2 border-b border-zinc-200/50 pb-2 dark:border-zinc-800">
+                      <span className="text-sm">📈</span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-350">
+                        {soldByAdmin ? "Pricing (Admin Direct)" : "Profit & Advisor Earnings"}
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3.5 text-xs">
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                          Plot base rate / sqft
+                        </div>
+                        <div className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                          {formatCurrencyShort(plotBaseRatePerSqft)}/sqft
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 text-right">
+                          Plot Size
+                        </div>
+                        <div className="font-bold text-right text-zinc-800 dark:text-zinc-200 mt-0.5">
+                          {plotSize.toLocaleString("en-IN")} sqft
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                          Base Price (Total)
+                        </div>
+                        <div className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                          {formatCurrency(finance.baseTotal)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 text-right">
+                          {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor selling price / sqft"}
+                        </div>
+                        <div className="font-bold text-right text-zinc-800 dark:text-zinc-200 mt-0.5">
+                          {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
+                        </div>
+                        {advisorRateInvalid ? (
+                          <div className="text-[10px] font-bold text-red-550 text-right mt-0.5">
+                            Below plot admin rate
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="col-span-2 border-t border-zinc-250/20 pt-2.5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                          Selling Price (Total)
+                        </div>
+                        <div className="text-base font-extrabold text-zinc-900 dark:text-zinc-50 mt-0.5 font-mono">
+                          {formatCurrency(finance.sellingPrice)}
+                        </div>
+                      </div>
+
+                      {!soldByAdmin && (
+                        <>
+                          <div className="col-span-2 grid grid-cols-2 gap-3.5 bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/60 dark:border-emerald-900/20 rounded-xl p-3 mt-1 shadow-inner">
+                            <div>
+                              <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                                Total Profit
+                              </div>
+                              <div className="text-sm font-black text-emerald-700 dark:text-emerald-300 font-mono mt-0.5">
+                                {formatCurrency(finance.profit)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                                Advisor Earned (Received)
+                              </div>
+                              <div className="text-sm font-black text-emerald-750 dark:text-emerald-300 font-mono mt-0.5">
+                                {formatCurrency(finance.advisorEarned)}
+                              </div>
+                              <div className="text-[9px] text-emerald-600 dark:text-emerald-500 font-semibold mt-0.5">
+                                Remaining: {formatCurrency(finance.remainingPotential)}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-200/50 dark:border-zinc-800 mt-2">
+                      <div className="flex justify-between text-[10px] font-bold text-zinc-550 mb-1.5">
+                        <span>
+                          Received: ₹{receivedNow.toLocaleString("en-IN")}
+                        </span>
+                        <span className="font-mono">{Math.round(finance.ratio * 100)}%</span>
+                      </div>
+                      <div className="overflow-hidden h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 shadow-inner">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.round(finance.ratio * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 ) : null}
+
+                {/* 5. EMI PARAMETERS CARD (IF APPLICABLE) */}
+                {selectedPhase !== "full_payment" ? (
+                  <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/10">
+                    <div className="flex items-center gap-2 border-b border-zinc-200/50 pb-2 dark:border-zinc-800">
+                      <span className="text-sm">🗓️</span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-350">
+                        EMI Parameters
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {remaining > 0 && (
+                        <FormField
+                          control={form.control}
+                          name="emi_months"
+                          render={({ field }) => (
+                            <FormItem className="min-w-0">
+                              <FormLabel className="text-xs font-semibold text-zinc-500">EMI Months</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  className="h-9 focus:ring-1 focus:ring-indigo-500/20"
+                                  {...field}
+                                  value={field.value ?? ""}
+                                  placeholder="e.g. 12"
+                                  min={1}
+                                  max={120}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    field.onChange(v === "" ? undefined : Number(v));
+                                  }}
+                                />
+                              </FormControl>
+                              <p className="text-[9px] text-zinc-400 mt-1">Auto EMI</p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      
+                      <FormField
+                        control={form.control}
+                        name="monthly_emi"
+                        render={({ field }) => (
+                          <FormItem className="min-w-0">
+                            <FormLabel className="text-xs font-semibold text-zinc-500">Monthly EMI</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="h-9 focus:ring-1 focus:ring-indigo-500/20"
+                                {...field}
+                                value={field.value ?? ""}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  const sanitized = raw.replace(/^0+(?=\d)/, "");
+                                  field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="emi_day"
+                        render={({ field }) => (
+                          <FormItem className="min-w-0">
+                            <FormLabel className="text-xs font-semibold text-zinc-500">EMI Day (1-31)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                className="h-9 focus:ring-1 focus:ring-indigo-500/20"
+                                {...field}
+                                value={field.value ?? ""}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  const sanitized = raw.replace(/^0+(?=\d)/, "");
+                                  field.onChange(
+                                    sanitized === "" ? undefined : Number(sanitized)
+                                  );
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-zinc-200/50 bg-zinc-50/20 p-4 text-[10px] font-semibold text-zinc-400 flex items-center gap-2 dark:border-zinc-800 dark:bg-zinc-900/10 shadow-inner">
+                    💡 EMI fields are hidden when the sale is recorded as full payment.
+                  </div>
+                )}
               </div>
             </div>
 

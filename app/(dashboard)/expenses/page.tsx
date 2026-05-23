@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Receipt, IndianRupee } from "lucide-react";
+import { Plus, Receipt, IndianRupee, TrendingUp, TrendingDown, Clock, Wallet } from "lucide-react";
 import {
   Button,
   Card,
@@ -129,37 +129,75 @@ export default async function ExpensesPage({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-900 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-zinc-400 mb-2">
-              <IndianRupee className="h-4 w-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Total Outflow</span>
+        <Card className="group bg-zinc-900 text-white border-zinc-800 shadow-sm transition-all duration-300 hover:-translate-y-1 select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(255,255,255,0.03)]">
+          <CardContent className="p-6 flex flex-col justify-between h-full w-full">
+            <div className="flex items-center gap-3.5 w-full">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 border border-zinc-700/40 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                <IndianRupee className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 truncate flex-1">
+                Total Outflow
+              </p>
             </div>
-            <p className="text-2xl font-bold">{formatCurrency(totalExpenses)}</p>
+            <div className="mt-4 flex flex-col justify-end">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">
+                {formatCurrency(totalExpenses)}
+              </p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-xs font-bold uppercase tracking-wider text-green-600 mb-2">
-              Total Paid
+
+        <Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(16,185,129,0.08)]">
+          <CardContent className="p-6 flex flex-col justify-between h-full w-full">
+            <div className="flex items-center gap-3.5 w-full">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+                Total Paid
+              </p>
             </div>
-            <p className="text-2xl font-bold text-green-700">{formatCurrency(totalPaid)}</p>
+            <div className="mt-4 flex flex-col justify-end">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-green-700 dark:text-emerald-400 leading-tight truncate">
+                {formatCurrency(totalPaid)}
+              </p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-2">
-              Pending
+
+        <Card className="group bg-gradient-to-br from-white to-amber-50/[0.12] dark:from-zinc-950 dark:to-amber-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-amber-200 dark:hover:border-amber-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(245,158,11,0.08)]">
+          <CardContent className="p-6 flex flex-col justify-between h-full w-full">
+            <div className="flex items-center gap-3.5 w-full">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-amber-600 dark:text-amber-400 border border-amber-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                <Clock className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+                Pending
+              </p>
             </div>
-            <p className="text-2xl font-bold text-amber-700">{formatCurrency(totalPending)}</p>
+            <div className="mt-4 flex flex-col justify-end">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-700 dark:text-amber-500 leading-tight truncate">
+                {formatCurrency(totalPending)}
+              </p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
-              Partial Payments
+
+        <Card className="group bg-gradient-to-br from-white to-blue-50/[0.12] dark:from-zinc-950 dark:to-blue-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 shadow-sm hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_32px_-4px_rgba(59,130,246,0.08)]">
+          <CardContent className="p-6 flex flex-col justify-between h-full w-full">
+            <div className="flex items-center gap-3.5 w-full">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+                Partial Payments
+              </p>
             </div>
-            <p className="text-2xl font-bold">{partialCount}</p>
+            <div className="mt-4 flex flex-col justify-end">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400 leading-tight truncate">
+                {partialCount}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

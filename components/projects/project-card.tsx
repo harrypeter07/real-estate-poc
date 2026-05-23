@@ -7,6 +7,8 @@ import {
 	IndianRupee,
 	ArrowRight,
 	Pencil,
+	Ruler,
+	BadgeCheck,
 } from "lucide-react";
 import {
 	Card,
@@ -70,12 +72,18 @@ export function ProjectCard({
 	const availableArea = Math.round(Number(available_area_sqft ?? 0));
 	const bookedArea = Math.round(Number(sold_area_sqft ?? 0));
 
+	const activeTotal = plotCounts.available + plotCounts.token + plotCounts.agreement + plotCounts.sold;
+	const availablePercent = activeTotal > 0 ? (plotCounts.available / activeTotal) * 100 : 0;
+	const tokenPercent = activeTotal > 0 ? (plotCounts.token / activeTotal) * 100 : 0;
+	const agreementPercent = activeTotal > 0 ? (plotCounts.agreement / activeTotal) * 100 : 0;
+	const soldPercent = activeTotal > 0 ? (plotCounts.sold / activeTotal) * 100 : 0;
+
 	return (
 		<div
 			onClick={() => router.push(`/projects/${id}`)}
 			className="block h-full cursor-pointer group"
 		>
-			<Card className="flex flex-col h-full group-hover:border-zinc-400 transition-colors">
+			<Card className="flex flex-col h-full transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-md group-hover:border-zinc-400">
 				<CardHeader className="pb-3">
 					<div className="flex items-start justify-between">
 						<div className="space-y-1 min-w-0">
@@ -102,49 +110,105 @@ export function ProjectCard({
 				</CardHeader>
 
 				<CardContent className="flex-1 space-y-4">
-					{/* Counts row */}
-					<div className="flex items-center gap-2 text-sm text-zinc-600">
-						<LayoutGrid className="h-4 w-4 shrink-0" />
-						<span>{total_plots_count} total plots</span>
-					</div>
+					{/* Status badges & Segmented Progress Bar */}
+					<div className="space-y-3">
+						<div className="flex flex-wrap gap-1.5">
+							{(
+								Object.keys(statusConfig) as Array<keyof typeof statusConfig>
+							).map((status) => {
+								const count = plotCounts[status];
+								if (count === 0) return null;
+								const config = statusConfig[status];
+								return (
+									<Badge
+										key={status}
+										variant="secondary"
+										className={config.className}
+									>
+										{config.label}: {count}
+									</Badge>
+								);
+							})}
+							{plotCounts.total === 0 && (
+								<span className="text-xs text-zinc-400">No plots added yet</span>
+							)}
+						</div>
 
-					{/* Status badges */}
-					<div className="flex flex-wrap gap-1.5">
-						{(
-							Object.keys(statusConfig) as Array<keyof typeof statusConfig>
-						).map((status) => {
-							const count = plotCounts[status];
-							if (count === 0) return null;
-							const config = statusConfig[status];
-							return (
-								<Badge
-									key={status}
-									variant="secondary"
-									className={config.className}
-								>
-									{config.label}: {count}
-								</Badge>
-							);
-						})}
-						{plotCounts.total === 0 && (
-							<span className="text-xs text-zinc-400">No plots added yet</span>
+						{/* Segmented Progress Bar */}
+						{activeTotal > 0 ? (
+							<div className="w-full h-1.5 flex rounded-full overflow-hidden bg-zinc-100 gap-[1px]">
+								{plotCounts.available > 0 && (
+									<div
+										className="bg-emerald-500 transition-all duration-300"
+										style={{ width: `${availablePercent}%` }}
+										title={`Available: ${plotCounts.available}`}
+									/>
+								)}
+								{plotCounts.token > 0 && (
+									<div
+										className="bg-amber-500 transition-all duration-300"
+										style={{ width: `${tokenPercent}%` }}
+										title={`Token: ${plotCounts.token}`}
+									/>
+								)}
+								{plotCounts.agreement > 0 && (
+									<div
+										className="bg-orange-500 transition-all duration-300"
+										style={{ width: `${agreementPercent}%` }}
+										title={`Agreement: ${plotCounts.agreement}`}
+									/>
+								)}
+								{plotCounts.sold > 0 && (
+									<div
+										className="bg-rose-500 transition-all duration-300"
+										style={{ width: `${soldPercent}%` }}
+										title={`Sold: ${plotCounts.sold}`}
+									/>
+								)}
+							</div>
+						) : (
+							<div className="w-full h-1.5 bg-zinc-100 rounded-full" title="No plots added" />
 						)}
 					</div>
 
-					{/* Area stats */}
-					{total_plots_count > 0 && (
-						<div className="text-xs text-zinc-600 leading-relaxed">
-							<span className="font-medium text-zinc-700">Area:</span>{" "}
-							{totalArea.toLocaleString("en-IN")} sqft total ·{" "}
-							{availableArea.toLocaleString("en-IN")} sqft unsold inventory ·{" "}
-							{bookedArea.toLocaleString("en-IN")} sqft booked (token / agreement / sold)
+					{/* Stats details section */}
+					<div className="space-y-2 text-xs text-zinc-600 pt-1">
+						{/* Total Plots count */}
+						<div className="flex items-center gap-2 text-sm text-zinc-600">
+							<LayoutGrid className="h-4 w-4 shrink-0 text-zinc-400" />
+							<span>{total_plots_count} total plots</span>
 						</div>
-					)}
+
+						{/* Area stats with Ruler icon */}
+						{total_plots_count > 0 && (
+							<div className="flex items-start gap-2">
+								<Ruler className="h-4 w-4 shrink-0 text-zinc-400 mt-0.5" />
+								<div className="leading-relaxed">
+									<span className="font-semibold text-zinc-700">Area:</span>{" "}
+									<span>{totalArea.toLocaleString("en-IN")} sqft total</span>
+								</div>
+							</div>
+						)}
+
+						{/* Booked Inventory with BadgeCheck icon */}
+						{total_plots_count > 0 && (
+							<div className="flex items-start gap-2">
+								<BadgeCheck className="h-4 w-4 shrink-0 text-zinc-400 mt-0.5" />
+								<div className="leading-relaxed">
+									<span className="font-semibold text-zinc-700">Inventory:</span>{" "}
+									<span>
+										{availableArea.toLocaleString("en-IN")} sqft unsold ·{" "}
+										{bookedArea.toLocaleString("en-IN")} sqft booked
+									</span>
+								</div>
+							</div>
+						)}
+					</div>
 
 					{/* Layout expense */}
 					{layout_expense && layout_expense > 0 ? (
-						<div className="flex items-center gap-2 text-sm text-zinc-600">
-							<IndianRupee className="h-4 w-4 shrink-0" />
+						<div className="flex items-center gap-2 text-sm text-zinc-600 border-t border-zinc-50 pt-3">
+							<IndianRupee className="h-4 w-4 shrink-0 text-zinc-400" />
 							<span>Layout Expense: {formatCurrency(layout_expense)}</span>
 						</div>
 					) : null}

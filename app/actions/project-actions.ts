@@ -285,8 +285,7 @@ export async function getProjectWithStats(
 			)
 			.in("plot_id", plotIds)
 			.eq("is_cancelled", false)
-			.order("created_at", { ascending: false })
-			.limit(options?.advisorId ? 40 : 5);
+			.order("created_at", { ascending: false });
 
 		let sales = salesRaw ?? [];
 		if (options?.advisorId && sales.length > 0) {
@@ -393,3 +392,26 @@ export async function getProjectsWithPlotCounts() {
 		total_area_sqft: areaMap.get(project.id)?.total ?? 0,
 	}));
 }
+
+export async function getProjectsSummaryStats() {
+	const supabase = await createClient();
+	if (!supabase) return { totalRevenue: 0 };
+
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) return { totalRevenue: 0 };
+
+	const { data: payRows, error } = await supabase
+		.from("payments")
+		.select("amount")
+		.eq("business_id", businessId)
+		.eq("is_confirmed", true);
+
+	if (error) {
+		console.error("Error fetching summary stats:", error);
+		return { totalRevenue: 0 };
+	}
+
+	const totalRevenue = (payRows ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+	return { totalRevenue };
+}
+

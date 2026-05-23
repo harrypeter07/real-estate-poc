@@ -29,8 +29,7 @@ export default async function ProjectAnalyticsSection({
 
 	return (
 		<>
-			{/* Project-specific analytics */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 w-full">
 				<StatCard
 					title="Plots Total"
 					value={String(projectAnalytics.plots.total)}

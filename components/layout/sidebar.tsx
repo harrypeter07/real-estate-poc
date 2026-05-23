@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Building2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose, items }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const baseItems = items ?? ADMIN_NAV_ITEMS;
   const [enabledModules, setEnabledModules] = useState<Set<string> | null>(null);
   const [businessDisplayName, setBusinessDisplayName] = useState("Business name not set");
@@ -82,6 +83,49 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
     return baseItems.filter((it) => !it.moduleKey || enabledModules.has(it.moduleKey));
   }, [baseItems, enabledModules]);
 
+  const activeHref = useMemo(() => {
+    let bestMatchHref = "";
+    let maxScore = -1;
+
+    for (const item of navItems) {
+      const [itemPath, itemQuery] = item.href.split("?");
+
+      const isPathMatch =
+        pathname === itemPath ||
+        (itemPath !== "/dashboard" &&
+          itemPath !== "/advisor" &&
+          pathname.startsWith(itemPath + "/"));
+
+      if (!isPathMatch) continue;
+
+      let score = itemPath.length;
+
+      if (itemQuery) {
+        const itemParams = new URLSearchParams(itemQuery);
+        let allParamsMatch = true;
+        for (const [key, val] of itemParams.entries()) {
+          if (searchParams.get(key) !== val) {
+            allParamsMatch = false;
+            break;
+          }
+        }
+
+        if (allParamsMatch) {
+          score += 1000;
+        } else {
+          score = -1;
+        }
+      }
+
+      if (score > maxScore) {
+        maxScore = score;
+        bestMatchHref = item.href;
+      }
+    }
+
+    return bestMatchHref;
+  }, [pathname, searchParams, navItems]);
+
   return (
     <>
       {/* Mobile overlay */}
@@ -120,9 +164,7 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
         {/* Nav Links */}
         <nav className="overflow-y-auto flex-1 px-3 py-4 space-y-1">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const isActive = item.href === activeHref;
 
             return (
               <Link

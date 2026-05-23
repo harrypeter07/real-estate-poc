@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Home, Building } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,56 @@ interface RecentSalesListProps {
 	recentSales: Sale[];
 }
 
+const getPlotIcon = (plotNumber: string) => {
+	const lower = (plotNumber || "").toLowerCase().trim();
+	if (
+		lower.includes("shop") ||
+		lower.includes("comm") ||
+		lower.includes("office") ||
+		lower.includes("building") ||
+		lower.includes("show")
+	) {
+		return <Building className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 shrink-0 transition-colors group-hover:text-emerald-500" />;
+	}
+	return <Home className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 shrink-0 transition-colors group-hover:text-emerald-500" />;
+};
+
+const getPhaseBadge = (phaseStr: string) => {
+	const phase = (phaseStr || "").toLowerCase().trim();
+	const baseClass = "px-2.5 py-0.5 text-[10px] font-bold tracking-wider rounded-full border transition-all duration-200 hover:scale-[1.02] flex items-center w-fit shadow-sm";
+
+	switch (phase) {
+		case "token":
+			return (
+				<Badge variant="outline" className={`${baseClass} bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 hover:bg-amber-100/80 dark:hover:bg-amber-950/50`}>
+					<span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+					TOKEN
+				</Badge>
+			);
+		case "sold":
+			return (
+				<Badge variant="outline" className={`${baseClass} bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/50`}>
+					<span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+					SOLD
+				</Badge>
+			);
+		case "emi":
+			return (
+				<Badge variant="outline" className={`${baseClass} bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50 hover:bg-blue-100/80 dark:hover:bg-blue-950/50`}>
+					<span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-blue-500" />
+					EMI
+				</Badge>
+			);
+		default:
+			return (
+				<Badge variant="outline" className={`${baseClass} bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700`}>
+					<span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-zinc-400" />
+					{phaseStr.toUpperCase()}
+				</Badge>
+			);
+	}
+};
+
 export function RecentSalesList({ recentSales }: RecentSalesListProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -34,6 +84,8 @@ export function RecentSalesList({ recentSales }: RecentSalesListProps) {
 			(sale.plot_number || "").toLowerCase().includes(query)
 		);
 	});
+
+	const displayedSales = searchQuery.trim() ? filteredSales : filteredSales.slice(0, 5);
 
 	return (
 		<Card>
@@ -66,7 +118,7 @@ export function RecentSalesList({ recentSales }: RecentSalesListProps) {
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b text-left text-zinc-500">
-									<th className="pb-2 pr-4 font-medium">Plot</th>
+									<th className="pb-2 pr-4 font-medium pl-3">Plot</th>
 									<th className="pb-2 pr-4 font-medium">Customer</th>
 									<th className="pb-2 pr-4 font-medium">Advisor</th>
 									<th className="pb-2 pr-4 font-medium">Amount</th>
@@ -75,18 +127,36 @@ export function RecentSalesList({ recentSales }: RecentSalesListProps) {
 								</tr>
 							</thead>
 							<tbody>
-								{filteredSales.map((sale) => (
-									<tr key={sale.id} className="border-b last:border-0 hover:bg-zinc-50/30 transition-colors">
-										<td className="py-2.5 pr-4 font-medium">{sale.plot_number}</td>
-										<td className="py-2.5 pr-4">{sale.customer_name}</td>
-										<td className="py-2.5 pr-4">{sale.advisor_name}</td>
-										<td className="py-2.5 pr-4">
-											{formatCurrency(sale.total_sale_amount)}
+								{displayedSales.map((sale) => (
+									<tr
+										key={sale.id}
+										className="group border-b last:border-0 hover:bg-zinc-50/40 dark:hover:bg-zinc-900/30 transition-all duration-200 cursor-default"
+									>
+										<td className="relative py-3 pr-4 pl-3 font-medium transition-all duration-200">
+											{/* Soft left accent glow/accent bar */}
+											<div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-emerald-500 dark:bg-emerald-400 opacity-0 group-hover:opacity-100 transition-all duration-200 origin-left scale-y-75 group-hover:scale-y-100" />
+											<div className="flex items-center gap-2">
+												{getPlotIcon(sale.plot_number)}
+												<span className="truncate group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+													{sale.plot_number}
+												</span>
+											</div>
 										</td>
-										<td className="py-2.5 pr-4">
-											<Badge variant="secondary">{sale.sale_phase}</Badge>
+										<td className="py-3 pr-4 text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+											{sale.customer_name}
 										</td>
-										<td className="py-2.5">
+										<td className="py-3 pr-4 text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+											{sale.advisor_name}
+										</td>
+										<td className="py-3 pr-4">
+											<span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight text-sm sm:text-[15px] transition-all duration-200">
+												{formatCurrency(sale.total_sale_amount)}
+											</span>
+										</td>
+										<td className="py-3 pr-4">
+											{getPhaseBadge(sale.sale_phase)}
+										</td>
+										<td className="py-3 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
 											{sale.token_date ? formatDate(sale.token_date) : "—"}
 										</td>
 									</tr>
@@ -99,3 +169,4 @@ export function RecentSalesList({ recentSales }: RecentSalesListProps) {
 		</Card>
 	);
 }
+

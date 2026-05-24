@@ -11,6 +11,8 @@ import {
   BarChart3,
   ClipboardList,
   Settings,
+  Search,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +38,8 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Messaging", href: "/messaging", icon: Bell, moduleKey: "messaging" },
   { label: "HR", href: "/hr", icon: ClipboardList, moduleKey: "hr" },
   { label: "Reports", href: "/reports", icon: BarChart3, moduleKey: "reports" },
+  { label: "Recovery", href: "/dashboard/recovery", icon: ShieldAlert, moduleKey: "payments" },
+  { label: "Search", href: "/search", icon: Search },
   { label: "Business settings", href: "/settings/business", icon: Settings },
 ];
 

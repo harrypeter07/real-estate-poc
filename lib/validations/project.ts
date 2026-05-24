@@ -1,14 +1,54 @@
 import { z } from "zod";
 
 export const projectSchema = z.object({
-	name: z.string().min(2, "Project name must be at least 2 characters"),
+	project_name: z.string().min(2, "Project name must be at least 2 characters"),
+	project_code: z
+		.string()
+		.regex(/^[a-zA-Z0-9-]*$/, "Code must contain only letters, numbers, and hyphens")
+		.optional()
+		.or(z.literal("")),
 	location: z.string().min(1, "Location is required"),
+	google_maps_link: z
+		.string()
+		.url("Must be a valid URL")
+		.or(z.literal(""))
+		.optional()
+		.default(""),
+	project_type: z.enum(["Plot", "Flat", "Row House", "Farm House", "Commercial"], {
+		message: "Please select a project type",
+	}),
+	// Retained for plot auto-generation compatibility
 	total_plots_count: z
 		.number()
 		.int("Must be a whole number")
-		.positive("Must be greater than 0"),
+		.nonnegative("Must be 0 or greater")
+		.default(0),
 	starting_plot_number: z.number().int().min(1, "Must be at least 1").default(1),
+	
+	// Pricing
+	starting_price: z.number().nonnegative("Price must be 0 or greater").default(0),
+	rate_per_sqft: z.number().nonnegative("Rate must be 0 or greater").default(0),
+	plc_charges: z.number().nonnegative("PLC charges must be 0 or greater").default(0),
+	registration_charges: z.number().nonnegative("Registration charges must be 0 or greater").default(0),
+
+	// Scheme
+	down_payment_percent: z
+		.number()
+		.min(0, "Down payment % must be at least 0")
+		.max(100, "Down payment % cannot exceed 100")
+		.default(0),
+	emi_months: z.number().int().nonnegative("EMI months must be 0 or greater").default(0),
+	emi_type: z.enum(["Fixed", "Flexible", "Step-up", "Balloon"]).default("Fixed"),
+	offer_details: z.string().default(""),
+
+	// Status
+	status: z.enum(["Upcoming", "Active", "Hold", "Completed", "Sold Out"]).default("Active"),
+
+	// Notes
 	description: z.string().default(""),
+	amenities: z.string().default(""),
+	nearby_locations: z.string().default(""),
+	internal_notes: z.string().default(""),
 });
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;

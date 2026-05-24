@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, Building2, LayoutGrid, BadgeCheck, IndianRupee } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
-import { ProjectCard } from "@/components/projects/project-card";
+import { ProjectsListClient } from "@/components/projects/projects-list-client";
 import { getProjectsWithPlotCounts, getProjectsSummaryStats } from "@/app/actions/project-actions";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -22,7 +22,7 @@ export default async function ProjectsPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Projects"
         subtitle={`${projects.length} land project${
@@ -100,7 +100,6 @@ export default async function ProjectsPage() {
         </div>
       )}
 
-
       {projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 mb-4">
@@ -118,23 +117,7 @@ export default async function ProjectsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              id={project.id}
-              name={project.name}
-              location={project.location}
-              total_plots_count={project.total_plots_count}
-              layout_expense={Number(project.layout_expense)}
-              plotCounts={project.plotCounts}
-              available_area_sqft={project.available_area_sqft}
-              sold_area_sqft={project.sold_area_sqft}
-              left_area_sqft={project.left_area_sqft}
-              total_area_sqft={project.total_area_sqft}
-            />
-          ))}
-        </div>
+        <ProjectsListClient projects={projects} />
       )}
     </div>
   );

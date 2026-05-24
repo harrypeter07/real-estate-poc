@@ -3,14 +3,7 @@
 import { ProjectForm } from "@/components/projects/project-form";
 
 interface ProjectEditWrapperProps {
-	project: {
-		id: string;
-		name: string;
-		location: string | null;
-		total_plots_count: number;
-		layout_expense: number | null;
-		description: string | null;
-	};
+	project: any;
 }
 
 export function ProjectEditWrapper({ project }: ProjectEditWrapperProps) {

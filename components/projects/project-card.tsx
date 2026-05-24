@@ -34,6 +34,9 @@ interface ProjectCardProps {
 	/** @deprecated duplicate of available; use total_area_sqft + available + booked */
 	left_area_sqft?: number;
 	total_area_sqft?: number;
+	status?: string | null;
+	project_type?: string | null;
+	starting_price?: number | null;
 }
 
 const statusConfig = {
@@ -55,6 +58,14 @@ const statusConfig = {
 	},
 };
 
+const projectStatusConfig: Record<string, { label: string; className: string }> = {
+	Upcoming: { label: "Upcoming", className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" },
+	Active: { label: "Active", className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" },
+	Hold: { label: "Hold", className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" },
+	Completed: { label: "Completed", className: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700" },
+	"Sold Out": { label: "Sold Out", className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" },
+};
+
 export function ProjectCard({
 	id,
 	name,
@@ -66,6 +77,9 @@ export function ProjectCard({
 	sold_area_sqft,
 	left_area_sqft: _leftDup,
 	total_area_sqft,
+	status,
+	project_type,
+	starting_price,
 }: ProjectCardProps) {
 	const router = useRouter();
 	const totalArea = Math.round(Number(total_area_sqft ?? 0));
@@ -78,6 +92,11 @@ export function ProjectCard({
 	const agreementPercent = activeTotal > 0 ? (plotCounts.agreement / activeTotal) * 100 : 0;
 	const soldPercent = activeTotal > 0 ? (plotCounts.sold / activeTotal) * 100 : 0;
 
+	const projectStatus = projectStatusConfig[status ?? "Active"] ?? {
+		label: status ?? "Active",
+		className: "bg-zinc-100 text-zinc-800 border-zinc-200",
+	};
+
 	return (
 		<div
 			onClick={() => router.push(`/projects/${id}`)}
@@ -87,7 +106,12 @@ export function ProjectCard({
 				<CardHeader className="pb-3">
 					<div className="flex items-start justify-between">
 						<div className="space-y-1 min-w-0">
-							<CardTitle className="text-lg truncate">{name}</CardTitle>
+							<div className="flex items-center gap-2">
+								<CardTitle className="text-lg truncate">{name}</CardTitle>
+								<Badge variant="outline" className={projectStatus.className}>
+									{projectStatus.label}
+								</Badge>
+							</div>
 							{location && (
 								<div className="flex items-center gap-1 text-sm text-zinc-500">
 									<MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -101,7 +125,7 @@ export function ProjectCard({
 							className="h-8 w-8 shrink-0"
 							onClick={(e) => {
 								e.stopPropagation();
-								router.push(`/projects/${id}?edit=true`);
+								router.push(`/projects/${id}/edit`);
 							}}
 						>
 							<Pencil className="h-3.5 w-3.5" />

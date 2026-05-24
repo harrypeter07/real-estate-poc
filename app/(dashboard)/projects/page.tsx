@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Building2, LayoutGrid, BadgeCheck, IndianRupee } from "lucide-react";
+import { Plus, Building2, LayoutGrid, BadgeCheck, IndianRupee, FolderOpen } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProjectsListClient } from "@/components/projects/projects-list-client";
@@ -101,17 +101,20 @@ export default async function ProjectsPage() {
       )}
 
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 mb-4">
-            <Building2 className="h-8 w-8 text-zinc-400" />
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/20 p-10 sm:p-20 text-center shadow-sm max-w-2xl mx-auto my-8 transition-all duration-300 hover:shadow-md">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100/50 dark:from-teal-950/20 dark:to-emerald-950/10 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/30 shadow-inner mb-6 relative group">
+            <div className="absolute inset-0 bg-teal-400/10 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-300 opacity-50" />
+            <FolderOpen className="h-10 w-10 relative z-10 transition-transform duration-300 group-hover:scale-110" />
           </div>
-          <h3 className="text-lg font-semibold">No projects yet</h3>
-          <p className="text-sm text-zinc-500 mt-1 mb-4">
-            Get started by creating your first land project
+          <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+            📁 No projects found
+          </h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 mb-8 max-w-sm">
+            Create your first project to start managing plots.
           </p>
           <Link href="/projects/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button className="bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-md shadow-teal-500/10 hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-200 px-6 py-5 rounded-xl flex items-center gap-2 hover:-translate-y-0.5">
+              <Plus className="h-4 w-4" />
               Create Project
             </Button>
           </Link>

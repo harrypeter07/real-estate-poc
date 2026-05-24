@@ -14,6 +14,11 @@ import {
 	DollarSign,
 	Trash2,
 	AlertTriangle,
+	FileText,
+	Calendar,
+	Sliders,
+	ClipboardList,
+	ChevronDown,
 } from "lucide-react";
 import {
 	Button,
@@ -239,21 +244,21 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 	};
 
 	const tabs = [
-		{ id: "basic", label: "Basic Info" },
-		{ id: "pricing", label: "Pricing" },
-		{ id: "scheme", label: "Scheme" },
-		{ id: "status", label: "Status" },
-		{ id: "notes", label: "Notes" },
+		{ id: "basic", label: "Basic Info", icon: FileText },
+		{ id: "pricing", label: "Pricing", icon: DollarSign },
+		{ id: "scheme", label: "Scheme", icon: Calendar },
+		{ id: "status", label: "Status", icon: Sliders },
+		{ id: "notes", label: "Notes", icon: ClipboardList },
 	];
 
 	return (
-		<Card className="max-w-3xl">
-			<CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-zinc-100 dark:border-zinc-900 pb-4">
+		<Card className="max-w-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl bg-gradient-to-tr from-white to-zinc-50/10 dark:from-zinc-950 dark:to-zinc-900/10 transition-all duration-300 overflow-hidden">
+			<CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-150 dark:border-zinc-900/60 pb-5 p-5 sm:p-6 bg-zinc-50/[0.15] dark:bg-zinc-900/[0.05]">
 				<div>
-					<CardTitle>
+					<CardTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
 						{mode === "edit" ? "Edit Project" : "New Project"}
 					</CardTitle>
-					<CardDescription>
+					<CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
 						{mode === "edit"
 							? "Update the project details across the tabs below"
 							: "Fill in the details across the tabs to create a new land project"}
@@ -265,45 +270,55 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 						variant="outline"
 						size="sm"
 						onClick={fillMockData}
-						className="text-xs h-8"
+						className="text-[10px] h-8 font-bold uppercase tracking-wider bg-teal-500/10 text-teal-600 border border-teal-500/20 hover:bg-teal-500/20 hover:border-teal-500/30 transition-all duration-200"
 					>
 						Fill Mock Data
 					</Button>
 				) : null}
 			</CardHeader>
-			<CardContent className="pt-6">
+			<CardContent className="p-5 sm:p-6 pt-5">
 				{/* Tab Buttons */}
-				<div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-6 overflow-x-auto whitespace-nowrap scrollbar-none">
-					{tabs.map((t) => (
-						<button
-							key={t.id}
-							type="button"
-							onClick={() => setActiveTab(t.id)}
-							className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors duration-200 ${activeTab === t.id
-									? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-									: "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+				<div className="flex border-b border-zinc-200 dark:border-zinc-855 mb-6 overflow-x-auto whitespace-nowrap scrollbar-none gap-1 sm:gap-2 pb-1.5">
+					{tabs.map((t) => {
+						const Icon = t.icon;
+						const isActive = activeTab === t.id;
+						return (
+							<button
+								key={t.id}
+								type="button"
+								onClick={() => setActiveTab(t.id)}
+								className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl border-b-2 -mb-px flex items-center gap-2 transition-all duration-200 cursor-pointer ${
+									isActive
+										? "border-teal-500 text-teal-600 bg-teal-500/[0.04] dark:text-teal-400 dark:bg-teal-500/[0.02]"
+										: "border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30"
 								}`}
-						>
-							{t.label}
-						</button>
-					))}
+							>
+								<Icon className={`h-3.5 w-3.5 transition-transform duration-200 ${isActive ? "scale-110 text-teal-500" : "text-zinc-400"}`} />
+								<span>{t.label}</span>
+							</button>
+						);
+					})}
 				</div>
 
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 						{/* Tab 1 – Basic Info */}
 						{activeTab === "basic" && (
-							<div className="space-y-4 animate-in fade-in duration-200">
+							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
 								<FormField
 									control={form.control}
 									name="project_name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>
-												Project Name <span className="text-red-500">*</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+												Project Name <span className="text-rose-500 font-bold ml-0.5">*</span>
 											</FormLabel>
 											<FormControl>
-												<Input placeholder="e.g. Nagpur Greens Phase 2" {...field} />
+												<Input 
+													placeholder="e.g. Nagpur Greens Phase 2" 
+													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500" 
+													{...field} 
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -315,11 +330,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="project_code"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>
-												Project Code <span className="text-red-500">*</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+												Project Code <span className="text-rose-500 font-bold ml-0.5">*</span>
 											</FormLabel>
 											<FormControl>
-												<Input placeholder="e.g. nagpur-greens-2" {...field} />
+												<Input 
+													placeholder="e.g. nagpur-greens-2" 
+													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500" 
+													{...field} 
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -331,11 +350,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="location"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>
-												Location <span className="text-red-500">*</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+												Location <span className="text-rose-500 font-bold ml-0.5">*</span>
 											</FormLabel>
 											<FormControl>
-												<Input placeholder="e.g. Wardha Road, Nagpur" {...field} />
+												<Input 
+													placeholder="e.g. Wardha Road, Nagpur" 
+													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500" 
+													{...field} 
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -347,10 +370,14 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="google_maps_link"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Google Maps Link</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Google Maps Link</FormLabel>
 											<div className="flex gap-2">
 												<FormControl className="flex-1">
-													<Input placeholder="https://maps.google.com/..." {...field} />
+													<Input 
+														placeholder="https://maps.google.com/..." 
+														className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500" 
+														{...field} 
+													/>
 												</FormControl>
 												{field.value && (
 													<Button
@@ -359,8 +386,9 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														size="icon"
 														onClick={() => window.open(field.value, "_blank")}
 														title="Open Map"
+														className="h-10 w-10 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 rounded-xl dark:border-zinc-800 dark:hover:bg-zinc-900/40 transition-colors"
 													>
-														<ExternalLink className="h-4 w-4" />
+														<ExternalLink className="h-4 w-4 text-zinc-500" />
 													</Button>
 												)}
 											</div>
@@ -374,41 +402,45 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="project_type"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>
-												Project Type <span className="text-red-500">*</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+												Project Type <span className="text-rose-500 font-bold ml-0.5">*</span>
 											</FormLabel>
 											<FormControl>
-												<select
-													value={field.value}
-													onChange={field.onChange}
-													className="w-full h-10 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400"
-												>
-													<option value="Plot">Plot</option>
-													<option value="Flat">Flat</option>
-													<option value="Row House">Row House</option>
-													<option value="Farm House">Farm House</option>
-													<option value="Commercial">Commercial</option>
-												</select>
+												<div className="relative group">
+													<select
+														value={field.value}
+														onChange={field.onChange}
+														className="w-full h-10 pl-3.5 pr-10 text-sm font-semibold rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-850 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500/15 focus:border-teal-500 transition-all duration-200 cursor-pointer appearance-none"
+													>
+														<option value="Plot">Plot</option>
+														<option value="Flat">Flat</option>
+														<option value="Row House">Row House</option>
+														<option value="Farm House">Farm House</option>
+														<option value="Commercial">Commercial</option>
+													</select>
+													<ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none group-hover:text-teal-500 transition-colors" />
+												</div>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
 
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
 									<FormField
 										control={form.control}
 										name="total_plots_count"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>
-													Total Units / Plots <span className="text-red-500">*</span>
+												<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+													Total Units / Plots <span className="text-rose-500 font-bold ml-0.5">*</span>
 												</FormLabel>
 												<FormControl>
 													<Input
 														type="number"
 														disabled={mode === "edit"}
 														placeholder="e.g. 50"
+														className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-60 disabled:cursor-not-allowed"
 														{...field}
 														onChange={(e) => {
 															const val = e.target.value;
@@ -417,7 +449,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 													/>
 												</FormControl>
 												{mode === "edit" && (
-													<p className="text-[11px] text-zinc-500">Unit count cannot be altered after creation.</p>
+													<p className="text-[10px] text-zinc-400/80 mt-1.5 font-medium">Unit count cannot be altered after creation.</p>
 												)}
 												<FormMessage />
 											</FormItem>
@@ -429,12 +461,13 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 										name="starting_plot_number"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Starting Unit No.</FormLabel>
+												<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Starting Unit No.</FormLabel>
 												<FormControl>
 													<Input
 														type="number"
 														disabled={mode === "edit"}
 														placeholder="e.g. 1"
+														className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-60 disabled:cursor-not-allowed"
 														{...field}
 														onChange={(e) => {
 															const val = e.target.value;
@@ -452,19 +485,21 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 
 						{/* Tab 2 – Pricing */}
 						{activeTab === "pricing" && (
-							<div className="space-y-4 animate-in fade-in duration-200">
+							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
 								<FormField
 									control={form.control}
 									name="starting_price"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Starting Price (₹)</FormLabel>
-											<div className="relative">
-												<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold">₹</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Starting Price (₹)</FormLabel>
+											<div className="relative flex items-center group">
+												<div className="absolute left-0 pl-3.5 flex items-center pointer-events-none border-r border-zinc-200 dark:border-zinc-800 pr-2.5 h-5 top-1/2 -translate-y-1/2">
+													<span className="text-zinc-400 group-focus-within:text-teal-500 font-bold text-xs transition-colors">₹</span>
+												</div>
 												<FormControl>
 													<Input
 														type="number"
-														className="pl-7"
+														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 2500000"
 														{...field}
 														onChange={(e) => {
@@ -484,13 +519,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="rate_per_sqft"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Rate per Sq Ft (₹)</FormLabel>
-											<div className="relative">
-												<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold">₹</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Rate per Sq Ft (₹)</FormLabel>
+											<div className="relative flex items-center group">
+												<div className="absolute left-0 pl-3.5 flex items-center pointer-events-none border-r border-zinc-200 dark:border-zinc-800 pr-2.5 h-5 top-1/2 -translate-y-1/2">
+													<span className="text-zinc-400 group-focus-within:text-teal-500 font-bold text-xs transition-colors">₹</span>
+												</div>
 												<FormControl>
 													<Input
 														type="number"
-														className="pl-7"
+														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 1800"
 														{...field}
 														onChange={(e) => {
@@ -510,13 +547,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="plc_charges"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>PLC (Preferential Location Charges) (₹)</FormLabel>
-											<div className="relative">
-												<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold">₹</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">PLC (Preferential Location Charges) (₹)</FormLabel>
+											<div className="relative flex items-center group">
+												<div className="absolute left-0 pl-3.5 flex items-center pointer-events-none border-r border-zinc-200 dark:border-zinc-800 pr-2.5 h-5 top-1/2 -translate-y-1/2">
+													<span className="text-zinc-400 group-focus-within:text-teal-500 font-bold text-xs transition-colors">₹</span>
+												</div>
 												<FormControl>
 													<Input
 														type="number"
-														className="pl-7"
+														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 150000"
 														{...field}
 														onChange={(e) => {
@@ -536,13 +575,15 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="registration_charges"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Registration Charges (₹)</FormLabel>
-											<div className="relative">
-												<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold">₹</span>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Registration Charges (₹)</FormLabel>
+											<div className="relative flex items-center group">
+												<div className="absolute left-0 pl-3.5 flex items-center pointer-events-none border-r border-zinc-200 dark:border-zinc-800 pr-2.5 h-5 top-1/2 -translate-y-1/2">
+													<span className="text-zinc-400 group-focus-within:text-teal-500 font-bold text-xs transition-colors">₹</span>
+												</div>
 												<FormControl>
 													<Input
 														type="number"
-														className="pl-7"
+														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 75000"
 														{...field}
 														onChange={(e) => {
@@ -561,17 +602,18 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 
 						{/* Tab 3 – Scheme */}
 						{activeTab === "scheme" && (
-							<div className="space-y-4 animate-in fade-in duration-200">
+							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
 								<FormField
 									control={form.control}
 									name="down_payment_percent"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Down Payment %</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Down Payment %</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
 													placeholder="e.g. 20"
+													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value;
@@ -589,11 +631,12 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="emi_months"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>EMI Months</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">EMI Months</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
 													placeholder="e.g. 36"
+													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value;
@@ -611,18 +654,21 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="emi_type"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>EMI Type</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">EMI Type</FormLabel>
 											<FormControl>
-												<select
-													value={field.value}
-													onChange={field.onChange}
-													className="w-full h-10 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400"
-												>
-													<option value="Fixed">Fixed</option>
-													<option value="Flexible">Flexible</option>
-													<option value="Step-up">Step-up</option>
-													<option value="Balloon">Balloon</option>
-												</select>
+												<div className="relative group">
+													<select
+														value={field.value}
+														onChange={field.onChange}
+														className="w-full h-10 pl-3.5 pr-10 text-sm font-semibold rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-850 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500/15 focus:border-teal-500 transition-all duration-200 cursor-pointer appearance-none"
+													>
+														<option value="Fixed">Fixed</option>
+														<option value="Flexible">Flexible</option>
+														<option value="Step-up">Step-up</option>
+														<option value="Balloon">Balloon</option>
+													</select>
+													<ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none group-hover:text-teal-500 transition-colors" />
+												</div>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -634,11 +680,12 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="offer_details"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Offer Details</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Offer Details</FormLabel>
 											<FormControl>
 												<Textarea
 													placeholder="e.g. 20% down payment, 36 months EMI, interest-free"
 													rows={3}
+													className="bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 min-h-[90px] resize-y"
 													{...field}
 												/>
 											</FormControl>
@@ -651,25 +698,28 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 
 						{/* Tab 4 – Status */}
 						{activeTab === "status" && (
-							<div className="space-y-4 animate-in fade-in duration-200">
+							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
 								<FormField
 									control={form.control}
 									name="status"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Status</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Status</FormLabel>
 											<FormControl>
-												<select
-													value={field.value}
-													onChange={field.onChange}
-													className="w-full h-10 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400"
-												>
-													<option value="Upcoming">Upcoming</option>
-													<option value="Active">Active</option>
-													<option value="Hold">Hold</option>
-													<option value="Completed">Completed</option>
-													<option value="Sold Out">Sold Out</option>
-												</select>
+												<div className="relative group">
+													<select
+														value={field.value}
+														onChange={field.onChange}
+														className="w-full h-10 pl-3.5 pr-10 text-sm font-semibold rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-850 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500/15 focus:border-teal-500 transition-all duration-200 cursor-pointer appearance-none"
+													>
+														<option value="Upcoming">Upcoming</option>
+														<option value="Active">Active</option>
+														<option value="Hold">Hold</option>
+														<option value="Completed">Completed</option>
+														<option value="Sold Out">Sold Out</option>
+													</select>
+													<ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none group-hover:text-teal-500 transition-colors" />
+												</div>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -680,17 +730,18 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 
 						{/* Tab 5 – Notes */}
 						{activeTab === "notes" && (
-							<div className="space-y-4 animate-in fade-in duration-200">
+							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
 								<FormField
 									control={form.control}
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Description</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Describe the project..."
+													placeholder="Describe the project layout, size, and details..."
 													rows={4}
+													className="bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 min-h-[110px] resize-y"
 													{...field}
 												/>
 											</FormControl>
@@ -704,11 +755,12 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="amenities"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Amenities (comma-separated or bullet list)</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Amenities (comma-separated or bullet list)</FormLabel>
 											<FormControl>
 												<Textarea
 													placeholder="e.g. Security, Gated Community, Park, Jogging Track"
 													rows={3}
+													className="bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 min-h-[90px] resize-y"
 													{...field}
 												/>
 											</FormControl>
@@ -722,11 +774,12 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="nearby_locations"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Nearby Locations</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Nearby Locations</FormLabel>
 											<FormControl>
 												<Textarea
 													placeholder="e.g. Airport: 5km, School: 1km, Metro: 2km"
 													rows={3}
+													className="bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 min-h-[90px] resize-y"
 													{...field}
 												/>
 											</FormControl>
@@ -740,11 +793,12 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									name="internal_notes"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Internal Notes (Admins Only)</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Internal Notes (Admins Only)</FormLabel>
 											<FormControl>
 												<Textarea
 													placeholder="These notes are private and not shared with clients..."
 													rows={3}
+													className="bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 min-h-[90px] resize-y"
 													{...field}
 												/>
 											</FormControl>
@@ -756,12 +810,13 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 						)}
 
 						{/* Footer Actions */}
-						<div className="flex justify-between items-center border-t border-zinc-150 dark:border-zinc-800 pt-5">
-							<div className="flex gap-2">
+						<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-t border-zinc-150 dark:border-zinc-800 pt-5 gap-4">
+							<div className="flex flex-wrap gap-2.5">
 								<Button
 									type="button"
 									variant="outline"
 									onClick={() => router.back()}
+									className="rounded-xl h-10 px-5 font-bold border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/40 transition-all duration-200 active:scale-[0.98] cursor-pointer"
 								>
 									Cancel
 								</Button>
@@ -775,6 +830,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 											const currentIndex = tabs.findIndex((t) => t.id === activeTab);
 											if (currentIndex > 0) setActiveTab(tabs[currentIndex - 1].id);
 										}}
+										className="rounded-xl h-10 px-5 font-bold hover:bg-zinc-100 dark:hover:bg-zinc-900/40 transition-all duration-200 active:scale-[0.98] cursor-pointer text-zinc-500"
 									>
 										Back
 									</Button>
@@ -787,6 +843,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 											const currentIndex = tabs.findIndex((t) => t.id === activeTab);
 											if (currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1].id);
 										}}
+										className="rounded-xl h-10 px-5 font-bold border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/40 text-teal-600 dark:text-teal-400 hover:border-teal-500/20 transition-all duration-200 active:scale-[0.98] cursor-pointer"
 									>
 										Next
 									</Button>
@@ -794,7 +851,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									<Button
 										type="submit"
 										disabled={loading || (mode === "edit" && !form.formState.isDirty)}
-										className={`transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}
+										className={`rounded-xl h-10 px-6 font-bold shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98] cursor-pointer bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed`}
 									>
 										{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 										{loading ? "Saving..." : mode === "edit" ? "Update Project" : "Create Project"}
@@ -807,20 +864,21 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									type="button"
 									variant="ghost"
 									onClick={() => setShowDeleteModal(true)}
-									className="text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+									className="text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl h-10 px-4 transition-colors font-bold flex items-center justify-center cursor-pointer"
 								>
-									<Trash2 className="h-4 w-4 mr-2" />
+									<Trash2 className="h-4 w-4 mr-2 shrink-0" />
 									Delete Project
 								</Button>
 							)}
 						</div>
 
 						{submitStatus !== "idle" && (
-							<div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${submitStatus === "success"
-									? "border-green-200 bg-green-50 text-green-700"
-									: "border-red-200 bg-red-50 text-red-700"
+							<div className={`mt-4 flex items-center gap-2.5 rounded-xl border p-3.5 text-xs font-semibold shadow-[0_2px_10px_rgba(0,0,0,0.01)] animate-in fade-in-0 zoom-in-95 duration-300 ${
+								submitStatus === "success"
+									? "border-emerald-100 bg-emerald-50/70 text-emerald-800 dark:border-emerald-950/20 dark:bg-emerald-950/20 dark:text-emerald-400"
+									: "border-rose-100 bg-rose-50/70 text-rose-800 dark:border-rose-950/20 dark:bg-rose-950/20 dark:text-rose-400"
 								}`}>
-								{submitStatus === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+								{submitStatus === "success" ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> : <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />}
 								<span>{statusText}</span>
 							</div>
 						)}
@@ -830,13 +888,13 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 
 			{/* Delete Confirmation Modal inside Form Card */}
 			<Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent className="sm:max-w-md rounded-2xl border-zinc-200 dark:border-zinc-800">
 					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2 text-rose-600">
-							<AlertTriangle className="h-5 w-5" />
+						<DialogTitle className="flex items-center gap-2.5 text-rose-600 font-bold text-lg">
+							<AlertTriangle className="h-5.5 w-5.5" />
 							Confirm Project Deletion
 						</DialogTitle>
-						<DialogDescription>
+						<DialogDescription className="text-zinc-500 text-sm mt-1">
 							Are you sure you want to delete this project? This will permanently delete all plots and associated data for this project. This action is irreversible.
 						</DialogDescription>
 					</DialogHeader>
@@ -846,6 +904,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 							variant="outline"
 							onClick={() => setShowDeleteModal(false)}
 							disabled={deleting}
+							className="rounded-xl h-10 px-5 font-bold transition-all"
 						>
 							Cancel
 						</Button>
@@ -854,7 +913,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 							variant="destructive"
 							onClick={handleDeleteProject}
 							disabled={deleting}
-							className="bg-rose-600 text-white hover:bg-rose-700"
+							className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-10 px-5 font-bold transition-all active:scale-[0.98]"
 						>
 							{deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							Delete Project

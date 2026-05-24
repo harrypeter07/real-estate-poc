@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
@@ -90,8 +91,8 @@ export default async function SalesPage({
   const projectOptions = Array.from(
     new Map(
       sales
-        .filter((s: any) => s?.plots?.projects?.id)
-        .map((s: any) => [s.plots.projects.id, { id: s.plots.projects.id, name: s.plots.projects.name }])
+          .filter((s: any) => s?.plots?.projects?.id)
+          .map((s: any) => [s.plots.projects.id, { id: s.plots.projects.id, name: s.plots.projects.name }])
     ).values()
   );
 
@@ -110,7 +111,9 @@ export default async function SalesPage({
         }
       />
 
-      <SalesFilters projects={projectOptions as any[]} />
+      <Suspense fallback={<div className="h-12 w-full bg-zinc-100 rounded animate-pulse" />}>
+        <SalesFilters projects={projectOptions as any[]} />
+      </Suspense>
 
       {filteredSales.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
@@ -129,7 +132,9 @@ export default async function SalesPage({
           </Link>
         </div>
       ) : (
-        <SalesList sales={sortedSales} />
+        <Suspense fallback={<div className="h-48 w-full bg-zinc-100 rounded animate-pulse" />}>
+          <SalesList sales={sortedSales} />
+        </Suspense>
       )}
     </div>
   );

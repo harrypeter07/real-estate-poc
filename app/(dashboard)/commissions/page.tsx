@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui";
+import { Suspense } from "react";
 import { IndianRupee, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { getCommissions } from "@/app/actions/commissions";
@@ -84,7 +85,7 @@ export default async function CommissionsPage({
             </div>
           </CardContent>
         </Card>
-
+ 
         <Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 hover:shadow-[0_12px_32px_-4px_rgba(16,185,129,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
           <CardContent className="p-6 flex flex-col justify-between h-full w-full">
             <div className="flex items-center gap-3.5 w-full">
@@ -140,7 +141,9 @@ export default async function CommissionsPage({
         </Card>
       </div>
 
-      <CommissionsFilters />
+      <Suspense fallback={<div className="h-12 w-full bg-zinc-100 rounded animate-pulse" />}>
+        <CommissionsFilters />
+      </Suspense>
 
       {filteredCommissions.length === 0 ? (
         <CommissionsTable commissions={filteredCommissions as any[]} />

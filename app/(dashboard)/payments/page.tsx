@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Plus, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
@@ -67,16 +68,24 @@ export default async function PaymentsPage({
 				action={<PaymentsPageActions />}
 			/>
 
-			{isPaymentsAsOfDateEnabled() ? <PaymentsAsOfDate /> : null}
+			{isPaymentsAsOfDateEnabled() ? (
+				<Suspense fallback={<div className="h-10 w-32 bg-zinc-100 rounded animate-pulse" />}>
+					<PaymentsAsOfDate />
+				</Suspense>
+			) : null}
 
-			<PaymentsFilters />
+			<Suspense fallback={<div className="h-12 w-full bg-zinc-100 rounded animate-pulse" />}>
+				<PaymentsFilters />
+			</Suspense>
 
 			{isPendingDueView ? (
-				<PaymentsEmiDuePageClient
-					rows={emiDueRows as any}
-					initialQuery={q}
-					asOf={asOf || undefined}
-				/>
+				<Suspense fallback={<div className="h-48 w-full bg-zinc-100 rounded animate-pulse" />}>
+					<PaymentsEmiDuePageClient
+						rows={emiDueRows as any}
+						initialQuery={q}
+						asOf={asOf || undefined}
+					/>
+				</Suspense>
 			) : (
 				<PaymentsEmiDueSection rows={emiDueRows as any} asOf={asOf || undefined} />
 			)}

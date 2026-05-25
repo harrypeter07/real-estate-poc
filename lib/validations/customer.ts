@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const customerSchema = z.object({
+  id: z.string().uuid().optional().nullable(),
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z
     .string()
@@ -21,6 +22,12 @@ export const customerSchema = z.object({
   route: z.string().optional().default(""),
   notes: z.string().optional().default(""),
   is_active: z.boolean().default(true),
+  aadhaar_url: z.string().optional().nullable(),
+  pan_url: z.string().optional().nullable(),
+  photo_url: z.string().optional().nullable(),
+  aadhaar_number: z.string().optional().nullable(),
+  pan_number: z.string().optional().nullable(),
+  kyc_status: z.string().optional().nullable(),
 });
 
 export type CustomerFormValues = z.infer<typeof customerSchema>;

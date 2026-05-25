@@ -18,16 +18,19 @@ export function ListSearchBar({
 	inputClassName?: string;
 }) {
 	return (
-		<div className={cn("relative w-full max-w-md", className)}>
+		<div className={cn("relative w-full max-w-md group", className)}>
 			<Search
-				className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+				className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors duration-200 group-focus-within:text-teal-600"
 				aria-hidden
 			/>
 			<Input
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={placeholder}
-				className={cn("pl-10 sm:pl-10", inputClassName)}
+				className={cn(
+					"pl-10 sm:pl-10 rounded-xl border-zinc-200 bg-white hover:border-zinc-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all duration-200 shadow-sm text-sm h-10 placeholder:text-zinc-400/80",
+					inputClassName
+				)}
 				autoComplete="off"
 			/>
 		</div>

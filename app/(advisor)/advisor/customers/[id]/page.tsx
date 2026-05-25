@@ -136,6 +136,7 @@ export default async function AdvisorCustomerDetailPage({
             customerId={id}
             customerName={customer.name}
             initialDocs={docs as any[]}
+            customer={customer}
           />
         </div>
       </div>

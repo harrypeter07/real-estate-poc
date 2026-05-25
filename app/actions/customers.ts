@@ -114,6 +114,15 @@ export async function createCustomer(
 		return { success: false, error: "Advisor context missing" };
 	}
 
+	if (parsed.data.kyc_status === "verified") {
+		if (!parsed.data.aadhaar_url || !parsed.data.pan_url || !parsed.data.photo_url) {
+			return {
+				success: false,
+				error: "Cannot set KYC status to verified. Aadhaar Card, PAN Card, and Customer Photo must be uploaded.",
+			};
+		}
+	}
+
 	const businessId = await getCurrentBusinessId();
 	if (!businessId) {
 		return {
@@ -126,6 +135,7 @@ export async function createCustomer(
 	const { data: insertedCustomer, error } = await supabase
 		.from("customers")
 		.insert({
+		id: parsed.data.id || undefined,
 		business_id: businessId,
 		name: parsed.data.name,
 		phone: parsed.data.phone,
@@ -136,6 +146,12 @@ export async function createCustomer(
 		route: parsed.data.route || null,
 		notes: parsed.data.notes || null,
 		is_active: parsed.data.is_active,
+		aadhaar_url: parsed.data.aadhaar_url || null,
+		pan_url: parsed.data.pan_url || null,
+		photo_url: parsed.data.photo_url || null,
+		aadhaar_number: parsed.data.aadhaar_number || null,
+		pan_number: parsed.data.pan_number || null,
+		kyc_status: parsed.data.kyc_status || 'pending',
 	})
 		.select("id, name, phone, birth_date")
 		.single();
@@ -185,6 +201,15 @@ export async function updateCustomer(
 		return { success: false, error: "Advisor context missing" };
 	}
 
+	if (parsed.data.kyc_status === "verified") {
+		if (!parsed.data.aadhaar_url || !parsed.data.pan_url || !parsed.data.photo_url) {
+			return {
+				success: false,
+				error: "Cannot set KYC status to verified. Aadhaar Card, PAN Card, and Customer Photo must be uploaded.",
+			};
+		}
+	}
+
 	const { data: updatedCustomer, error } = await supabase
 		.from("customers")
 		.update({
@@ -197,6 +222,12 @@ export async function updateCustomer(
 			route: parsed.data.route || null,
 			notes: parsed.data.notes || null,
 			is_active: parsed.data.is_active,
+			aadhaar_url: parsed.data.aadhaar_url || null,
+			pan_url: parsed.data.pan_url || null,
+			photo_url: parsed.data.photo_url || null,
+			aadhaar_number: parsed.data.aadhaar_number || null,
+			pan_number: parsed.data.pan_number || null,
+			kyc_status: parsed.data.kyc_status || 'pending',
 			updated_at: new Date().toISOString(),
 		})
 		.eq("id", id)
@@ -285,3 +316,95 @@ export async function getCustomerById(id: string) {
 	if (error) return null;
 	return data;
 }
+
+export async function updateCustomerKycUrl(
+	customerId: string,
+	field: "aadhaar_url" | "pan_url" | "photo_url",
+	url: string | null
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+	if (userErr || !user) return { success: false, error: "Unauthorized" };
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as string | undefined;
+
+	let query = supabase
+		.from("customers")
+		.update({
+			[field]: url,
+			updated_at: new Date().toISOString(),
+		})
+		.eq("id", customerId);
+
+	if (role === "advisor" && advisorId) {
+		query = query.eq("advisor_id", advisorId);
+	}
+
+	const { error } = await query;
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath(role === "advisor" ? `/advisor/customers/${customerId}` : `/customers/${customerId}`);
+	return { success: true };
+}
+
+export async function updateCustomerKycStatus(
+	customerId: string,
+	kycStatus: string
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const {
+		data: { user },
+		error: userErr,
+	} = await supabase.auth.getUser();
+	if (userErr || !user) return { success: false, error: "Unauthorized" };
+
+	const role = (user.user_metadata as any)?.role;
+	const advisorId = (user.user_metadata as any)?.advisor_id as string | undefined;
+
+	if (kycStatus === "verified") {
+		// Fetch customer document details first to check if they are all uploaded
+		const { data: cust, error: fetchErr } = await supabase
+			.from("customers")
+			.select("aadhaar_url, pan_url, photo_url")
+			.eq("id", customerId)
+			.single();
+
+		if (fetchErr || !cust) {
+			return { success: false, error: fetchErr?.message || "Customer not found" };
+		}
+
+		if (!cust.aadhaar_url || !cust.pan_url || !cust.photo_url) {
+			return {
+				success: false,
+				error: "Please upload Aadhaar Card, PAN Card, and Customer Photo before verifying.",
+			};
+		}
+	}
+
+	let query = supabase
+		.from("customers")
+		.update({
+			kyc_status: kycStatus,
+			updated_at: new Date().toISOString(),
+		})
+		.eq("id", customerId);
+
+	if (role === "advisor" && advisorId) {
+		query = query.eq("advisor_id", advisorId);
+	}
+
+	const { error } = await query;
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath(role === "advisor" ? `/advisor/customers/${customerId}` : `/customers/${customerId}`);
+	return { success: true };
+}
+

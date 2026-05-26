@@ -242,7 +242,7 @@ export function DuePaymentsClient({ advisors }: Props) {
 							className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
 								activeFilter === f.value
 									? "bg-zinc-900 border-zinc-900 text-white"
-									: "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300"
+									: "bg-white border-zinc-200 text-zinc-650 hover:border-zinc-300"
 							}`}
 						>
 							{f.label}
@@ -250,13 +250,13 @@ export function DuePaymentsClient({ advisors }: Props) {
 					))}
 				</div>
 
-				<div className="relative w-64">
-					<Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+				<div className="relative w-64 group">
+					<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-all duration-300 group-hover:text-zinc-650 group-focus-within:text-teal-650" />
 					<Input
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						placeholder="Search customer name..."
-						className="pl-9 h-9 text-xs border-zinc-200 bg-white"
+						className="pl-10 h-9.5 text-xs rounded-xl border-zinc-200 bg-white hover:border-zinc-350 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0 font-bold"
 					/>
 				</div>
 			</div>

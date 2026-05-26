@@ -6,8 +6,8 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PageHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   action?: ReactNode;
   showBackButton?: boolean;
 }
@@ -35,7 +35,7 @@ export function PageHeader({
         )}
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight break-words">{title}</h1>
-          {subtitle && <p className="mt-0.5 text-sm text-zinc-500">{subtitle}</p>}
+          {subtitle && <div className="mt-0.5 text-sm text-zinc-500">{subtitle}</div>}
         </div>
       </div>
       {action && <div className="w-full shrink-0 sm:mt-0 sm:w-auto">{action}</div>}

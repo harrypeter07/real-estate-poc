@@ -252,7 +252,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 	];
 
 	return (
-		<Card className="max-w-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl bg-gradient-to-tr from-white to-zinc-50/10 dark:from-zinc-950 dark:to-zinc-900/10 transition-all duration-300 overflow-hidden">
+		<Card className="mx-auto w-full max-w-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl bg-gradient-to-tr from-white to-zinc-50/10 dark:from-zinc-950 dark:to-zinc-900/10 transition-all duration-300 overflow-hidden">
 			<CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-150 dark:border-zinc-900/60 pb-5 p-5 sm:p-6 bg-zinc-50/[0.15] dark:bg-zinc-900/[0.05]">
 				<div>
 					<CardTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">

@@ -278,12 +278,12 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
 			{/* Filters toolbar */}
 			<div className="flex flex-col lg:flex-row gap-4 bg-gradient-to-r from-white to-zinc-50/30 dark:from-zinc-950 dark:to-zinc-900/10 p-4 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all duration-300">
 				<div className="relative flex-1 group">
-					<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 dark:text-zinc-500 transition-colors duration-200 group-focus-within:text-teal-500" />
+					<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 dark:text-zinc-500 transition-all duration-300 group-hover:text-zinc-650 group-focus-within:text-teal-650 group-focus-within:scale-105" />
 					<Input
 						placeholder="Search by name or code..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-10 sm:pl-10 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+						className="pl-10 sm:pl-10 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl text-xs transition-all duration-300 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-bold focus-visible:ring-offset-0"
 					/>
 				</div>
 				<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800 lg:pl-4">
@@ -411,7 +411,9 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
 									<TableCell className="relative font-bold text-zinc-900 dark:text-zinc-100 py-4 px-5 overflow-hidden">
 										{/* Premium Left Teal Accent Line on Row Hover */}
 										<div className="absolute left-0 top-0 bottom-0 w-[3px] bg-teal-500 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-200 origin-center" />
-										<span className="relative z-10">{project.name}</span>
+										<Link href={`/projects/${project.id}`} className="relative z-10 hover:text-teal-600 transition-colors">
+											{project.name}
+										</Link>
 									</TableCell>
 									<TableCell className="py-4 px-5">
 										<span className="font-mono text-[11px] font-semibold text-zinc-500 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/60 px-2 py-0.5 rounded-md">
@@ -446,19 +448,23 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
 												variant="ghost"
 												size="icon"
 												className="h-8 w-8 rounded-lg p-0 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-950/30 text-zinc-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:shadow-[0_0_10px_rgba(59,130,246,0.12)] hover:-translate-y-0.5 transition-all duration-200"
-												onClick={() => router.push(`/projects/${project.id}`)}
 												title="View Details"
+												asChild
 											>
-												<ExternalLink className="h-4 w-4" />
+												<Link href={`/projects/${project.id}`}>
+													<ExternalLink className="h-4 w-4" />
+												</Link>
 											</Button>
 											<Button
 												variant="ghost"
 												size="icon"
 												className="h-8 w-8 rounded-lg p-0 flex items-center justify-center hover:bg-teal-50 dark:hover:bg-teal-950/30 text-zinc-500 hover:text-teal-600 dark:text-zinc-400 dark:hover:text-teal-400 hover:shadow-[0_0_10px_rgba(20,184,166,0.12)] hover:-translate-y-0.5 transition-all duration-200"
-												onClick={() => router.push(`/projects/${project.id}/edit`)}
 												title="Edit"
+												asChild
 											>
-												<Pencil className="h-4 w-4" />
+												<Link href={`/projects/${project.id}/edit`}>
+													<Pencil className="h-4 w-4" />
+												</Link>
 											</Button>
 											<Button
 												variant="ghost"
@@ -522,8 +528,10 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
 								{/* Header of card: Name and Code */}
 								<div className="flex items-start justify-between gap-3 mb-3">
 									<div className="min-w-0 flex-1">
-										<h4 className="font-bold text-zinc-900 dark:text-zinc-100 leading-tight text-sm truncate">
-											{project.name}
+										<h4 className="font-bold text-zinc-900 dark:text-zinc-100 leading-tight text-sm truncate hover:text-teal-650 transition-colors">
+											<Link href={`/projects/${project.id}`}>
+												{project.name}
+											</Link>
 										</h4>
 										{project.code && (
 											<span className="inline-block font-mono text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50 px-1.5 py-0.5 rounded mt-1">
@@ -565,19 +573,23 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
 									variant="ghost"
 									size="icon"
 									className="h-8 w-8 rounded-lg p-0 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-950/30 text-zinc-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:shadow-[0_0_10px_rgba(59,130,246,0.12)] hover:-translate-y-0.5 transition-all duration-200"
-									onClick={() => router.push(`/projects/${project.id}`)}
 									title="View Details"
+									asChild
 								>
-									<ExternalLink className="h-4 w-4" />
+									<Link href={`/projects/${project.id}`}>
+										<ExternalLink className="h-4 w-4" />
+									</Link>
 								</Button>
 								<Button
 									variant="ghost"
 									size="icon"
 									className="h-8 w-8 rounded-lg p-0 flex items-center justify-center hover:bg-teal-50 dark:hover:bg-teal-950/30 text-zinc-500 hover:text-teal-600 dark:text-zinc-400 dark:hover:text-teal-400 hover:shadow-[0_0_10px_rgba(20,184,166,0.12)] hover:-translate-y-0.5 transition-all duration-200"
-									onClick={() => router.push(`/projects/${project.id}/edit`)}
 									title="Edit"
+									asChild
 								>
-									<Pencil className="h-4 w-4" />
+									<Link href={`/projects/${project.id}/edit`}>
+										<Pencil className="h-4 w-4" />
+									</Link>
 								</Button>
 								<Button
 									variant="ghost"

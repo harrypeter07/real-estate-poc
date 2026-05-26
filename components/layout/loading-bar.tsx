@@ -39,9 +39,18 @@ function LoadingOverlayContent() {
       }
 
       // 2. Programmatic click triggers for ProjectCard / View Plots / Details / Edit actions
-      const clickable = target.closest("button, a, [role='button'], .cursor-pointer");
+      const clickable = target.closest("button, a, [role='button'], .cursor-pointer, .trigger-loading");
       if (clickable) {
         const text = clickable.textContent?.trim() || "";
+
+        // Detect explicitly marked loading triggers
+        if (
+          clickable.classList.contains("trigger-loading") ||
+          clickable.closest(".trigger-loading")
+        ) {
+          setLoading(true);
+          return;
+        }
 
         // Detect "View Plots" or "Details" buttons
         if (
@@ -55,9 +64,12 @@ function LoadingOverlayContent() {
 
         // Detect clicking on the ProjectCard body container
         if (
-          clickable.classList.contains("cursor-pointer") &&
-          clickable.classList.contains("group") &&
-          clickable.querySelector(".truncate") // Unique class of project name in card
+          clickable.classList.contains("project-card-container") ||
+          (clickable.classList.contains("cursor-pointer") &&
+            clickable.classList.contains("group") &&
+            clickable.querySelector(".truncate") &&
+            !clickable.closest("table") &&
+            !clickable.closest("[role='dialog']"))
         ) {
           setLoading(true);
           return;

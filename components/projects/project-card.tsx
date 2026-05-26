@@ -100,7 +100,7 @@ export function ProjectCard({
 	return (
 		<div
 			onClick={() => router.push(`/projects/${id}`)}
-			className="block h-full cursor-pointer group"
+			className="block h-full cursor-pointer group project-card-container"
 		>
 			<Card className="flex flex-col h-full transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-md group-hover:border-zinc-400">
 				<CardHeader className="pb-3">

@@ -91,13 +91,13 @@ export function RecentSalesList({ recentSales }: RecentSalesListProps) {
 		<Card>
 			<CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
 				<CardTitle className="text-base">Recent Sales</CardTitle>
-				<div className="relative w-full sm:max-w-xs">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+				<div className="relative w-full sm:max-w-xs group">
+					<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-all duration-300 group-hover:text-zinc-600 group-focus-within:text-teal-650 group-focus-within:scale-105" />
 					<Input
 						placeholder="Search customer, advisor or plot..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-10 sm:pl-10 h-9 text-sm"
+						className="pl-10 sm:pl-10 h-9.5 text-xs rounded-2xl border-zinc-200/80 bg-white hover:border-zinc-300 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] placeholder:text-zinc-400 font-bold transition-all duration-300"
 					/>
 				</div>
 			</CardHeader>

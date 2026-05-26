@@ -161,14 +161,14 @@ export function AdvisorAnalyticsTable({
 			<Card className="border border-zinc-200/80 shadow-sm overflow-hidden rounded-xl">
 				{/* Smart Filter & Sorting Controls Toolbar */}
 				<div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between bg-zinc-50/50 border-b border-zinc-100">
-					<div className="relative flex-1 max-w-md w-full">
-						<Search className="h-4 w-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
-						<input
+					<div className="relative flex-1 max-w-md w-full group">
+						<Search className="h-4 w-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-300 group-hover:text-zinc-650 group-focus-within:text-teal-655 group-focus-within:scale-105 z-10" />
+						<Input
 							type="text"
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search by name, code, phone, or main advisor…"
-							className="h-9 pl-9 pr-3 text-xs sm:text-sm bg-white border border-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg shadow-sm w-full transition-all text-zinc-900 placeholder:text-zinc-400"
+							className="h-9.5 pl-10 sm:pl-10 pr-3 text-xs bg-white border border-zinc-200/80 focus-visible:border-teal-500 focus-visible:ring-4 focus-visible:ring-teal-500/8 outline-none rounded-2xl shadow-sm w-full hover:border-zinc-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] transition-all duration-300 text-zinc-900 placeholder:text-zinc-400 font-bold"
 						/>
 					</div>
 

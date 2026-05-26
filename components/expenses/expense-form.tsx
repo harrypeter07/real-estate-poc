@@ -91,6 +91,7 @@ export function ExpenseForm({
       category: categories[randomIndex],
       project_id: randomProject?.id ?? null,
       receipt_note: `Receipt #${Math.floor(Math.random() * 10000)}`,
+      receipt_path: "",
     });
   };
 
@@ -150,57 +151,72 @@ export function ExpenseForm({
   }
 
   return (
-    <Card className="max-w-2xl w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>{mode === "edit" ? "Edit Expense" : "Add Expense"}</CardTitle>
-          <CardDescription>
-            {mode === "edit"
-              ? "Update office or site related expense details"
-              : "Record office or site related expenses"}
-          </CardDescription>
-        </div>
-        {isDev ? (
-          <Button type="button" variant="outline" size="sm" onClick={fillMockData}>
-            Fill Mock Data
-          </Button>
-        ) : null}
-      </CardHeader>
-      <CardContent>
+    <Card className="max-w-3xl w-full border border-zinc-200/60 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md shadow-md rounded-2xl overflow-hidden transition-all duration-300">
+      <CardContent className="p-6 sm:p-8 space-y-6">
+        {isDev && (
+          <div className="flex justify-end border-b border-zinc-100 dark:border-zinc-800/60 pb-3 mb-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-[10px] font-black rounded-lg border-teal-200/60 hover:bg-teal-50 hover:text-teal-600 dark:border-teal-900/60 dark:hover:bg-teal-950/30 dark:hover:text-teal-400 transition-all duration-300 flex items-center gap-1 shadow-sm active:scale-95"
+              onClick={fillMockData}
+            >
+              🤖 Fill Mock Details
+            </Button>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            {/* Description (Full Width) */}
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description *</FormLabel>
-                  <FormControl><Input placeholder="What was this expense for?" {...field} /></FormControl>
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-450 dark:text-zinc-500 flex items-center gap-1">
+                    📝 Description *
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="What was this expense for?" 
+                      className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+                      {...field} 
+                      value={field.value ?? ""} 
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Amount and Paid Amount (2-Column Grid) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount (₹) *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const sanitized = raw.replace(/^0+(?=\d)/, "");
-                        field.onChange(
-                          sanitized === "" ? undefined : Number(sanitized)
-                        );
-                      }}
-                    />
-                  </FormControl>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-455 dark:text-zinc-500 flex items-center gap-1">
+                      💰 Amount (₹) *
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const sanitized = raw.replace(/^0+(?=\d)/, "");
+                          field.onChange(
+                            sanitized === "" ? undefined : Number(sanitized)
+                          );
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -209,164 +225,221 @@ export function ExpenseForm({
                 control={form.control}
                 name="paid_amount"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Paid Amount (₹) *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const sanitized = raw.replace(/^0+(?=\d)/, "");
-                        field.onChange(
-                          sanitized === "" ? undefined : Number(sanitized)
-                        );
-                      }}
-                    />
-                  </FormControl>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-455 dark:text-zinc-500 flex items-center gap-1">
+                      💳 Paid Amount (₹) *
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const sanitized = raw.replace(/^0+(?=\d)/, "");
+                          field.onChange(
+                            sanitized === "" ? undefined : Number(sanitized)
+                          );
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Date and Payment Type (2-Column Grid) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="expense_date"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-455 dark:text-zinc-500 flex items-center gap-1">
+                      📅 Date *
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date" 
+                        className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+                        {...field} 
+                        value={field.value ?? ""} 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="expense_date"
+                name="payment_type"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date *</FormLabel>
-                    <FormControl><Input type="date" {...field} /></FormControl>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-455 dark:text-zinc-500 flex items-center gap-1">
+                      💳 Payment Type *
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus:ring-teal-500/20 focus:border-teal-500">
+                          <SelectValue placeholder="Select payment type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-zinc-200 dark:border-zinc-800 shadow-lg">
+                        <SelectItem value="cash">💵 Cash</SelectItem>
+                        <SelectItem value="online">🌐 Online</SelectItem>
+                        <SelectItem value="upi">📱 UPI</SelectItem>
+                        <SelectItem value="bank_transfer">🏦 Bank Transfer</SelectItem>
+                        <SelectItem value="cheque">✍️ Cheque</SelectItem>
+                        <SelectItem value="other">💳 Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="payment_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Type *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+            {/* Category and Project (2-Column Grid) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-455 dark:text-zinc-500 flex items-center gap-1">
+                      🏷️ Category *
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus:ring-teal-500/20 focus:border-teal-500">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-zinc-200 dark:border-zinc-800 shadow-lg">
+                        <SelectItem value="office">🏢 Office / Maintenance</SelectItem>
+                        <SelectItem value="marketing">📢 Marketing / Ads</SelectItem>
+                        <SelectItem value="travel">🚗 Travel / Site Visits</SelectItem>
+                        <SelectItem value="layout_dev">🏗️ Layout Development</SelectItem>
+                        <SelectItem value="legal">⚖️ Legal / Registry</SelectItem>
+                        <SelectItem value="salary">💼 Staff Salary</SelectItem>
+                        <SelectItem value="utilities">⚡ Utilities</SelectItem>
+                        <SelectItem value="maintenance">🧹 Maintenance</SelectItem>
+                        <SelectItem value="misc">📦 Miscellaneous</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="project_id"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-455 dark:text-zinc-500 flex items-center gap-1">
+                      🏗️ Linked Project
+                    </FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === "none" ? null : v)}
+                      value={field.value ?? "none"}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 focus:bg-white dark:bg-zinc-900/50 dark:hover:bg-zinc-900 dark:focus:bg-zinc-950 border-zinc-200/85 dark:border-zinc-800 transition-all duration-350 focus:ring-teal-500/20 focus:border-teal-500">
+                          <SelectValue placeholder="Link to a project" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-zinc-200 dark:border-zinc-800 shadow-lg">
+                        <SelectItem value="none">No Project</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            🏗️ {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Receipt details (Outlined Box) */}
+            <div className="bg-zinc-50/40 dark:bg-zinc-900/20 border border-zinc-150 dark:border-zinc-905 p-4 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-850 pb-2">
+                <span className="text-sm">🧾</span>
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  Receipt & Billing details
+                </h4>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="receipt_note"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-extrabold tracking-wider uppercase text-zinc-450 dark:text-zinc-500 flex items-center gap-1">
+                      Ref Note
+                    </FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment type" />
-                      </SelectTrigger>
+                      <Input 
+                        placeholder="Bill number or reference" 
+                        className="h-10 bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 rounded-xl transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+                        {...field} 
+                        value={field.value ?? ""} 
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="online">Online</SelectItem>
-                      <SelectItem value="upi">UPI</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              <FormField
+                control={form.control}
+                name="receipt_path"
+                render={({ field }) => (
+                  <FormItem className="pt-2">
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
+                      <ReceiptUpload
+                        folder="expenses"
+                        recordId={draftId}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="office">Office / Maintenance</SelectItem>
-                      <SelectItem value="marketing">Marketing / Ads</SelectItem>
-                      <SelectItem value="travel">Travel / Site Visits</SelectItem>
-                      <SelectItem value="layout_dev">Layout Development</SelectItem>
-                      <SelectItem value="legal">Legal / Registry</SelectItem>
-                      <SelectItem value="salary">Staff Salary</SelectItem>
-                      <SelectItem value="utilities">Utilities</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="misc">Miscellaneous</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="project_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project (optional)</FormLabel>
-                  <Select
-                    onValueChange={(v) => field.onChange(v === "none" ? null : v)}
-                    value={field.value ?? "none"}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Link to a project" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No Project</SelectItem>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="receipt_note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Receipt Note</FormLabel>
-                  <FormControl><Input placeholder="Bill number or reference" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="receipt_path"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ReceiptUpload
-                      folder="expenses"
-                      recordId={draftId}
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-              <Button type="submit" disabled={loading} className={`min-w-[120px] transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}>
+            {/* Form Actions */}
+            <div className="flex items-center justify-end gap-3 pt-5 border-t border-zinc-100 dark:border-zinc-850">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="h-11 px-6 rounded-xl text-xs font-bold text-zinc-550 border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-all duration-300"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="h-11 px-6 rounded-xl text-xs font-black bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white shadow-[0_4px_12px_rgba(13,148,136,0.2)] hover:shadow-[0_6px_16px_rgba(13,148,136,0.3)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] min-w-[145px]"
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {loading ? "Submitting..." : mode === "edit" ? "Update Expense" : "Record Expense"}
               </Button>
             </div>
+
             {submitStatus !== "idle" && (
-              <div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
+              <div className={`mt-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs animate-in fade-in zoom-in-95 duration-300 ${
                 submitStatus === "success"
-                  ? "border-green-200 bg-green-50 text-green-700"
-                  : "border-red-200 bg-red-50 text-red-700"
+                  ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900/30 dark:bg-green-950/20 dark:text-green-400"
+                  : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400"
               }`}>
                 {submitStatus === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                 <span>{statusText}</span>

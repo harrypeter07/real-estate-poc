@@ -496,7 +496,7 @@ export function LeadDetailDrawer({
 										size="sm" 
 										type="submit" 
 										disabled={addFollowUpMutation.isPending} 
-										className="w-full text-xs font-black bg-teal-650 hover:bg-teal-700 text-white rounded-xl h-9.5 cursor-pointer shadow-xs active:scale-98 transition-all"
+										className="w-full text-xs font-black bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-9.5 cursor-pointer shadow-xs active:scale-98 transition-all"
 									>
 										{addFollowUpMutation.isPending ? "Logging..." : "Log Follow-Up Action"}
 									</Button>
@@ -615,7 +615,7 @@ export function LeadDetailDrawer({
 										size="sm" 
 										type="submit" 
 										disabled={scheduleSiteVisitMutation.isPending} 
-										className="w-full text-xs font-black bg-teal-650 hover:bg-teal-700 text-white rounded-xl h-9.5 cursor-pointer shadow-xs active:scale-98 transition-all"
+										className="w-full text-xs font-black bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-9.5 cursor-pointer shadow-xs active:scale-98 transition-all"
 									>
 										{scheduleSiteVisitMutation.isPending ? "Scheduling..." : "Schedule Site Visit"}
 									</Button>

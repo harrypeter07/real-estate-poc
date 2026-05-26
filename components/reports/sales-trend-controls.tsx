@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Input } from "@/components/ui";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar, LayoutGrid, CalendarRange } from "lucide-react";
 
 type TrendMode = "week" | "month";
 
@@ -54,65 +54,83 @@ export function SalesTrendControls() {
 	}
 
 	return (
-		<div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center justify-between">
-			<div className="flex flex-wrap gap-2 items-center">
-				<span className="text-sm font-medium text-zinc-600">Trend:</span>
-				<Button
-					size="sm"
-					variant={trend === "week" ? "default" : "outline"}
-					disabled={isPending}
-					onClick={() => {
-						setTrend("week");
-						pushNow("week");
-					}}
-				>
-					Week
-				</Button>
-				<Button
-					size="sm"
-					variant={trend === "month" ? "default" : "outline"}
-					disabled={isPending}
-					onClick={() => {
-						setTrend("month");
-						pushNow("month");
-					}}
-				>
-					Month
-				</Button>
+		<div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center justify-between p-3.5 bg-zinc-55/20 dark:bg-zinc-900/10 border border-zinc-150 dark:border-zinc-850 rounded-2xl">
+			{/* Granularity Toggle Switches */}
+			<div className="flex flex-wrap gap-2.5 items-center">
+				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mr-1 flex items-center gap-1.5">
+					<LayoutGrid className="h-3.5 w-3.5" /> Granularity:
+				</span>
+				<div className="flex bg-zinc-100/80 dark:bg-zinc-900/60 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-inner">
+					<button
+						type="button"
+						disabled={isPending}
+						onClick={() => {
+							setTrend("week");
+							pushNow("week");
+						}}
+						className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
+							trend === "week"
+								? "bg-white dark:bg-zinc-950 text-teal-600 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
+								: "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent"
+						}`}
+					>
+						Weekly
+					</button>
+					<button
+						type="button"
+						disabled={isPending}
+						onClick={() => {
+							setTrend("month");
+							pushNow("month");
+						}}
+						className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
+							trend === "month"
+								? "bg-white dark:bg-zinc-950 text-teal-600 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
+								: "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent"
+						}`}
+					>
+						Monthly
+					</button>
+				</div>
 			</div>
 
-			<div className="flex flex-wrap gap-2 items-center border-l border-zinc-200 pl-4">
-				<span className="text-sm font-medium text-zinc-600">Range:</span>
-				<Input
-					type="date"
-					value={from}
-					onChange={(e) => setFrom(e.target.value)}
-					className="w-36 h-9"
-				/>
-				<span className="text-zinc-400">to</span>
-				<Input
-					type="date"
-					value={to}
-					onChange={(e) => setTo(e.target.value)}
-					className="w-36 h-9"
-				/>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={applyDateRange}
-					disabled={isPending || (!from && !to)}
-				>
-					{isPending ? (
-						<>
-							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-							Updating...
-						</>
-					) : (
-						"Apply"
-					)}
-				</Button>
+			{/* Custom Range Override inside Widget */}
+			<div className="flex flex-wrap gap-2.5 items-center w-full sm:w-auto border-t sm:border-t-0 border-zinc-200/60 dark:border-zinc-800/60 pt-3 sm:pt-0 sm:border-l sm:pl-4">
+				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mr-1 flex items-center gap-1.5">
+					<CalendarRange className="h-3.5 w-3.5" /> Filter Range:
+				</span>
+				<div className="flex items-center gap-2 w-full sm:w-auto">
+					<Input
+						type="date"
+						value={from}
+						onChange={(e) => setFrom(e.target.value)}
+						className="w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+					/>
+					<span className="text-zinc-400 text-xs font-bold">to</span>
+					<Input
+						type="date"
+						value={to}
+						onChange={(e) => setTo(e.target.value)}
+						className="w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+					/>
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={applyDateRange}
+						disabled={isPending || (!from && !to)}
+						className="h-8.5 px-3.5 rounded-xl text-xs font-bold hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-zinc-900 transition-all duration-300 cursor-pointer"
+					>
+						{isPending ? (
+							<>
+								<Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-teal-600" />
+								Applying
+							</>
+						) : (
+							"Apply"
+						)}
+					</Button>
+				</div>
 			</div>
 		</div>
 	);
 }
-

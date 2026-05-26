@@ -33,8 +33,8 @@ export default async function AdvisorCustomersPage() {
 				subtitle={`${rows.length} customers assigned to you`}
 				action={
 					<Link href="/advisor/customers/new">
-						<Button size="sm" className="shadow-sm hover:shadow transition-all duration-300">
-							<Plus className="h-4 w-4 mr-2" />
+						<Button size="sm" className="h-9.5 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+							<Plus className="h-4 w-4 mr-1.5 shrink-0" />
 							Add Customer
 						</Button>
 					</Link>
@@ -51,8 +51,8 @@ export default async function AdvisorCustomersPage() {
 						Once you are assigned customers, they will appear here. You can also add a new customer manually.
 					</p>
 					<Link href="/advisor/customers/new">
-						<Button size="default" className="shadow-sm hover:shadow-md transition-all duration-300">
-							<Plus className="h-4 w-4 mr-2" />
+						<Button size="default" className="h-10 px-5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-md hover:shadow-[0_6px_20px_rgba(13,148,136,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+							<Plus className="h-4 w-4 mr-1.5 shrink-0 animate-bounce" />
 							Add Customer
 						</Button>
 					</Link>

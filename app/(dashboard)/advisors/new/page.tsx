@@ -5,7 +5,7 @@ export default function NewAdvisorPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="New Advisor"
+        title="👤 New Advisor"
         subtitle="Register a new channel partner"
         showBackButton
       />

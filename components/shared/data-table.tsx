@@ -82,8 +82,8 @@ export function DataTable<TData, TValue>({
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2">
         {effectiveSearchKeys.length > 0 && (
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+          <div className="relative max-w-sm group">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-all duration-300 group-hover:text-zinc-650 group-focus-within:text-teal-650 group-focus-within:scale-105" />
             <Input
               placeholder={searchPlaceholder}
               value={globalQuery}
@@ -95,7 +95,7 @@ export function DataTable<TData, TValue>({
                   table.getColumn(k)?.setFilterValue(q)
                 );
               }}
-              className="pl-10 sm:pl-10"
+              className="pl-10 sm:pl-10 rounded-2xl border-zinc-200/80 bg-white hover:border-zinc-300 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] text-xs h-9.5 placeholder:text-zinc-400 font-bold transition-all duration-300"
             />
           </div>
         )}

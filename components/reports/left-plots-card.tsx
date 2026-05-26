@@ -28,17 +28,14 @@ export function LeftPlotsCard({ plots }: { plots: LeftPlot[] }) {
 				<CardTitle className="text-sm font-bold flex items-center gap-2">
 					<Home className="h-4 w-4 text-green-700" /> Left Plots (Available)
 				</CardTitle>
-				<div className="mt-2 flex items-center gap-2">
+				<div className="mt-2 relative w-full group">
+					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 transition-all duration-300 group-hover:text-zinc-600 group-focus-within:text-teal-650 group-focus-within:scale-105 pointer-events-none" />
 					<Input
 						value={q}
 						onChange={(e) => setQ(e.target.value)}
 						placeholder="Search plot no..."
-						className="h-9"
-						style={{ paddingLeft: 12 }}
+						className="pl-9 sm:pl-9 h-9.5 text-xs rounded-2xl border-zinc-200/80 bg-white hover:border-zinc-300 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] placeholder:text-zinc-400 font-bold transition-all duration-300 w-full"
 					/>
-					<div className="relative -ml-9 pointer-events-none">
-						<Search className="h-4 w-4 text-zinc-400" />
-					</div>
 				</div>
 			</CardHeader>
 			<CardContent>

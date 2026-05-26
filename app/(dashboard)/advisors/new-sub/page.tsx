@@ -29,7 +29,7 @@ export default async function NewSubAdvisorPage() {
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				title="New Sub-advisor"
+				title="👥 New Sub-advisor"
 				subtitle="Register a partner under a main advisor"
 				showBackButton
 			/>

@@ -15,9 +15,17 @@ import {
 	Search,
 	Plus,
 	Loader2,
+	Compass,
+	Percent,
+	Tag,
+	HelpCircle,
+	AlertCircle,
+	Briefcase,
+	CheckCircle2
 } from "lucide-react";
 import { Button, Input, Textarea } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { cn } from "@/lib/utils";
 
 type WizardProps = {
 	customers: Array<{ id: string; name: string; phone: string }>;
@@ -89,21 +97,6 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 		},
 		onError: (err: any) => {
 			toast.error(err.message);
-		},
-	});
-
-	const createCustomerMutation = useMutation({
-		mutationFn: async (payload: any) => {
-			// Fast inline customer creation using Supabase Client inside a server action fallback or REST
-			const res = await fetch("/api/auth/register-customer-demo", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			}).catch(() => null);
-
-			// Fallback: create mock uuid if API register is missing, but let's try direct insertion
-			const mockId = Math.random().toString(36).substring(7);
-			return { id: mockId, name: payload.name };
 		},
 	});
 
@@ -196,7 +189,6 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 		let customerIdToUse = selectedCustomerId;
 
 		if (isNewCust) {
-			// Fast API create customer or search
 			const res = await fetch("/api/enquiries", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -205,7 +197,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 					phone: newCustomerPhone,
 					email_id: newCustomerEmail,
 					category: "Booking",
-					business_id: "resolve", // resolved server side
+					business_id: "resolve",
 				}),
 			});
 			if (!res.ok) {
@@ -214,14 +206,9 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 				return;
 			}
 			const newLead = await res.json();
-			// Look up customer linked
-			const customerDetailsRes = await fetch(`/api/payments/history?phone=${newCustomerPhone}`).catch(() => null);
-			// For simplicity let's handle customer link in server api/sales/booking directly if customer_id doesn't exist yet. We can query on server or create customer.
-			// Let's pass the customer metadata instead if custom creation:
-			customerIdToUse = newLead.id; // Or let server generate series
+			customerIdToUse = newLead.id;
 		}
 
-		// Direct submit
 		createBookingMutation.mutate({
 			plot_id: selectedPlotId,
 			customer_id: customerIdToUse,
@@ -244,114 +231,156 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 	};
 
 	return (
-		<div className="max-w-3xl w-full bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden flex flex-col min-h-[500px]">
-			{/* Steps Indicator */}
-			<div className="bg-zinc-50 border-b border-zinc-200 px-6 py-4 flex justify-between items-center text-xs font-semibold text-zinc-400">
-				<div className={`flex items-center gap-1.5 ${step >= 1 ? "text-zinc-900" : ""}`}>
-					<span className={`h-5 w-5 rounded-full flex items-center justify-center border ${step >= 1 ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}>1</span> Customer
-				</div>
-				<ArrowRight className="h-3 w-3" />
-				<div className={`flex items-center gap-1.5 ${step >= 2 ? "text-zinc-900" : ""}`}>
-					<span className={`h-5 w-5 rounded-full flex items-center justify-center border ${step >= 2 ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}>2</span> Select Unit
-				</div>
-				<ArrowRight className="h-3 w-3" />
-				<div className={`flex items-center gap-1.5 ${step >= 3 ? "text-zinc-900" : ""}`}>
-					<span className={`h-5 w-5 rounded-full flex items-center justify-center border ${step >= 3 ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}>3</span> Booking Details
-				</div>
-				<ArrowRight className="h-3 w-3" />
-				<div className={`flex items-center gap-1.5 ${step >= 4 ? "text-zinc-900" : ""}`}>
-					<span className={`h-5 w-5 rounded-full flex items-center justify-center border ${step >= 4 ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}>4</span> Dues Planner
-				</div>
-				<ArrowRight className="h-3 w-3" />
-				<div className={`flex items-center gap-1.5 ${step >= 5 ? "text-emerald-600" : ""}`}>
-					<span className={`h-5 w-5 rounded-full flex items-center justify-center border ${step >= 5 ? "bg-emerald-600 text-white border-emerald-600" : "border-zinc-300"}`}>5</span> Confirm
-				</div>
+		<div className="max-w-3xl w-full bg-white border border-zinc-200 shadow-xl rounded-2xl overflow-hidden flex flex-col min-h-[520px] transition-all duration-300">
+			{/* High-End Wizard Steps Indicator */}
+			<div className="bg-zinc-50 border-b border-zinc-200/80 px-6 py-4.5 flex flex-wrap justify-between items-center gap-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+				{(
+					[
+						[1, "Customer"],
+						[2, "Select Unit"],
+						[3, "Booking Details"],
+						[4, "Dues Planner"],
+						[5, "Confirm"]
+					] as const
+				).map(([stepNum, label], idx) => {
+					const isActive = step >= stepNum;
+					const isCurrent = step === stepNum;
+					return (
+						<div key={stepNum} className="flex items-center gap-2">
+							<div className="flex items-center gap-1.5">
+								<span className={cn(
+									"h-6 w-6 rounded-full flex items-center justify-center font-black border transition-all duration-300 shadow-2xs text-[10px]",
+									isActive 
+										? stepNum === 5 
+											? "bg-emerald-600 border-emerald-600 text-white" 
+											: "bg-zinc-800 border-zinc-800 text-white" 
+										: "border-zinc-200 bg-white text-zinc-400"
+								)}>
+									{stepNum}
+								</span> 
+								<span className={cn(
+									"font-black tracking-wider transition-colors duration-250",
+									isCurrent 
+										? stepNum === 5 
+											? "text-emerald-700" 
+											: "text-zinc-800 font-black" 
+										: isActive 
+											? "text-zinc-500 font-semibold" 
+											: "text-zinc-400 font-medium"
+								)}>
+									{label}
+								</span>
+							</div>
+							{idx < 4 && <ArrowRight className="h-3.5 w-3.5 text-zinc-300 hidden md:block" />}
+						</div>
+					);
+				})}
 			</div>
 
-			{/* Step Content */}
-			<div className="flex-1 p-6 overflow-y-auto">
+			{/* Step Content Area */}
+			<div className="flex-1 p-6 sm:p-7 overflow-y-auto">
 				{/* Step 1: Select Customer */}
 				{step === 1 && (
-					<div className="space-y-4">
-						<h3 className="text-sm font-bold text-zinc-800 uppercase tracking-wider">Step 1: Select Customer</h3>
-						<div className="flex gap-4 border-b border-zinc-100 pb-3">
+					<div className="space-y-5">
+						<div className="pb-1">
+							<h3 className="text-xs font-black text-zinc-450 uppercase tracking-wider">Step 1: Customer Selection</h3>
+							<p className="text-[11px] text-zinc-400 font-medium mt-1">Locate existing record details or create a fast client profile.</p>
+						</div>
+
+						{/* Custom Radix style Segment selection buttons */}
+						<div className="bg-zinc-100/80 p-1 rounded-xl flex gap-1 border border-zinc-200/40 w-fit">
 							<button
+								type="button"
 								onClick={() => setIsNewCust(false)}
-								className={`text-xs font-semibold pb-1.5 border-b-2 ${!isNewCust ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-400"}`}
+								className={cn(
+									"px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer",
+									!isNewCust
+										? "bg-white text-teal-700 shadow-2xs border border-zinc-200/50"
+										: "text-zinc-500 hover:text-zinc-700"
+								)}
 							>
 								Search Existing
 							</button>
 							<button
+								type="button"
 								onClick={() => setIsNewCust(true)}
-								className={`text-xs font-semibold pb-1.5 border-b-2 ${isNewCust ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-400"}`}
+								className={cn(
+									"px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer",
+									isNewCust
+										? "bg-white text-teal-700 shadow-2xs border border-zinc-200/50"
+										: "text-zinc-500 hover:text-zinc-700"
+								)}
 							>
 								Create Fast Lead
 							</button>
 						</div>
 
 						{!isNewCust ? (
-							<div className="relative space-y-2">
+							<div className="relative space-y-3">
 								<div className="relative">
-									<Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+									<Search className="absolute left-3.5 top-3 h-4 w-4 text-zinc-400" />
 									<Input
 										value={custSearch}
 										onChange={(e) => {
 											setCustSearch(e.target.value);
 											setSelectedCustomerId("");
 										}}
+										style={{ paddingLeft: "2.6rem" }}
 										placeholder="Search customer by name or phone..."
-										className="pl-9 border-zinc-200 h-9 text-xs"
+										className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 									/>
 								</div>
+								
 								{filteredCustomers.length > 0 && !selectedCustomerId && (
-									<div className="absolute z-10 w-full bg-white border border-zinc-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+									<div className="absolute z-20 w-full bg-white border border-zinc-200 rounded-xl shadow-lg max-h-48 overflow-y-auto mt-1 border-t-0 p-1.5 space-y-0.5">
 										{filteredCustomers.map((c) => (
 											<div
 												key={c.id}
 												onClick={() => handleSelectCustomer(c)}
-												className="px-3 py-2 text-xs hover:bg-zinc-50 cursor-pointer flex justify-between"
+												className="px-3.5 py-2.5 text-xs font-semibold rounded-lg hover:bg-zinc-50 hover:text-teal-750 cursor-pointer flex justify-between items-center transition-colors"
 											>
-												<span className="font-semibold text-zinc-700">{c.name}</span>
-												<span className="text-zinc-400">{c.phone}</span>
+												<span className="font-bold text-zinc-750">{c.name}</span>
+												<span className="text-zinc-400 font-mono text-[11px]">{c.phone}</span>
 											</div>
 										))}
 									</div>
 								)}
+
 								{selectedCustomerId && (
-									<div className="bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-md p-3 text-xs flex items-center gap-2">
-										<CheckCircle className="h-4 w-4" />
-										<span>Customer selected successfully!</span>
+									<div className="bg-emerald-50 text-emerald-800 border border-emerald-100/50 rounded-xl p-3.5 text-xs font-bold flex items-center gap-2.5 shadow-2xs">
+										<CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 shrink-0" />
+										<span>Customer linked successfully! Press Next to proceed.</span>
 									</div>
 								)}
 							</div>
 						) : (
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-								<div className="space-y-1">
-									<label className="text-[10px] uppercase font-bold text-zinc-400">Name</label>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+								<div className="space-y-1.5">
+									<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Full Name</label>
 									<Input
 										value={newCustomerName}
 										onChange={(e) => setNewCustomerName(e.target.value)}
-										placeholder="Full Name"
-										className="h-9 text-xs border-zinc-200"
+										placeholder="e.g. Rahul Sharma"
+										className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 									/>
 								</div>
-								<div className="space-y-1">
-									<label className="text-[10px] uppercase font-bold text-zinc-400">Phone</label>
+								<div className="space-y-1.5">
+									<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Phone</label>
 									<Input
 										value={newCustomerPhone}
 										onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, ""))}
-										placeholder="Mobile number"
-										className="h-9 text-xs border-zinc-200"
+										placeholder="10-Digit Mobile"
+										className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 										maxLength={10}
 									/>
 								</div>
-								<div className="space-y-1 sm:col-span-2">
-									<label className="text-[10px] uppercase font-bold text-zinc-400">Email (Optional)</label>
+								<div className="space-y-1.5 sm:col-span-2">
+									<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Email (Optional)</label>
 									<Input
 										value={newCustomerEmail}
 										onChange={(e) => setNewCustomerEmail(e.target.value)}
 										placeholder="customer@email.com"
-										className="h-9 text-xs border-zinc-200"
+										className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 									/>
 								</div>
 							</div>
@@ -361,78 +390,110 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 
 				{/* Step 2: Select Unit */}
 				{step === 2 && (
-					<div className="space-y-4">
-						<h3 className="text-sm font-bold text-zinc-800 uppercase tracking-wider">Step 2: Select Plot Unit</h3>
+					<div className="space-y-5">
+						<div className="pb-1">
+							<h3 className="text-xs font-black text-zinc-450 uppercase tracking-wider">Step 2: Choose Unit</h3>
+							<p className="text-[11px] text-zinc-400 font-medium mt-1">Select available real estate plots from your central inventory.</p>
+						</div>
+
 						{loadingPlots ? (
-							<div className="flex justify-center py-12">
-								<Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+							<div className="flex flex-col justify-center items-center py-16 space-y-2">
+								<Loader2 className="h-7 w-7 animate-spin text-teal-650" />
+								<span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Loading Units...</span>
 							</div>
 						) : !plots || plots.length === 0 ? (
-							<p className="text-xs text-zinc-400 text-center py-12">No available plots found in inventory.</p>
+							<div className="border border-dashed border-zinc-200 rounded-2xl p-12 text-center bg-white">
+								<Building2 className="h-6 w-6 text-zinc-400 mx-auto mb-2" />
+								<p className="text-xs font-bold text-zinc-650">No available plots found</p>
+								<p className="text-[11px] text-zinc-400 mt-1">All plots in the system are currently booked or sold.</p>
+							</div>
 						) : (
-							<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-								{plots.map((p: any) => (
-									<div
-										key={p.id}
-										onClick={() => {
-											setSelectedPlotId(p.id);
-											setSelectedPlotDetails(p);
-										}}
-										className={`p-3 rounded-lg border-2 text-center cursor-pointer transition-all ${
-											selectedPlotId === p.id
-												? "border-zinc-900 bg-zinc-50 shadow-sm"
-												: "border-zinc-100 bg-white hover:border-zinc-200"
-										}`}
-									>
-										<Building2 className={`h-5 w-5 mx-auto mb-1 ${selectedPlotId === p.id ? "text-zinc-900" : "text-zinc-400"}`} />
-										<p className="text-xs font-bold text-zinc-800">{p.plot_number}</p>
-										<p className="text-[10px] text-zinc-400 font-medium truncate">{p.project_name}</p>
-										<p className="text-[10px] text-zinc-700 font-bold mt-1">{formatCurrency(p.total_amount)}</p>
-									</div>
-								))}
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+								{plots.map((p: any) => {
+									const isSelected = selectedPlotId === p.id;
+									return (
+										<div
+											key={p.id}
+											onClick={() => {
+												setSelectedPlotId(p.id);
+												setSelectedPlotDetails(p);
+											}}
+											className={cn(
+												"p-4 rounded-2xl border-2 text-center cursor-pointer transition-all duration-350 relative shadow-2xs hover:shadow-xs",
+												isSelected
+													? "border-teal-600 bg-teal-50/10 scale-98 ring-4 ring-teal-500/8"
+													: "border-zinc-150 bg-white hover:border-zinc-300"
+											)}
+										>
+											{/* Selected Glow badge icon */}
+											{isSelected && (
+												<span className="absolute top-2 right-2 text-teal-600 text-xs">
+													<CheckCircle2 className="h-4.5 w-4.5 fill-teal-50 text-white border-teal-600" />
+												</span>
+											)}
+
+											<div className={cn(
+												"h-9 w-9 rounded-xl flex items-center justify-center mx-auto mb-2.5 border shadow-2xs transition-colors",
+												isSelected ? "bg-teal-50 border-teal-100 text-teal-600" : "bg-zinc-50 border-zinc-100 text-zinc-450"
+											)}>
+												<Building2 className="h-4.5 w-4.5" />
+											</div>
+											<p className="text-xs font-black text-zinc-800">{p.plot_number}</p>
+											<p className="text-[10px] text-zinc-400 font-bold tracking-tight truncate mt-0.5">{p.project_name}</p>
+											<p className="text-xs text-teal-700 font-black font-mono mt-2">{formatCurrency(p.total_amount)}</p>
+										</div>
+									);
+								})}
 							</div>
 						)}
 					</div>
 				)}
 
-				{/* Step 3: Booking details */}
+				{/* Step 3: Booking Details */}
 				{step === 3 && (
-					<div className="space-y-4">
-						<h3 className="text-sm font-bold text-zinc-800 uppercase tracking-wider">Step 3: Booking Details</h3>
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-							<div className="space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Total Sale Amount (₹)</label>
+					<div className="space-y-5">
+						<div className="pb-1">
+							<h3 className="text-xs font-black text-zinc-450 uppercase tracking-wider">Step 3: Booking Ledger Details</h3>
+							<p className="text-[11px] text-zinc-400 font-medium mt-1">Specify financial parameters, commission, and lead metadata details.</p>
+						</div>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Total Sale Amount (₹)</label>
 								<Input
 									type="number"
 									value={totalSaleAmount}
 									onChange={(e) => setTotalSaleAmount(Number(e.target.value))}
-									className="h-9 text-xs border-zinc-200"
+									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Down Payment (Token) (₹)</label>
+							
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Down Payment (Token) (₹)</label>
 								<Input
 									type="number"
 									value={downPayment}
 									onChange={(e) => setDownPayment(Number(e.target.value))}
-									className="h-9 text-xs border-zinc-200"
+									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Discount Amount (₹)</label>
+
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Discount Amount (₹)</label>
 								<Input
 									type="number"
 									value={discountAmount}
 									onChange={(e) => setDiscountAmount(Number(e.target.value))}
-									className="h-9 text-xs border-zinc-200"
+									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Lead Source</label>
+
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Lead Source</label>
 								<select
 									value={leadSource}
 									onChange={(e) => setLeadSource(e.target.value)}
-									className="text-xs h-9 border border-zinc-200 rounded px-2 w-full"
+									className="text-xs h-10 border border-zinc-200 bg-white rounded-xl px-3 w-full font-bold focus:outline-none focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 transition-all"
 								>
 									<option value="website">Website</option>
 									<option value="referral">Referral</option>
@@ -443,12 +504,13 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									<option value="other">Other</option>
 								</select>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Sale Phase</label>
+
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Sale Phase</label>
 								<select
 									value={salePhase}
 									onChange={(e) => setSalePhase(e.target.value)}
-									className="text-xs h-9 border border-zinc-200 rounded px-2 w-full"
+									className="text-xs h-10 border border-zinc-200 bg-white rounded-xl px-3 w-full font-bold focus:outline-none focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 transition-all"
 								>
 									<option value="token">Token</option>
 									<option value="agreement">Agreement</option>
@@ -456,12 +518,13 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									<option value="full_payment">Full Payment</option>
 								</select>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Assigned Advisor</label>
+
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Assigned Advisor</label>
 								<select
 									value={advisorId}
 									onChange={(e) => setAdvisorId(e.target.value)}
-									className="text-xs h-9 border border-zinc-200 rounded px-2 w-full"
+									className="text-xs h-10 border border-zinc-200 bg-white rounded-xl px-3 w-full font-bold focus:outline-none focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 transition-all"
 								>
 									<option value="">Select Advisor</option>
 									{advisors.map((a) => (
@@ -471,36 +534,38 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									))}
 								</select>
 							</div>
+
 							{discountAmount > 0 && (
-								<div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-zinc-50 border border-zinc-100 p-3 rounded-md">
-									<div className="space-y-1">
-										<label className="text-[10px] uppercase font-bold text-zinc-400">Discount Approved By (Admin ID)</label>
+								<div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-amber-50/20 border border-amber-100/50 p-4.5 rounded-2xl shadow-2xs">
+									<div className="space-y-1.5">
+										<label className="text-[9px] uppercase font-black text-amber-800 tracking-wider">Discount Approved By (Admin ID)</label>
 										<Input
 											value={discountApprovedBy}
 											onChange={(e) => setDiscountApprovedBy(e.target.value)}
 											placeholder="Admin UUID"
-											className="h-9 text-xs border-zinc-200"
+											className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 										/>
 									</div>
-									<div className="space-y-1">
-										<label className="text-[10px] uppercase font-bold text-zinc-400">Discount Reason</label>
+									<div className="space-y-1.5">
+										<label className="text-[9px] uppercase font-black text-amber-800 tracking-wider">Approved Discount Reason</label>
 										<Input
 											value={discountReason}
 											onChange={(e) => setDiscountReason(e.target.value)}
 											placeholder="Special price approval"
-											className="h-9 text-xs border-zinc-200"
+											className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 										/>
 									</div>
 								</div>
 							)}
-							<div className="sm:col-span-2 space-y-1">
-								<label className="text-[10px] uppercase font-bold text-zinc-400">Notes</label>
+
+							<div className="sm:col-span-2 space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Notes & Remarks</label>
 								<Textarea
 									value={notes}
 									onChange={(e) => setNotes(e.target.value)}
-									placeholder="Booking notes..."
+									placeholder="Add specific notes related to plot deal allocation..."
 									rows={2}
-									className="text-xs border-zinc-200"
+									className="text-xs font-semibold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
 						</div>
@@ -509,69 +574,76 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 
 				{/* Step 4: Dues Planner */}
 				{step === 4 && (
-					<div className="space-y-4">
-						<h3 className="text-sm font-bold text-zinc-800 uppercase tracking-wider">Step 4: Dues Planner</h3>
-						<div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-zinc-50 p-3 rounded-lg border border-zinc-100">
-							<div className="space-y-1">
-								<label className="text-[9px] uppercase font-bold text-zinc-400">Installments count</label>
+					<div className="space-y-5">
+						<div className="pb-1">
+							<h3 className="text-xs font-black text-zinc-450 uppercase tracking-wider">Step 4: Installment Dues Planner</h3>
+							<p className="text-[11px] text-zinc-400 font-medium mt-1">Configure installment counts, monthly pricing values, and cycle days.</p>
+						</div>
+
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-zinc-50 border border-zinc-150 p-4.5 rounded-2xl shadow-2xs">
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-450 tracking-wider">Total Installments</label>
 								<Input
 									type="number"
 									value={emiMonths}
 									onChange={(e) => setEmiMonths(Number(e.target.value))}
-									className="h-8 text-xs border-zinc-200"
+									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[9px] uppercase font-bold text-zinc-400">Monthly EMI (₹)</label>
+							
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-455 tracking-wider">Monthly Amount</label>
 								<Input
 									type="number"
 									value={monthlyEmi}
 									onChange={(e) => setMonthlyEmi(Number(e.target.value))}
-									className="h-8 text-xs border-zinc-200"
+									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 									disabled={!!emiMonths}
 								/>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[9px] uppercase font-bold text-zinc-400">Day of Month</label>
+
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-450 tracking-wider">Collection Day</label>
 								<Input
 									type="number"
 									value={emiDay}
 									onChange={(e) => setEmiDay(Number(e.target.value))}
-									className="h-8 text-xs border-zinc-200"
+									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 									max={31}
 									min={1}
 								/>
 							</div>
-							<div className="space-y-1">
-								<label className="text-[9px] uppercase font-bold text-zinc-400">Start Date</label>
+
+							<div className="space-y-1.5">
+								<label className="text-[9px] uppercase font-black text-zinc-450 tracking-wider">EMI Start Date</label>
 								<Input
 									type="date"
 									value={emiStartDate}
 									onChange={(e) => setEmiStartDate(e.target.value)}
-									className="h-8 text-xs border-zinc-200"
+									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
 						</div>
 
 						{/* Preview EMI table */}
 						{previewEmis.length > 0 && (
-							<div className="space-y-2">
-								<h4 className="text-xs font-bold text-zinc-500 uppercase">Installments schedule preview</h4>
-								<div className="max-h-48 overflow-y-auto border border-zinc-100 rounded-md">
+							<div className="space-y-2.5 pt-2">
+								<h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Installments Schedule Preview</h4>
+								<div className="max-h-52 overflow-y-auto border border-zinc-200/80 rounded-xl shadow-2xs">
 									<table className="w-full text-xs text-zinc-700">
-										<thead className="bg-zinc-50 border-b border-zinc-100 text-[10px] uppercase font-bold">
+										<thead className="bg-zinc-50/80 border-b border-zinc-150 text-[9px] uppercase font-black text-zinc-450 sticky top-0 backdrop-blur-sm">
 											<tr>
-												<th className="px-3 py-2 text-left">EMI #</th>
-												<th className="px-3 py-2 text-left">Due Date</th>
-												<th className="px-3 py-2 text-right">Amount</th>
+												<th className="px-3.5 py-3 text-left">EMI #</th>
+												<th className="px-3.5 py-3 text-left">Due Date</th>
+												<th className="px-3.5 py-3 text-right pr-4">Amount</th>
 											</tr>
 										</thead>
 										<tbody>
 											{previewEmis.map((emi) => (
-												<tr key={emi.number} className="border-b border-zinc-50 hover:bg-zinc-50">
-													<td className="px-3 py-2 font-mono">EMI {emi.number}</td>
-													<td className="px-3 py-2">{emi.dueDate}</td>
-													<td className="px-3 py-2 text-right font-semibold text-zinc-900">{formatCurrency(emi.amount)}</td>
+												<tr key={emi.number} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+													<td className="px-3.5 py-2.5 font-bold text-zinc-800">EMI {emi.number}</td>
+													<td className="px-3.5 py-2.5 font-semibold text-zinc-500">{emi.dueDate}</td>
+													<td className="px-3.5 py-2.5 text-right font-black font-mono text-zinc-900 pr-4">{formatCurrency(emi.amount)}</td>
 												</tr>
 											))}
 										</tbody>
@@ -584,38 +656,43 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 
 				{/* Step 5: Review & Confirm */}
 				{step === 5 && (
-					<div className="space-y-4">
-						<h3 className="text-sm font-bold text-zinc-800 uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-							<CheckCircle className="h-5 w-5" /> Step 5: Review and Confirm Booking
-						</h3>
+					<div className="space-y-5">
+						<div className="pb-1">
+							<h3 className="text-xs font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+								<CheckCircle className="h-5 w-5" /> Step 5: Review and Confirm Booking
+							</h3>
+							<p className="text-[11px] text-zinc-400 font-medium mt-1">Review critical client and plot settlement attributes before creating records.</p>
+						</div>
 
-						<div className="grid grid-cols-2 gap-4 border border-zinc-100 p-4 rounded-lg bg-zinc-50 text-xs">
-							<div>
-								<p className="text-[10px] text-zinc-400 uppercase font-bold">Customer</p>
-								<p className="font-semibold text-zinc-800">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-zinc-200/80 p-5 rounded-2xl bg-zinc-50 shadow-2xs text-xs">
+							<div className="space-y-1">
+								<p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider">Customer Profile</p>
+								<p className="font-black text-zinc-850 text-sm">
 									{isNewCust ? newCustomerName : custSearch.split(" (")[0]}
 								</p>
-								<p className="font-mono text-zinc-500">
+								<p className="font-bold font-mono text-zinc-450">
 									{isNewCust ? newCustomerPhone : customers.find((c) => c.id === selectedCustomerId)?.phone}
 								</p>
 							</div>
-							<div>
-								<p className="text-[10px] text-zinc-400 uppercase font-bold">Plot Unit</p>
-								<p className="font-semibold text-zinc-800">Plot {selectedPlotDetails?.plot_number}</p>
-								<p className="text-zinc-500">{selectedPlotDetails?.project_name}</p>
+							
+							<div className="space-y-1">
+								<p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider">Unit details</p>
+								<p className="font-black text-zinc-850 text-sm">Plot {selectedPlotDetails?.plot_number}</p>
+								<p className="font-bold text-zinc-450 leading-tight">{selectedPlotDetails?.project_name}</p>
 							</div>
-							<div className="col-span-2 grid grid-cols-3 gap-2 border-t border-zinc-200 pt-3">
-								<div>
-									<p className="text-[10px] text-zinc-400 uppercase font-bold">Agreement Cost</p>
-									<p className="font-bold text-zinc-800">{formatCurrency(totalSaleAmount)}</p>
+							
+							<div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-3 border-t border-zinc-200 pt-4.5">
+								<div className="space-y-0.5">
+									<p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider">Agreement Price</p>
+									<p className="font-black text-zinc-800 text-sm font-mono">{formatCurrency(totalSaleAmount)}</p>
 								</div>
-								<div>
-									<p className="text-[10px] text-zinc-400 uppercase font-bold">Down Payment</p>
-									<p className="font-bold text-zinc-800">{formatCurrency(downPayment)}</p>
+								<div className="space-y-0.5">
+									<p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider">Down Payment</p>
+									<p className="font-black text-zinc-800 text-sm font-mono">{formatCurrency(downPayment)}</p>
 								</div>
-								<div>
-									<p className="text-[10px] text-zinc-400 uppercase font-bold">Outstanding</p>
-									<p className="font-bold text-emerald-700">
+								<div className="space-y-0.5">
+									<p className="text-[9px] text-zinc-400 uppercase font-black tracking-wider">Remaining Dues</p>
+									<p className="font-black text-emerald-600 text-sm font-mono">
 										{formatCurrency(totalSaleAmount - discountAmount - downPayment)}
 									</p>
 								</div>
@@ -625,36 +702,36 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 				)}
 			</div>
 
-			{/* Footer Controls */}
-			<div className="bg-zinc-50 border-t border-zinc-200 px-6 py-4 flex justify-between items-center">
+			{/* Footer Navigation Panel */}
+			<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-between items-center">
 				<Button
 					variant="outline"
 					size="sm"
 					onClick={handleBack}
 					disabled={step === 1}
-					className="text-xs"
+					className="h-9 px-4 text-xs font-black border-zinc-200 text-zinc-500 hover:text-zinc-700 bg-white rounded-xl shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
 				>
-					<ArrowLeft className="h-4 w-4 mr-1.5" /> Back
+					<ArrowLeft className="h-4 w-4" /> Back
 				</Button>
 
 				{step < 5 ? (
 					<Button
 						size="sm"
 						onClick={handleNext}
-						className="text-xs bg-zinc-900 hover:bg-zinc-800 text-white font-semibold"
+						className="h-9 px-4.5 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer shadow-xs bg-zinc-900 hover:bg-zinc-800 text-white active:scale-[0.98] flex items-center gap-1"
 					>
-						Next <ArrowRight className="h-4 w-4 ml-1.5" />
+						Next <ArrowRight className="h-4 w-4" />
 					</Button>
 				) : (
 					<Button
 						size="sm"
 						onClick={handleConfirm}
 						disabled={createBookingMutation.isPending}
-						className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow"
+						className="h-9 px-5 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)] active:scale-[0.98] flex items-center gap-1"
 					>
 						{createBookingMutation.isPending ? (
 							<>
-								<Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Booking Plot...
+								<Loader2 className="h-4 w-4 animate-spin" /> Booking Plot...
 							</>
 						) : (
 							"Book & Confirm Dues"

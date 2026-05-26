@@ -401,19 +401,21 @@ export function CustomerDocuments({
         <div className="grid grid-cols-1 gap-4">
           
           {/* Row 1: Aadhaar Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border border-zinc-200 bg-white hover:shadow-sm transition-all duration-200 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-4">
             <div className="flex items-start sm:items-center gap-3.5 min-w-0">
               <div className="p-3 bg-teal-50 text-teal-650 rounded-xl border border-teal-100 shrink-0">
-                <FileText className="h-5.5 w-5.5" />
+                <span className="text-xl">📄</span>
               </div>
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-zinc-800">Aadhaar Card</h4>
+                <h4 className="text-sm font-extrabold text-zinc-800 flex items-center gap-1.5">
+                  Aadhaar Card
+                </h4>
                 {aadhaarUrl ? (
-                  <p className="text-xs text-zinc-500 font-medium truncate max-w-[200px] sm:max-w-xs md:max-w-md mt-0.5" title={getFileNameFromPath(aadhaarUrl)}>
+                  <p className="text-xs text-zinc-400 font-bold truncate max-w-[200px] sm:max-w-xs md:max-w-md mt-0.5" title={getFileNameFromPath(aadhaarUrl)}>
                     {getFileNameFromPath(aadhaarUrl)}
                   </p>
                 ) : (
-                  <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-red-500 font-black flex items-center gap-1 mt-0.5">
                     <AlertCircle className="h-3.5 w-3.5" /> Not uploaded yet
                   </p>
                 )}
@@ -427,19 +429,19 @@ export function CustomerDocuments({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50"
+                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => viewKycDoc(aadhaarUrl)}
                   >
-                    <Eye className="h-4 w-4" /> View
+                    <Eye className="h-4 w-4 shrink-0" /> View
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50"
+                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => downloadKycDoc(aadhaarUrl, `Aadhaar_${customerName.replace(/\s+/g, "_")}${aadhaarUrl.endsWith(".pdf") ? ".pdf" : ".jpg"}`)}
                   >
-                    <Download className="h-4 w-4" /> Download
+                    <Download className="h-4 w-4 shrink-0" /> Download
                   </Button>
                 </>
               )}
@@ -452,7 +454,7 @@ export function CustomerDocuments({
                   className="hidden"
                   disabled={uploadingField === "aadhaar"}
                 />
-                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-sm border border-teal-200 bg-teal-50/50 hover:bg-teal-50 text-teal-700 transition-colors ${uploadingField === "aadhaar" ? "opacity-50 pointer-events-none" : ""}`}>
+                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-teal-200 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-300 text-teal-700 transition-all duration-200 active:scale-98 ${uploadingField === "aadhaar" ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingField === "aadhaar" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-teal-650" />
                   ) : (
@@ -465,19 +467,21 @@ export function CustomerDocuments({
           </div>
 
           {/* Row 2: PAN Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border border-zinc-200 bg-white hover:shadow-sm transition-all duration-200 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-4">
             <div className="flex items-start sm:items-center gap-3.5 min-w-0">
               <div className="p-3 bg-indigo-50 text-indigo-650 rounded-xl border border-indigo-100 shrink-0">
-                <CreditCard className="h-5.5 w-5.5" />
+                <span className="text-xl">🪪</span>
               </div>
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-zinc-800">PAN Card</h4>
+                <h4 className="text-sm font-extrabold text-zinc-800 flex items-center gap-1.5">
+                  PAN Card
+                </h4>
                 {panUrl ? (
-                  <p className="text-xs text-zinc-500 font-medium truncate max-w-[200px] sm:max-w-xs md:max-w-md mt-0.5" title={getFileNameFromPath(panUrl)}>
+                  <p className="text-xs text-zinc-400 font-bold truncate max-w-[200px] sm:max-w-xs md:max-w-md mt-0.5" title={getFileNameFromPath(panUrl)}>
                     {getFileNameFromPath(panUrl)}
                   </p>
                 ) : (
-                  <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-red-500 font-black flex items-center gap-1 mt-0.5">
                     <AlertCircle className="h-3.5 w-3.5" /> Not uploaded yet
                   </p>
                 )}
@@ -491,19 +495,19 @@ export function CustomerDocuments({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50"
+                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => viewKycDoc(panUrl)}
                   >
-                    <Eye className="h-4 w-4" /> View
+                    <Eye className="h-4 w-4 shrink-0" /> View
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50"
+                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => downloadKycDoc(panUrl, `PAN_${customerName.replace(/\s+/g, "_")}${panUrl.endsWith(".pdf") ? ".pdf" : ".jpg"}`)}
                   >
-                    <Download className="h-4 w-4" /> Download
+                    <Download className="h-4 w-4 shrink-0" /> Download
                   </Button>
                 </>
               )}
@@ -516,7 +520,7 @@ export function CustomerDocuments({
                   className="hidden"
                   disabled={uploadingField === "pan"}
                 />
-                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-sm border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700 transition-colors ${uploadingField === "pan" ? "opacity-50 pointer-events-none" : ""}`}>
+                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 text-indigo-700 transition-all duration-200 active:scale-98 ${uploadingField === "pan" ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingField === "pan" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-650" />
                   ) : (
@@ -529,23 +533,25 @@ export function CustomerDocuments({
           </div>
 
           {/* Row 3: Customer Photo */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border border-zinc-200 bg-white hover:shadow-sm transition-all duration-200 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-4">
             <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-              <div className="h-14 w-14 rounded-full overflow-hidden border-2 border-zinc-200 bg-zinc-50 shrink-0 shadow-inner flex items-center justify-center">
+              <div className="h-14 w-14 rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 shrink-0 shadow-inner flex items-center justify-center">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Customer photo" className="h-full w-full object-cover" />
                 ) : (
-                  <ImageIcon className="h-6 w-6 text-zinc-400" />
+                  <span className="text-xl">🖼️</span>
                 )}
               </div>
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-zinc-800">Customer Photo</h4>
+                <h4 className="text-sm font-extrabold text-zinc-800 flex items-center gap-1.5">
+                  Customer Photo
+                </h4>
                 {photoUrl ? (
-                  <p className="text-xs text-zinc-500 font-medium truncate max-w-[200px] sm:max-w-xs md:max-w-md mt-0.5" title={getFileNameFromPath(photoUrl)}>
+                  <p className="text-xs text-zinc-400 font-bold truncate max-w-[200px] sm:max-w-xs md:max-w-md mt-0.5" title={getFileNameFromPath(photoUrl)}>
                     {getFileNameFromPath(photoUrl)}
                   </p>
                 ) : (
-                  <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-red-500 font-black flex items-center gap-1 mt-0.5">
                     <AlertCircle className="h-3.5 w-3.5" /> No photo uploaded
                   </p>
                 )}
@@ -559,19 +565,19 @@ export function CustomerDocuments({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50"
+                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => viewKycDoc(photoUrl)}
                   >
-                    <Eye className="h-4 w-4" /> View
+                    <Eye className="h-4 w-4 shrink-0" /> View
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50"
+                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => downloadKycDoc(photoUrl, `Photo_${customerName.replace(/\s+/g, "_")}.jpg`)}
                   >
-                    <Download className="h-4 w-4" /> Download
+                    <Download className="h-4 w-4 shrink-0" /> Download
                   </Button>
                 </>
               )}
@@ -584,7 +590,7 @@ export function CustomerDocuments({
                   className="hidden"
                   disabled={uploadingField === "photo"}
                 />
-                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-sm border border-emerald-250 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 transition-colors ${uploadingField === "photo" ? "opacity-50 pointer-events-none" : ""}`}>
+                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-300 text-emerald-700 transition-all duration-200 active:scale-98 ${uploadingField === "photo" ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingField === "photo" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-650" />
                   ) : (

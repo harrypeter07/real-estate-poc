@@ -5,7 +5,7 @@ import { getCustomerById } from "@/app/actions/customers";
 import { getAdvisors } from "@/app/actions/advisors";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditCustomerPage({ params }: Props) {

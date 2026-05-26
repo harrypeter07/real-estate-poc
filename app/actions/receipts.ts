@@ -112,7 +112,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
       advisor_commissions(
         total_commission_amount,
         advisor_id,
-        advisors(name, code)
+        advisors:advisors!advisor_id(name, code)
       )
     `;
 
@@ -217,7 +217,7 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 					: Promise.resolve({ data: null } as any),
 				admin
 					.from("advisor_commissions")
-					.select("total_commission_amount, advisor_id, advisors(name, code)")
+					.select("total_commission_amount, advisor_id, advisors:advisors!advisor_id(name, code)")
 					.eq("sale_id", saleId),
 			]);
 

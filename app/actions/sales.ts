@@ -337,7 +337,7 @@ export async function getSales() {
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
 			.from("advisor_commissions")
-			.select("sale_id, advisor_id, total_commission_amount, advisors(name, phone)")
+			.select("sale_id, advisor_id, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
 			.in("sale_id", saleIds);
 		for (const sale of rows as { id: string; advisor_id?: string | null }[]) {
 			const list = (comms ?? []).filter((c: any) => c.sale_id === sale.id);
@@ -391,7 +391,7 @@ export async function getSaleCommissionParticipants(
 
 	const { data: rows, error } = await supabase
 		.from("advisor_commissions")
-		.select("advisor_id, total_commission_amount, advisors(name, phone)")
+		.select("advisor_id, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
 		.eq("sale_id", saleId);
 	if (error) return [];
 
@@ -424,7 +424,7 @@ export async function getSaleById(id: string) {
       advisor_commissions(
         advisor_id,
         total_commission_amount,
-        advisors(name, phone)
+        advisors:advisors!advisor_id(name, phone)
       )
     `
 		)

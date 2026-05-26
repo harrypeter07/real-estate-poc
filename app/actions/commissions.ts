@@ -59,7 +59,7 @@ export async function getCommissions() {
 
 	const baseSelect = `
       *,
-      advisors(name, code),
+      advisors:advisors!advisor_id(name, code),
       plot_sales(
         id,
         advisor_id,
@@ -80,7 +80,7 @@ export async function getCommissions() {
     `;
 	const extraSelect = `
       *,
-      advisors(name, code),
+      advisors:advisors!advisor_id(name, code),
       plot_sales(
         id,
         advisor_id,
@@ -140,7 +140,7 @@ export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
 
 	const baseSelect = `
       *,
-      advisors(name, code),
+      advisors:advisors!advisor_id(name, code),
       plot_sales(
         advisor_id,
         total_sale_amount,
@@ -160,7 +160,7 @@ export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
     `;
 	const extraSelect = `
       *,
-      advisors(name, code),
+      advisors:advisors!advisor_id(name, code),
       plot_sales(
         advisor_id,
         total_sale_amount,
@@ -212,7 +212,7 @@ export async function getAdvisorCommissions(advisorId: string) {
 
 	const baseSelect = `
       *,
-      advisors(name, code),
+      advisors:advisors!advisor_id(name, code),
       plot_sales(
         advisor_id,
         total_sale_amount,
@@ -232,7 +232,7 @@ export async function getAdvisorCommissions(advisorId: string) {
     `;
 	const extraSelect = `
       *,
-      advisors(name, code),
+      advisors:advisors!advisor_id(name, code),
       plot_sales(
         advisor_id,
         total_sale_amount,

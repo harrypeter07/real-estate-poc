@@ -115,11 +115,10 @@ export function SalesList({
 					return (
 						<Card
 							key={sale.id}
-							className={[
-								"overflow-hidden hover:border-zinc-400 transition-colors cursor-pointer",
-								sale.is_cancelled ? "opacity-55 grayscale" : "",
-							].join(" ")}
-							onClick={() => openSaleModal(sale)}
+							className={`overflow-hidden hover:border-zinc-400 transition-colors cursor-pointer ${
+								sale.is_cancelled ? "opacity-55 grayscale" : ""
+							}`}
+							onClick={() => router.push(`/sales/${sale.id}`)}
 						>
 							<CardContent className="p-0">
 								<div className="flex flex-col md:flex-row">

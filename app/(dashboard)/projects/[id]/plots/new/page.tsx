@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PlotForm } from "@/components/projects/plot-form";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function NewPlotPage({ params }: Props) {

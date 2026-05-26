@@ -1,118 +1,30 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import { Plus, CreditCard } from "lucide-react";
-import { Button } from "@/components/ui";
+import { PaymentsDashboard } from "@/components/payments/payments-dashboard";
+import { getCustomers } from "@/app/actions/customers";
+import { getSales } from "@/app/actions/sales";
 import { PageHeader } from "@/components/shared/page-header";
-import { getPayments } from "@/app/actions/payments";
-import { PaymentsTable } from "@/components/payments/payments-table";
-import { PaymentsFilters } from "@/components/payments/payments-filters";
-import { PaymentsPageActions } from "@/components/payments/payments-page-actions";
-import { PaymentsAsOfDate } from "@/components/payments/payments-asof-date";
-import { getEmiDueRows } from "@/app/actions/payment-due";
-import { isPaymentsAsOfDateEnabled } from "@/lib/env";
-import { PaymentsEmiDueSection } from "@/components/payments/payments-emi-due-section";
-import { PaymentsEmiDuePageClient } from "@/components/payments/payments-emi-due-page-client";
 
-export default async function PaymentsPage({
-	searchParams,
-}: {
-	searchParams: Promise<{
-		from?: string;
-		to?: string;
-		status?: string;
-		mode?: string;
-		asOf?: string;
-		q?: string;
-	}>;
-}) {
-	const params = await searchParams;
+export default async function PaymentsPage() {
+	const customers = await getCustomers();
+	const sales = await getSales();
 
-	const from = params.from ?? "";
-	const to = params.to ?? "";
-	const asOfParam =
-		typeof params.asOf === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.asOf)
-			? params.asOf
-			: "";
-	const asOf = isPaymentsAsOfDateEnabled() ? asOfParam : "";
-	const status =
-		typeof params.status === "string" && params.status !== "all"
-			? params.status
-			: "";
-	const mode =
-		typeof params.mode === "string" && params.mode !== "all"
-			? params.mode
-			: "";
-	const q = typeof params.q === "string" ? params.q : "";
-
-	const filteredPayments = await getPayments({
-		from: from || undefined,
-		to: to || undefined,
-		status:
-			status === "confirmed" || status === "pending"
-				? status
-				: "",
-		mode: mode || undefined,
-		asOf: asOf || undefined,
-	});
-
-	const emiDueRows = await getEmiDueRows({ asOf: asOf || undefined });
-
-	const hasFilters = Boolean(from || to || status || mode || asOf);
-	const isPendingDueView = status === "pending";
+	const cleanCustomers = customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }));
+	const cleanSales = sales.map((s: any) => ({
+		id: s.id,
+		customer_id: s.customer_id,
+		plot_number: s.plots?.plot_number || "—",
+		remaining_amount: s.remaining_amount,
+	}));
 
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				title="Payments"
-				subtitle={`${filteredPayments.length} transactions processed`}
-				action={<PaymentsPageActions />}
+				title="Collections Ledger"
+				subtitle="Manage accounts receivable, confirm payments, and waive penalties"
 			/>
-
-			{isPaymentsAsOfDateEnabled() ? (
-				<Suspense fallback={<div className="h-10 w-32 bg-zinc-100 rounded animate-pulse" />}>
-					<PaymentsAsOfDate />
-				</Suspense>
-			) : null}
-
-			<Suspense fallback={<div className="h-12 w-full bg-zinc-100 rounded animate-pulse" />}>
-				<PaymentsFilters />
-			</Suspense>
-
-			{isPendingDueView ? (
-				<Suspense fallback={<div className="h-48 w-full bg-zinc-100 rounded animate-pulse" />}>
-					<PaymentsEmiDuePageClient
-						rows={emiDueRows as any}
-						initialQuery={q}
-						asOf={asOf || undefined}
-					/>
-				</Suspense>
-			) : (
-				<PaymentsEmiDueSection rows={emiDueRows as any} asOf={asOf || undefined} />
-			)}
-
-			{isPendingDueView ? null : filteredPayments.length === 0 ? (
-				<div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
-					<div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 mb-4">
-						<CreditCard className="h-8 w-8 text-zinc-400" />
-					</div>
-					<h3 className="text-lg font-semibold">
-						{hasFilters ? "No payments match these filters" : "No payments yet"}
-					</h3>
-					<p className="text-sm text-zinc-500 mt-1 mb-4">
-						{hasFilters
-							? "Try adjusting your filter criteria"
-							: "Record your first payment installment"}
-					</p>
-					<Link href="/payments/new">
-						<Button size="sm">
-							<Plus className="h-4 w-4 mr-2" />
-							Record Payment
-						</Button>
-					</Link>
-				</div>
-			) : (
-				<PaymentsTable payments={filteredPayments as any[]} />
-			)}
+			<PaymentsDashboard
+				customers={cleanCustomers}
+				sales={cleanSales}
+			/>
 		</div>
 	);
 }

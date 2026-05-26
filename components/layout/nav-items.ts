@@ -13,6 +13,7 @@ import {
   Settings,
   Search,
   ShieldAlert,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,14 +26,15 @@ export interface NavItem {
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Modules Upgrade", href: "/upgraded-modules", icon: Sparkles },
   { label: "Projects", href: "/projects", icon: Building2, moduleKey: "projects" },
   { label: "Advisors", href: "/advisors", icon: UserCheck, moduleKey: "projects" },
-  { label: "Advisor Analytics", href: "/advisors/analytics", icon: BarChart3, moduleKey: "reports" },
+  { label: "Advisor Analytics", href: "/advisor-analytics", icon: BarChart3, moduleKey: "reports" },
   { label: "Customers", href: "/customers", icon: Users, moduleKey: "projects" },
   { label: "Enquiries", href: "/enquiries", icon: Handshake, moduleKey: "enquiries" },
   { label: "Sales", href: "/sales", icon: Handshake, moduleKey: "sales" },
   { label: "Payments", href: "/payments", icon: CreditCard, moduleKey: "payments" },
-  { label: "Due Payments", href: "/payments?status=pending", icon: CreditCard, moduleKey: "payments" },
+  { label: "Due Payments", href: "/due-payments", icon: CreditCard, moduleKey: "payments" },
   { label: "Commissions", href: "/commissions", icon: Banknote, moduleKey: "commissions" },
   { label: "Expenses", href: "/expenses", icon: Receipt, moduleKey: "expenses" },
   { label: "Messaging", href: "/messaging", icon: Bell, moduleKey: "messaging" },

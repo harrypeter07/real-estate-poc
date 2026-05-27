@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ADVISOR_NAV_ITEMS } from "@/components/layout/nav-items";
@@ -16,11 +16,13 @@ export function AdvisorAppShell({
 
 	return (
 		<div className="flex h-screen overflow-hidden bg-background">
-			<Sidebar
-				open={sidebarOpen}
-				onClose={() => setSidebarOpen(false)}
-				items={ADVISOR_NAV_ITEMS}
-			/>
+			<Suspense fallback={<div className="w-64 bg-zinc-900 h-full" />}>
+				<Sidebar
+					open={sidebarOpen}
+					onClose={() => setSidebarOpen(false)}
+					items={ADVISOR_NAV_ITEMS}
+				/>
+			</Suspense>
 
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<Header onMenuClick={() => setSidebarOpen(true)} />

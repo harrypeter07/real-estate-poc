@@ -9,6 +9,7 @@ export const plotSchema = z.object({
     .number()
     .positive("Rate must be greater than 0"),
   facing: z.string().optional().default(""),
+  type: z.enum(["plot", "flat", "villa", "farmhouse", "commercial", "other"]).default("plot"),
   notes: z.string().optional().default(""),
 });
 
@@ -20,6 +21,7 @@ export const plotUpdateSchema = z.object({
   size_sqft: z.number().positive("Size must be greater than 0").optional(),
   rate_per_sqft: z.number().positive("Rate must be greater than 0").optional(),
   facing: z.string().optional().default(""),
+  type: z.enum(["plot", "flat", "villa", "farmhouse", "commercial", "other"]).optional().default("plot"),
   notes: z.string().optional().default(""),
 });
 
@@ -29,6 +31,7 @@ export const plotBulkUpdateSchema = z.object({
   size_sqft: z.number().positive("Size must be greater than 0").optional(),
   rate_per_sqft: z.number().positive("Rate must be greater than 0").optional(),
   facing: z.string().optional(),
+  type: z.enum(["plot", "flat", "villa", "farmhouse", "commercial", "other"]).optional(),
   notes: z.string().optional(),
 });
 
@@ -41,6 +44,7 @@ export const bulkPlotSchema = z.object({
   size_sqft: z.number().positive("Size must be greater than 0"),
   rate_per_sqft: z.number().positive("Rate must be greater than 0"),
   facing: z.string().optional().default(""),
+  type: z.enum(["plot", "flat", "villa", "farmhouse", "commercial", "other"]).default("plot"),
 }).refine((data) => data.to_number >= data.from_number, {
   message: "To number must be >= From number",
   path: ["to_number"],

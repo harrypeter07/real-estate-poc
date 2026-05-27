@@ -64,9 +64,12 @@ export function PasswordResetButton({
 				size={size}
 				variant={variant}
 				onClick={() => setOpen(true)}
-				className={cn("gap-2", className)}
+				className={cn(
+					"h-8 gap-1.5 px-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 border border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/15 active:translate-y-0 active:shadow-sm transition-all duration-200 text-xs font-semibold shrink-0",
+					className
+				)}
 			>
-				<KeyRound className="h-4 w-4" />
+				<KeyRound className="h-3.5 w-3.5" />
 				Password
 			</Button>
 

@@ -15,8 +15,8 @@ export default async function CustomersPage() {
         subtitle={`${customers.length} registered plot buyers`}
         action={
           <Link href="/customers/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button size="sm" className="h-9.5 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+              <Plus className="h-4 w-4 mr-1.5 shrink-0" />
               New Customer
             </Button>
           </Link>
@@ -24,17 +24,17 @@ export default async function CustomersPage() {
       />
 
       {customers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 mb-4">
-            <Users className="h-8 w-8 text-zinc-400" />
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 p-16 text-center bg-white shadow-sm max-w-xl mx-auto mt-8">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 mb-5 shadow-inner text-zinc-500">
+            <Users className="h-8 w-8 text-zinc-500" />
           </div>
-          <h3 className="text-lg font-semibold">No customers yet</h3>
-          <p className="text-sm text-zinc-500 mt-1 mb-4">
-            Start by adding your first plot buyer
+          <h3 className="text-lg font-semibold text-zinc-900">👥 No customers added yet</h3>
+          <p className="text-sm text-zinc-500 mt-2 mb-6 max-w-sm">
+            Create your first customer to start managing buyers, documenting details, and capturing KYC records.
           </p>
           <Link href="/customers/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button size="default" className="h-10 px-5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-md hover:shadow-[0_6px_20px_rgba(13,148,136,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+              <Plus className="h-4 w-4 mr-1.5 shrink-0 animate-bounce" />
               Create Customer
             </Button>
           </Link>

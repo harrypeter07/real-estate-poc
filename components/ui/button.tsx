@@ -7,7 +7,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
+  size?: "default" | "sm" | "lg" | "icon" | "xs"
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -32,6 +32,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       sm: "h-8 sm:h-9 rounded-md px-2.5 sm:px-3",
       lg: "h-10 sm:h-11 rounded-md px-6 sm:px-8",
       icon: "h-9 w-9 sm:h-10 sm:w-10",
+      xs: "h-7 rounded-sm px-2 text-[10px]",
     }
 
     return (
@@ -43,6 +44,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className
         )}
         ref={ref}
+        suppressHydrationWarning
         {...props}
       />
     )

@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ReportsFilters } from "@/components/reports/reports-filters";
 import DashboardContent from "./dashboard-content";
 
+import { DashboardRealtime } from "@/components/dashboard/dashboard-realtime";
+
 export default async function DashboardPage({
 	searchParams,
 }: {
@@ -12,6 +14,7 @@ export default async function DashboardPage({
 
 	return (
 		<div className="space-y-6">
+			<DashboardRealtime />
 			<PageHeader
 				title="Dashboard"
 				subtitle="Revenue, projects, advisors, commissions & financial analytics"

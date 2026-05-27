@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getPublicBusinessInfo } from "@/app/actions/business-settings";
 
 export function BusinessBrand({
 	fallbackName = "Business name not set",
@@ -29,7 +30,28 @@ export function BusinessBrand({
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
-			if (!user || cancelled) return;
+
+			if (!user) {
+				if (cancelled) return;
+				let searchIdOrName = "";
+				if (typeof window !== "undefined") {
+					const params = new URLSearchParams(window.location.search);
+					searchIdOrName = String(params.get("business_id") ?? params.get("business") ?? "").trim();
+				}
+				try {
+					const info = await getPublicBusinessInfo(searchIdOrName);
+					if (!cancelled) {
+						setName(info.name);
+						setTagline(info.tagline);
+						if (typeof document !== "undefined") {
+							document.title = `${info.name} | CRM`;
+						}
+					}
+				} catch (e) {
+					console.error("Failed to load public business info:", e);
+				}
+				return;
+			}
 
 			const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
 			let businessId = String(meta.business_id ?? "").trim();
@@ -82,6 +104,9 @@ export function BusinessBrand({
 
 			if (nextName) {
 				setName(nextName);
+				if (typeof document !== "undefined") {
+					document.title = `${nextName} | CRM`;
+				}
 				try {
 					localStorage.setItem("app_business_display_name", nextName);
 				} catch {
@@ -111,4 +136,5 @@ export function BusinessBrand({
 		</div>
 	);
 }
+
 

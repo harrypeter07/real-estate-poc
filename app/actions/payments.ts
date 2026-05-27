@@ -267,7 +267,7 @@ export async function getPayments(filters?: PaymentsFilter) {
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
 			.from("advisor_commissions")
-			.select("sale_id, advisor_id, total_commission_amount, advisors(name, phone)")
+			.select("sale_id, advisor_id, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
 			.in("sale_id", saleIds);
 		for (const sid of saleIds) {
 			const mainId = mainAdvisorBySale[sid];

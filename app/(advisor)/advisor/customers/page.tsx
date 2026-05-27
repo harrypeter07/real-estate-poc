@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Plus, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui";
@@ -18,7 +19,7 @@ export default async function AdvisorCustomersPage() {
 
 	const { data: customers } = await supabase
 		.from("customers")
-		.select("id, name, phone, route, birth_date, created_at")
+		.select("id, name, phone, route, birth_date, created_at, kyc_status")
 		.eq("advisor_id", advisorId)
 		.eq("is_active", true)
 		.order("created_at", { ascending: false });
@@ -32,7 +33,8 @@ export default async function AdvisorCustomersPage() {
 				subtitle={`${rows.length} customers assigned to you`}
 				action={
 					<Link href="/advisor/customers/new">
-						<Button size="sm" variant="outline">
+						<Button size="sm" className="h-9.5 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+							<Plus className="h-4 w-4 mr-1.5 shrink-0" />
 							Add Customer
 						</Button>
 					</Link>
@@ -40,7 +42,21 @@ export default async function AdvisorCustomersPage() {
 			/>
 
 			{rows.length === 0 ? (
-				<p className="text-sm text-zinc-500">No customers assigned yet.</p>
+				<div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 p-16 text-center bg-white shadow-sm max-w-xl mx-auto mt-8">
+					<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 mb-5 shadow-inner text-zinc-500">
+						<Users className="h-8 w-8 text-zinc-500" />
+					</div>
+					<h3 className="text-lg font-semibold text-zinc-900">👥 No customers assigned yet</h3>
+					<p className="text-sm text-zinc-500 mt-2 mb-6 max-w-sm">
+						Once you are assigned customers, they will appear here. You can also add a new customer manually.
+					</p>
+					<Link href="/advisor/customers/new">
+						<Button size="default" className="h-10 px-5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-md hover:shadow-[0_6px_20px_rgba(13,148,136,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+							<Plus className="h-4 w-4 mr-1.5 shrink-0 animate-bounce" />
+							Add Customer
+						</Button>
+					</Link>
+				</div>
 			) : (
 				<CustomersTableClient
 					customers={rows as any}

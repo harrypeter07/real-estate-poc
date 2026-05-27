@@ -422,8 +422,77 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                   }}
                 >
                   <FileText className="h-4 w-4" />
-                  {generatingReceipt ? "Generating receipt..." : "Generate Receipt"}
+                  {generatingReceipt ? "Generating bill..." : "Generate Sale Bill"}
                 </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => {
+                    const { jsPDF } = require("jspdf");
+                    require("jspdf-autotable");
+                    const doc = new jsPDF();
+                    
+                    // Load builder display name from settings
+                    const savedBizName = typeof window !== "undefined" ? localStorage.getItem("app_business_display_name") : null;
+                    const bizName = savedBizName || selected.plot_sales?.plots?.projects?.businesses?.name || "SInfra Property Management";
+                    
+                    doc.setFontSize(18);
+                    doc.text("PAYMENT RECEIPT", 105, 20, { align: "center" });
+                    
+                    doc.setFontSize(10);
+                    doc.text(bizName, 105, 28, { align: "center" });
+                    doc.line(20, 32, 190, 32);
+
+                    const body = [
+                      ["Receipt No", selected.slip_number || selected.id.slice(0, 8).toUpperCase()],
+                      ["Date", formatDate(selected.payment_date)],
+                      ["Customer", selected.customers?.name || "—"],
+                      ["Phone", selected.customers?.phone || "—"],
+                      ["Project", selected.plot_sales?.plots?.projects?.name || "—"],
+                      ["Plot Number", selected.plot_sales?.plots?.plot_number || "—"],
+                      ["Amount Paid", formatCurrency(selected.amount)],
+                      ["Payment Mode", selected.payment_mode || "—"],
+                      ["Status", selected.is_confirmed ? "Confirmed" : "Pending"],
+                    ];
+
+                    (doc as any).autoTable({
+                      startY: 40,
+                      head: [["Field", "Details"]],
+                      body: body,
+                      theme: "striped",
+                      headStyles: { fillColor: [20, 184, 166] }, // teal-600
+                    });
+
+                    const finalY = (doc as any).lastAutoTable.finalY || 150;
+                    doc.setFontSize(10);
+                    doc.text("Notes:", 14, finalY + 10);
+                    doc.setFontSize(9);
+                    
+                    const notesText = selected.notes || "No additional notes.";
+                    const splitNotes = doc.splitTextToSize(notesText, 180);
+                    doc.text(splitNotes, 14, finalY + 16);
+                    
+                    const notesHeight = splitNotes.length * 4.5;
+                    let footerY = 280;
+                    
+                    // If notes overflow the page, add page and reset footer coordinate
+                    if (finalY + 16 + notesHeight > 270) {
+                      doc.addPage();
+                      footerY = 280;
+                    }
+                    
+                    doc.text("This is a computer-generated receipt.", 105, footerY, { align: "center" });
+
+                    doc.save(`receipt_${selected.slip_number || "payment"}.pdf`);
+                    toast.success("Payment receipt downloaded");
+                  }}
+                >
+                  <FileText className="h-4 w-4" />
+                  Print Payment Receipt (PDF)
+                </Button>
+
                 {generatingReceipt && (
                   <div className="w-full rounded-md border border-zinc-200 bg-zinc-50 p-2">
                     <div className="mb-1 flex items-center justify-between text-[11px] text-zinc-600">

@@ -4,7 +4,7 @@ import { AdvisorForm } from "@/components/advisors/advisor-form";
 import { getAdvisorById } from "@/app/actions/advisors";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditAdvisorPage({ params }: Props) {

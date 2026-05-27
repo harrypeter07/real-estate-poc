@@ -24,9 +24,13 @@ import { getAdvisors } from "@/app/actions/advisors";
 import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 import { ProjectAdvisorAssignmentsModal } from "@/components/projects/project-advisor-assignments-modal";
 import { PlotForm } from "@/components/projects/plot-form";
-import { Dialog, DialogClose, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProjectDocumentsModal } from "@/components/projects/project-documents-modal";
 import { getProjectDocuments } from "@/app/actions/project-documents";
+import { RecentSalesList } from "@/components/projects/recent-sales-list";
+import { getBusinessProfile } from "@/app/actions/business-settings";
+import { ProjectPdfButton } from "@/components/projects/project-pdf-button";
+
 
 interface Props {
 	params: Promise<{ id: string }>;
@@ -44,6 +48,7 @@ export default async function ProjectDetailPage({
 	const advisors = await getAdvisors();
 	const advisorAssignments = await getAdvisorAssignmentsByProject(id);
 	const projectDocs = await getProjectDocuments(id);
+	const businessProfile = await getBusinessProfile();
 
 	if (!data) {
 		notFound();
@@ -112,6 +117,12 @@ export default async function ProjectDetailPage({
 				showBackButton
 				action={
 					<div className="flex flex-wrap gap-2">
+						<ProjectPdfButton
+							project={project}
+							plots={plots}
+							businessProfile={businessProfile}
+							plotCounts={plotCounts}
+						/>
 						<Link href={`/projects/${project.id}?edit=true`}>
 							<Button variant="outline" size="sm">
 								<Pencil className="h-4 w-4 mr-2" />
@@ -126,15 +137,12 @@ export default async function ProjectDetailPage({
 								</Button>
 							</DialogTrigger>
 							<DialogContent className="max-w-2xl">
-								<div className="flex items-center justify-between gap-3 border-b border-zinc-100 p-4">
-									<div className="text-sm font-medium text-zinc-700">Add Single Plot</div>
-									<DialogClose asChild>
-										<Button variant="outline" size="sm" className="h-8">
-											Close
-										</Button>
-									</DialogClose>
+								<DialogHeader>
+									<DialogTitle>Add Single Plot</DialogTitle>
+								</DialogHeader>
+								<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+									<PlotForm mode="create" projectId={project.id} />
 								</div>
-								<PlotForm mode="create" projectId={project.id} />
 							</DialogContent>
 						</Dialog>
 						<ProjectDocumentsModal projectId={project.id} initialDocs={projectDocs as any[]} />
@@ -208,34 +216,88 @@ export default async function ProjectDetailPage({
 
 			{/* Revenue + Info */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium text-zinc-500">
-							Revenue collected
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-						<p className="text-xs text-zinc-400 mt-1">
-							Confirmed payments (including revoked sales). Showing {recentSales.length}{" "}
-							recent active sale(s) below.
-						</p>
+				<Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 hover:shadow-[0_12px_32px_-4px_rgba(16,185,129,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center justify-between gap-3.5 w-full">
+							<div className="flex items-center gap-3.5">
+								<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+									<IndianRupee className="h-5 w-5" />
+								</div>
+								<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+									Revenue collected
+								</p>
+							</div>
+							
+							<span className="inline-flex items-center gap-0.5 rounded px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 uppercase tracking-wider">
+								▲ Inflow Active
+							</span>
+						</div>
+						
+						<div className="mt-4 flex items-center justify-between gap-4">
+							<div className="space-y-1 flex-1">
+								<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+									{formatCurrency(totalRevenue)}
+								</p>
+								<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-normal mt-1 flex items-center gap-1.5 truncate">
+									Confirmed payments. Showing {recentSales.length} recent active sale(s).
+								</p>
+							</div>
+
+							{/* Premium Sparkline Visual Graphic */}
+							<div className="h-10 w-20 shrink-0 flex items-center justify-end">
+								<svg className="w-16 h-8 text-emerald-500 shrink-0 opacity-80" viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M0,25 Q15,12 30,22 T60,8 T90,18 L100,12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+									<path d="M0,25 Q15,12 30,22 T60,8 T90,18 L100,12 L100,30 L0,30 Z" fill="url(#sparkline-gradient-rev)" opacity="0.15" />
+									<defs>
+										<linearGradient id="sparkline-gradient-rev" x1="0" y1="0" x2="0" y2="1">
+											<stop offset="0%" stopColor="currentColor" />
+											<stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+										</linearGradient>
+									</defs>
+								</svg>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium text-zinc-500">
-							Plot Capacity
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-2xl font-bold">
-							{plotCounts.total}{" "}
-							<span className="text-base font-normal text-zinc-400">
-								/ {project.total_plots_count} planned
+				<Card className="group bg-gradient-to-br from-white to-blue-50/[0.12] dark:from-zinc-950 dark:to-blue-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 hover:shadow-[0_12px_32px_-4px_rgba(59,130,246,0.08)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
+					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
+						<div className="flex items-center justify-between gap-3.5 w-full">
+							<div className="flex items-center gap-3.5">
+								<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+									<LayoutGrid className="h-5 w-5" />
+								</div>
+								<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+									Plot Capacity
+								</p>
+							</div>
+							
+							<span className="inline-flex items-center gap-0.5 rounded px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 uppercase tracking-wider">
+								{plannedCount > 0 ? Math.min(100, Math.round((plotCounts.total / plannedCount) * 100)) : 0}% Created
 							</span>
-						</p>
+						</div>
+
+						<div className="mt-4 flex flex-col justify-end">
+							<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+								{plotCounts.total}{" "}
+								<span className="text-base font-normal text-zinc-400 dark:text-zinc-500">
+									/ {project.total_plots_count} planned
+								</span>
+							</p>
+
+							{/* Visual Utilization Progress Bar */}
+							<div className="mt-3">
+								<div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+									<div 
+										className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+										style={{ width: `${plannedCount > 0 ? Math.min(100, Math.round((plotCounts.total / plannedCount) * 100)) : 0}%` }}
+									/>
+								</div>
+								<p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5 font-medium">
+									{plotCounts.total} of {project.total_plots_count} planned plots created inside layout.
+								</p>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -257,53 +319,8 @@ export default async function ProjectDetailPage({
 			)}
 
 			{/* Recent Sales */}
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Recent Sales</CardTitle>
-				</CardHeader>
-				<CardContent>
-					{recentSales.length === 0 ? (
-						<p className="text-sm text-zinc-400 py-4 text-center">
-							No sales yet for this project
-						</p>
-					) : (
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="border-b text-left text-zinc-500">
-										<th className="pb-2 pr-4 font-medium">Plot</th>
-										<th className="pb-2 pr-4 font-medium">Customer</th>
-										<th className="pb-2 pr-4 font-medium">Advisor</th>
-										<th className="pb-2 pr-4 font-medium">Amount</th>
-										<th className="pb-2 pr-4 font-medium">Phase</th>
-										<th className="pb-2 font-medium">Date</th>
-									</tr>
-								</thead>
-								<tbody>
-									{recentSales.map((sale) => (
-										<tr key={sale.id} className="border-b last:border-0">
-											<td className="py-2.5 pr-4 font-medium">
-												{sale.plot_number}
-											</td>
-											<td className="py-2.5 pr-4">{sale.customer_name}</td>
-											<td className="py-2.5 pr-4">{sale.advisor_name}</td>
-											<td className="py-2.5 pr-4">
-												{formatCurrency(sale.total_sale_amount)}
-											</td>
-											<td className="py-2.5 pr-4">
-												<Badge variant="secondary">{sale.sale_phase}</Badge>
-											</td>
-											<td className="py-2.5">
-												{sale.token_date ? formatDate(sale.token_date) : "—"}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					)}
-				</CardContent>
-			</Card>
+			<RecentSalesList recentSales={recentSales} />
+
 		</div>
 	);
 }

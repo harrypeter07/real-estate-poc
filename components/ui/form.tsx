@@ -98,6 +98,7 @@ const FormLabel = React.forwardRef<
 				error && "text-destructive",
 				className,
 			)}
+			suppressHydrationWarning
 			{...props}
 		/>
 	);
@@ -121,6 +122,7 @@ const FormControl = React.forwardRef<
 					: `${formDescriptionId} ${formMessageId}`
 			}
 			aria-invalid={!!error}
+			suppressHydrationWarning
 			{...props}
 		/>
 	);

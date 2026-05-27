@@ -62,60 +62,118 @@ export async function getReportStats(filters?: ReportFilters) {
 	const end = filters?.endDate ? toDateOnly(filters.endDate) : undefined;
 	const { startTs, endTs } = getTimestampBounds(start, end);
 
-	// 1. Sales
-	let salesQuery = supabase
-		.from("plot_sales")
-		.select("id, customer_id, total_sale_amount, amount_paid, remaining_amount, created_at, plots(project_id, projects(id, name)), sale_phase")
-		.eq("business_id", businessId)
-		.eq("is_cancelled", false);
-	if (startTs) salesQuery = salesQuery.gte("created_at", startTs);
-	if (endTs) salesQuery = salesQuery.lte("created_at", endTs);
-	const { data: sales } = await salesQuery;
+	// Parallel fetch all independent data
+	const [
+		{ data: sales },
+		{ data: payments },
+		{ data: expenses },
+		{ data: advisors },
+		{ data: commissionPayments, error: commissionPaymentsErr },
+		{ data: projects },
+		{ data: salesWithAdvisor },
+		{ data: customersCountRows },
+		{ data: enquiryUpgradedCustomers },
+		{ data: followUps },
+	] = await Promise.all([
+		// 1. Sales
+		supabase
+			.from("plot_sales")
+			.select("id, customer_id, total_sale_amount, amount_paid, remaining_amount, created_at, plots(project_id, projects(id, name)), sale_phase")
+			.eq("business_id", businessId)
+			.eq("is_cancelled", false)
+			.gte("created_at", startTs ?? "1970-01-01")
+			.lte("created_at", endTs ?? "9999-12-31"),
+
+		// 2. Payments
+		supabase
+			.from("payments")
+			.select("amount, payment_date, is_confirmed")
+			.eq("business_id", businessId)
+			.eq("is_confirmed", true)
+			.gte("payment_date", start ?? "1970-01-01")
+			.lte("payment_date", end ?? "9999-12-31"),
+
+		// 3. Expenses
+		supabase
+			.from("office_expenses")
+			.select("amount, expense_date, category")
+			.eq("business_id", businessId)
+			.gte("expense_date", start ?? "1970-01-01")
+			.lte("expense_date", end ?? "9999-12-31"),
+
+		// 4. Advisor commissions
+		supabase
+			.from("advisors")
+			.select("id, name, advisor_commissions(total_commission_amount, amount_paid)")
+			.eq("business_id", businessId),
+
+		// 5. Commission Payments
+		supabase
+			.from("advisor_commission_payments")
+			.select("extra_paid_amount, paid_date")
+			.eq("business_id", businessId),
+
+		// 6. Project stats
+		supabase
+			.from("projects")
+			.select("id, name, plots(id, status)")
+			.eq("business_id", businessId),
+
+		// 7. Top advisors by sales value
+		supabase
+			.from("plot_sales")
+			.select("advisor_id, sold_by_admin, total_sale_amount, created_at, advisors(name)")
+			.eq("is_cancelled", false)
+			.gte("created_at", startTs ?? "1970-01-01")
+			.lte("created_at", endTs ?? "9999-12-31"),
+
+		// 8. New Customer count
+		supabase
+			.from("customers")
+			.select("created_at")
+			.eq("business_id", businessId)
+			.gte("created_at", startTs ?? "1970-01-01")
+			.lte("created_at", endTs ?? "9999-12-31"),
+
+		// 9. Enquiry conversions
+		supabase
+			.from("customers")
+			.select("id, upgraded_from_enquiry_id, upgraded_from_enquiry_at")
+			.eq("business_id", businessId)
+			.not("upgraded_from_enquiry_id", "is", null)
+			.gte("upgraded_from_enquiry_at", startTs ?? "1970-01-01")
+			.lte("upgraded_from_enquiry_at", endTs ?? "9999-12-31"),
+
+		// 10. Upcoming follow-ups
+		supabase
+			.from("enquiry_customers")
+			.select("id, name, phone, follow_up_date, category")
+			.eq("business_id", businessId)
+			.eq("is_active", true)
+			.not("follow_up_date", "is", null)
+			.gte("follow_up_date", new Date().toISOString().slice(0, 10))
+			.order("follow_up_date", { ascending: true })
+			.limit(10),
+	]);
+
+	const upcomingFollowUps = (followUps ?? []).map((f: any) => ({
+		id: f.id,
+		name: f.name,
+		phone: f.phone,
+		follow_up_date: f.follow_up_date,
+		category: f.category,
+	}));
 
 	const filteredSales = sales ?? [];
-
 	const totalSalesValue = filteredSales.reduce((sum, s) => sum + Number(s.total_sale_amount ?? 0), 0);
-	const totalCustomerOutstanding = filteredSales.reduce(
-		(sum, s) => sum + Number(s.remaining_amount ?? 0),
-		0,
-	);
-
-	// 2. Payments (for collections timeline; includes payments on revoked sales)
-	let paymentsQuery = supabase
-		.from("payments")
-		.select("amount, payment_date, is_confirmed")
-		.eq("business_id", businessId)
-		.eq("is_confirmed", true);
-	if (start) paymentsQuery = paymentsQuery.gte("payment_date", start);
-	if (end) paymentsQuery = paymentsQuery.lte("payment_date", end);
-	const { data: payments } = await paymentsQuery;
+	const totalCustomerOutstanding = filteredSales.reduce((sum, s) => sum + Number(s.remaining_amount ?? 0), 0);
 
 	const filteredPayments = payments ?? [];
-	const totalPaymentsCollected = filteredPayments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
-	const totalRevenueCollected = totalPaymentsCollected;
-
-	// 3. Expenses
-	let expensesQuery = supabase
-		.from("office_expenses")
-		.select("amount, expense_date, category");
-	expensesQuery = expensesQuery.eq("business_id", businessId);
-	if (start) expensesQuery = expensesQuery.gte("expense_date", start);
-	if (end) expensesQuery = expensesQuery.lte("expense_date", end);
-	const { data: expenses } = await expensesQuery;
+	const totalRevenueCollected = filteredPayments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
 
 	const filteredExpenses = expenses ?? [];
 	const totalExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
 
-	// 4. Advisor commissions
-	const { data: advisors } = await supabase
-		.from("advisors")
-		.select("id, name, advisor_commissions(total_commission_amount, amount_paid)")
-		.eq("business_id", businessId);
-
-	const { data: commissionPayments, error: commissionPaymentsErr } = await supabase
-		.from("advisor_commission_payments")
-		.select("extra_paid_amount, paid_date")
-		.eq("business_id", businessId);
 	const safeCommissionPayments =
 		commissionPaymentsErr &&
 		(commissionPaymentsErr.message || "").toLowerCase().includes("extra_paid_amount")
@@ -143,12 +201,6 @@ export async function getReportStats(filters?: ReportFilters) {
 		};
 	});
 
-	// 5. Project stats
-	const { data: projects } = await supabase
-		.from("projects")
-		.select("id, name, plots(id, status)")
-		.eq("business_id", businessId);
-
 	const projectStats = (projects ?? []).map((p: any) => {
 		const plots = (p.plots as any[]) || [];
 		const total = plots.length;
@@ -172,30 +224,19 @@ export async function getReportStats(filters?: ReportFilters) {
 		};
 	});
 
-	// 6. Revenue by project (in period)
 	const revenueByProject: Record<string, number> = {};
 	for (const s of filteredSales) {
 		const proj = (s as any).plots?.projects?.name ?? "Unknown";
 		revenueByProject[proj] = (revenueByProject[proj] ?? 0) + Number((s as any).total_sale_amount ?? 0);
 	}
 
-	// 7. Revenue by sale phase
 	const revenueByPhase: Record<string, number> = {};
 	for (const s of filteredSales) {
 		const phase = (s as any).sale_phase ?? "other";
 		revenueByPhase[phase] = (revenueByPhase[phase] ?? 0) + Number((s as any).total_sale_amount ?? 0);
 	}
 
-	// 8. Top advisors by sales value (includes "Admin (Direct)" for sold_by_admin)
 	const advisorSales: Record<string, number> = {};
-	let salesWithAdvisorQuery = supabase
-		.from("plot_sales")
-		.select("advisor_id, sold_by_admin, total_sale_amount, created_at, advisors(name)")
-		.eq("is_cancelled", false);
-	if (startTs) salesWithAdvisorQuery = salesWithAdvisorQuery.gte("created_at", startTs);
-	if (endTs) salesWithAdvisorQuery = salesWithAdvisorQuery.lte("created_at", endTs);
-	const { data: salesWithAdvisor } = await salesWithAdvisorQuery;
-
 	const filteredWithAdvisor = salesWithAdvisor ?? [];
 	for (const s of filteredWithAdvisor) {
 		const name =
@@ -210,40 +251,21 @@ export async function getReportStats(filters?: ReportFilters) {
 		.sort((a, b) => b.value - a.value)
 		.slice(0, 10);
 
-	// 9. Expense by category
 	const expenseByCategory: Record<string, number> = {};
 	for (const e of filteredExpenses) {
 		const cat = (e as any).category ?? "misc";
 		expenseByCategory[cat] = (expenseByCategory[cat] ?? 0) + Number((e as any).amount ?? 0);
 	}
 
-	// 10. Collections vs outstanding (customer dues on active sales)
 	const collectionsVsOutstanding = {
 		collected: totalRevenueCollected,
 		outstanding: totalCustomerOutstanding,
 		total: totalSalesValue,
 	};
 
-	// 11. Customer count (new in period)
-	let customersQuery = supabase
-		.from("customers")
-		.select("created_at");
-	if (startTs) customersQuery = customersQuery.gte("created_at", startTs);
-	if (endTs) customersQuery = customersQuery.lte("created_at", endTs);
-	const { data: customers } = await customersQuery;
-	const newCustomersInPeriod = (customers ?? []).length;
-
-	// 12. Enquiry conversions (temporary -> regular)
-	let enquiryUpgradedCustomersQuery = supabase
-		.from("customers")
-		.select("id, upgraded_from_enquiry_id, upgraded_from_enquiry_at")
-		.not("upgraded_from_enquiry_id", "is", null);
-	if (startTs) enquiryUpgradedCustomersQuery = enquiryUpgradedCustomersQuery.gte("upgraded_from_enquiry_at", startTs);
-	if (endTs) enquiryUpgradedCustomersQuery = enquiryUpgradedCustomersQuery.lte("upgraded_from_enquiry_at", endTs);
-	const { data: enquiryUpgradedCustomers } = await enquiryUpgradedCustomersQuery;
+	const newCustomersInPeriod = (customersCountRows ?? []).length;
 
 	const upgradedInPeriod = enquiryUpgradedCustomers ?? [];
-
 	const upgradedCustomerIds = new Set(upgradedInPeriod.map((c: any) => c.id));
 	const convertedSales = filteredSales.filter(
 		(s: any) => !!s.customer_id && upgradedCustomerIds.has(s.customer_id)
@@ -252,7 +274,6 @@ export async function getReportStats(filters?: ReportFilters) {
 		convertedSales.map((s: any) => s.customer_id)
 	);
 
-	// 12b. Enquiry category breakdown (from upgraded customers)
 	const enquiryIds = upgradedInPeriod
 		.map((c: any) => c.upgraded_from_enquiry_id)
 		.filter(Boolean);
@@ -338,6 +359,7 @@ export async function getReportStats(filters?: ReportFilters) {
 			.map(([weekLabel, v]) => ({ month: weekLabel, count: v.count, value: v.value, sortKey: v.sortKey }))
 			.sort((a: any, b: any) => (a.sortKey ?? "").localeCompare(b.sortKey ?? ""))
 			.map((p: any) => ({ month: p.month, count: p.count, value: p.value })),
+		upcomingFollowUps,
 	};
 }
 

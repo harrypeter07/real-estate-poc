@@ -695,12 +695,12 @@ export default function SuperAdminAdminsPage() {
 								))}
 							</SelectContent>
 						</Select>
-						<div className="flex-1 min-w-[220px]">
+						<div className="flex-1 min-w-[220px] group">
 							<Input
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								placeholder="Search by email, name, auth user id..."
-								className="w-full"
+								className="w-full h-9.5 text-xs rounded-2xl border-zinc-200/80 bg-white hover:border-zinc-300 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] placeholder:text-zinc-400 font-bold transition-all duration-300"
 							/>
 						</div>
 						<Button variant="outline" size="sm" disabled={isPending} onClick={() => startTransition(load)}>

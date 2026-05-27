@@ -224,3 +224,36 @@ export async function updateBusinessProfile(values: {
 	revalidatePath("/settings/business");
 	return { success: true, profile: data as BusinessProfile };
 }
+
+export async function getPublicBusinessInfo(businessIdOrName?: string): Promise<{ name: string; tagline: string }> {
+	const admin = createAdminClient();
+	if (!admin) return { name: "Business name not set", tagline: "" };
+
+	let query = admin.from("businesses").select("name, display_name, tagline");
+
+	if (businessIdOrName) {
+		const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(businessIdOrName);
+		if (isUuid) {
+			query = query.eq("id", businessIdOrName);
+		} else {
+			query = query.or(`name.ilike.%${businessIdOrName}%,display_name.ilike.%${businessIdOrName}%`);
+		}
+	} else {
+		// Fetch the default business from _app_kv, or first active business if not configured.
+		const { data: kv } = await admin.from("_app_kv").select("value").eq("key", "default_business_id").maybeSingle();
+		if (kv?.value) {
+			query = query.eq("id", kv.value);
+		} else {
+			query = query.eq("status", "active").order("created_at", { ascending: true }).limit(1);
+		}
+	}
+
+	const { data, error } = await query.maybeSingle();
+	if (error || !data) return { name: "Business name not set", tagline: "" };
+
+	return {
+		name: String((data as any).display_name || (data as any).name || "Business name not set").trim(),
+		tagline: String((data as any).tagline || "").trim(),
+	};
+}
+

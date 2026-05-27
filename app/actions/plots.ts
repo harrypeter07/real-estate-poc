@@ -50,6 +50,7 @@ export async function createPlot(
 		size_sqft: parsed.data.size_sqft,
 		rate_per_sqft: parsed.data.rate_per_sqft,
 		facing: parsed.data.facing || null,
+		type: parsed.data.type || "plot",
 		notes: parsed.data.notes || null,
 	});
 
@@ -77,6 +78,7 @@ export async function createBulkPlots(
 		size_sqft: number;
 		rate_per_sqft: number;
 		facing: string;
+		type: "plot" | "flat" | "villa" | "farmhouse" | "commercial" | "other";
 	}
 ): Promise<ActionResponse & { count?: number }> {
 	if (data.to_number < data.from_number) {
@@ -105,6 +107,7 @@ export async function createBulkPlots(
 			size_sqft: data.size_sqft,
 			rate_per_sqft: data.rate_per_sqft,
 			facing: data.facing || null,
+			type: data.type || "plot",
 		});
 	}
 
@@ -167,6 +170,7 @@ export async function updatePlot(
 			rate_per_sqft:
 				parsed.data.rate_per_sqft ?? Number((plot as any).rate_per_sqft ?? 0),
 			facing: parsed.data.facing || null,
+			type: parsed.data.type || "plot",
 			notes: parsed.data.notes || null,
 			updated_at: new Date().toISOString(),
 		})
@@ -209,6 +213,7 @@ export async function bulkUpdatePlots(
 		parsed.data.size_sqft !== undefined ||
 		parsed.data.rate_per_sqft !== undefined ||
 		parsed.data.facing !== undefined ||
+		parsed.data.type !== undefined ||
 		parsed.data.notes !== undefined;
 	if (!hasAny) {
 		return { success: false, error: "Nothing to update" };
@@ -246,6 +251,7 @@ export async function bulkUpdatePlots(
 	if (parsed.data.rate_per_sqft !== undefined) payload.rate_per_sqft = parsed.data.rate_per_sqft;
 	if (parsed.data.facing !== undefined)
 		payload.facing = parsed.data.facing.trim() ? parsed.data.facing.trim() : null;
+	if (parsed.data.type !== undefined) payload.type = parsed.data.type;
 	if (parsed.data.notes !== undefined)
 		payload.notes = parsed.data.notes.trim() ? parsed.data.notes.trim() : null;
 
@@ -455,6 +461,7 @@ export type PlotWithSaleInfo = {
 	total_amount: number;
 	status: "available" | "token" | "agreement" | "sold" | "sold_without_data";
 	facing: string | null;
+	type: "plot" | "flat" | "villa" | "farmhouse" | "commercial" | "other";
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
@@ -563,6 +570,7 @@ export async function getPlotsByProject(
 		total_amount: Number(plot.total_amount),
 		status: (plot.status as PlotWithSaleInfo["status"]) ?? "available",
 		facing: plot.facing,
+		type: plot.type || "plot",
 		notes: plot.notes,
 		created_at: plot.created_at,
 		updated_at: plot.updated_at,
@@ -654,6 +662,7 @@ export async function getPlotWithPayments(
 		total_amount: Number(plot.total_amount),
 		status: (plot.status as PlotWithSaleInfo["status"]) ?? "available",
 		facing: plot.facing,
+		type: plot.type || "plot",
 		notes: plot.notes,
 		created_at: plot.created_at,
 		updated_at: plot.updated_at,

@@ -19,11 +19,12 @@ import {
 	User,
 	Award,
 	Activity,
-	AlertCircle
+	AlertCircle,
+	Home
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button, Input, Textarea, Badge } from "@/components/ui";
+import { Button, Input, Textarea, Badge, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import {
 	createPlot,
 	updatePlot,
@@ -42,6 +43,7 @@ interface PlotForGrid {
 	rate_per_sqft: number;
 	status: "available" | "token" | "agreement" | "sold" | "sold_without_data" | string;
 	facing: string | null;
+	type?: "plot" | "flat" | "villa" | "farmhouse" | "commercial" | "other" | string | null;
 	notes?: string | null;
 	sale?: {
 		id: string;
@@ -309,17 +311,34 @@ const LuxuryComplexVisual = ({ status }: { status: string }) => {
 	);
 };
 
-const PropertyVisual = ({ sizeSqft, statusKey }: { sizeSqft: number; statusKey: string }) => {
-	if (sizeSqft < 3000) {
-		return <VillaVisual status={statusKey} />;
+const PropertyVisual = ({ type, sizeSqft, statusKey }: { type?: string | null; sizeSqft: number; statusKey: string }) => {
+	const normalizedType = String(type ?? "").trim().toLowerCase();
+	switch (normalizedType) {
+		case "flat":
+			return <ApartmentVisual status={statusKey} />;
+		case "commercial":
+			return <SkylineVisual status={statusKey} />;
+		case "villa":
+			return <VillaVisual status={statusKey} />;
+		case "farmhouse":
+			return <LuxuryComplexVisual status={statusKey} />;
+		case "plot":
+			return <VillaVisual status={statusKey} />;
+		case "other":
+			return <LuxuryComplexVisual status={statusKey} />;
+		default:
+			// Fallback to size-based visual if type is not set or not matching
+			if (sizeSqft < 3000) {
+				return <VillaVisual status={statusKey} />;
+			}
+			if (sizeSqft >= 3000 && sizeSqft <= 5000) {
+				return <ApartmentVisual status={statusKey} />;
+			}
+			if (sizeSqft > 5000 && sizeSqft <= 10000) {
+				return <SkylineVisual status={statusKey} />;
+			}
+			return <LuxuryComplexVisual status={statusKey} />;
 	}
-	if (sizeSqft >= 3000 && sizeSqft <= 5000) {
-		return <ApartmentVisual status={statusKey} />;
-	}
-	if (sizeSqft > 5000 && sizeSqft <= 10000) {
-		return <SkylineVisual status={statusKey} />;
-	}
-	return <LuxuryComplexVisual status={statusKey} />;
 };
 
 function normalizePlotStatus(status: unknown): string {
@@ -352,11 +371,13 @@ export function PlotLayoutGrid({
 		size_sqft: number | undefined;
 		rate_per_sqft: number | undefined;
 		facing: string;
+		type: string;
 		notes: string;
 	}>({
 		size_sqft: undefined,
 		rate_per_sqft: undefined,
 		facing: "",
+		type: "unchanged",
 		notes: "",
 	});
 	const router = useRouter();
@@ -425,6 +446,7 @@ export function PlotLayoutGrid({
 		size_sqft: number | undefined;
 		rate_per_sqft: number | undefined;
 		facing: string;
+		type: string;
 		notes: string;
 	}>({
 		size_sqft:
@@ -434,6 +456,7 @@ export function PlotLayoutGrid({
 				? selectedPlot.rate_per_sqft
 				: undefined,
 		facing: selectedPlot?.facing ?? "",
+		type: selectedPlot?.type || "plot",
 		notes: "",
 	});
 
@@ -445,6 +468,7 @@ export function PlotLayoutGrid({
 			size_sqft: selectedPlot.size_sqft > 0 ? selectedPlot.size_sqft : undefined,
 			rate_per_sqft: selectedPlot.rate_per_sqft > 0 ? selectedPlot.rate_per_sqft : undefined,
 			facing: selectedPlot.facing ?? "",
+			type: selectedPlot.type || "plot",
 			notes: selectedPlot.notes ?? "",
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -462,6 +486,7 @@ export function PlotLayoutGrid({
 			size_sqft: first.size_sqft > 0 ? first.size_sqft : undefined,
 			rate_per_sqft: first.rate_per_sqft > 0 ? first.rate_per_sqft : undefined,
 			facing: first.facing ?? "",
+			type: "unchanged",
 			notes: first.notes ?? "",
 		});
 	}, [multiSelectMode, multiSelectedPlotIds, sortedPlots]);
@@ -621,7 +646,7 @@ export function PlotLayoutGrid({
 									{/* Colorful Property Icon Backdrop & Wrapper */}
 									<div className="flex-1 flex items-center justify-center pointer-events-none z-10 w-full pt-1.5 pb-1">
 										<div className="h-10 w-10 sm:h-11 sm:w-11 transition-all duration-300 group-hover:scale-90 group-hover:opacity-40 flex items-center justify-center">
-											<PropertyVisual sizeSqft={size} statusKey={statusKey} />
+											<PropertyVisual type={plot.type} sizeSqft={size} statusKey={statusKey} />
 										</div>
 									</div>
 
@@ -635,7 +660,7 @@ export function PlotLayoutGrid({
 
 									{/* Premium Smooth Hover Reveal Overlay */}
 									<div className="absolute inset-0 bg-zinc-950/95 text-white flex flex-col items-center justify-center p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out scale-95 group-hover:scale-100 backdrop-blur-sm z-20">
-										<span className="text-[7.5px] font-bold uppercase tracking-wider text-zinc-400">Plot</span>
+										<span className="text-[7.5px] font-bold uppercase tracking-wider text-zinc-400 capitalize">{plot.type || "plot"}</span>
 										<span className="text-[14px] sm:text-[16px] font-black text-white leading-none mb-1">#{plot.plot_number}</span>
 										<span className="text-[9px] sm:text-[10px] font-bold text-zinc-200 tracking-wide leading-none mb-2">
 											{Number(plot.size_sqft || 0).toLocaleString("en-IN")} sqft
@@ -739,6 +764,34 @@ export function PlotLayoutGrid({
 
 											<div>
 												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+													Property Type
+												</p>
+												<Select
+													value={bulkFormState.type}
+													onValueChange={(val) =>
+														setBulkFormState((s) => ({
+															...s,
+															type: val,
+														}))
+													}
+												>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Select type to update" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="unchanged">Leave Unchanged</SelectItem>
+														<SelectItem value="plot">Plot</SelectItem>
+														<SelectItem value="flat">Flat</SelectItem>
+														<SelectItem value="villa">Villa</SelectItem>
+														<SelectItem value="farmhouse">Farmhouse</SelectItem>
+														<SelectItem value="commercial">Commercial</SelectItem>
+														<SelectItem value="other">Other</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+
+											<div>
+												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
 													Facing
 												</p>
 												<Input
@@ -789,6 +842,7 @@ export function PlotLayoutGrid({
 																	size_sqft: bulkFormState.size_sqft,
 																	rate_per_sqft: bulkFormState.rate_per_sqft,
 																	facing: bulkFormState.facing,
+																	type: bulkFormState.type === "unchanged" || !bulkFormState.type ? undefined : (bulkFormState.type as any),
 																	notes: bulkFormState.notes,
 																}
 															);
@@ -1022,6 +1076,7 @@ export function PlotLayoutGrid({
 														size_sqft: sizeSeed,
 														rate_per_sqft: rateSeed,
 														facing: "",
+														type: selectedPlot.type || "plot",
 														notes: "",
 													} as any);
 													if (!res.success) {
@@ -1101,6 +1156,28 @@ export function PlotLayoutGrid({
 									</div>
 									<div>
 										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+											Property Type
+										</p>
+										<Select
+											value={formState.type}
+											onValueChange={(val) => setFormState((s) => ({ ...s, type: val }))}
+										>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="Select type" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="plot">Plot</SelectItem>
+												<SelectItem value="flat">Flat</SelectItem>
+												<SelectItem value="villa">Villa</SelectItem>
+												<SelectItem value="farmhouse">Farmhouse</SelectItem>
+												<SelectItem value="commercial">Commercial</SelectItem>
+												<SelectItem value="other">Other</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									<div>
+										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
 											Facing
 										</p>
 										<Input
@@ -1132,6 +1209,7 @@ export function PlotLayoutGrid({
 													size_sqft: formState.size_sqft,
 													rate_per_sqft: formState.rate_per_sqft,
 													facing: formState.facing,
+													type: formState.type,
 													notes: formState.notes,
 												} as any);
 												if (!res.success) {
@@ -1151,6 +1229,9 @@ export function PlotLayoutGrid({
 								</div>
 							) : (
 								<div className="grid grid-cols-2 gap-2 text-sm">
+									<ModalField label="Property Type" icon={Home}>
+										<span className="capitalize">{selectedPlot.type || "plot"}</span>
+									</ModalField>
 									<ModalField label="Facing" icon={Compass}>
 										{selectedPlot.facing || "—"}
 									</ModalField>

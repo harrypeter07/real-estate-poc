@@ -58,6 +58,7 @@ CREATE TABLE plots (
     (size_sqft * rate_per_sqft) STORED,
   status plot_status DEFAULT 'available',
   facing TEXT,                            -- North/South/East/West
+  type TEXT DEFAULT 'plot',               -- "plot", "flat", "villa", "farmhouse", "commercial", "other"
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),

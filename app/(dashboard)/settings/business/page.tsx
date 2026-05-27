@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { getBusinessProfileOrError } from "@/app/actions/business-settings";
 import { BusinessSettingsForm } from "@/components/settings/business-settings-form";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 export default async function BusinessSettingsPage() {
 	const { profile, error } = await getBusinessProfileOrError();
@@ -20,7 +21,9 @@ export default async function BusinessSettingsPage() {
 					</span>
 				}
 			/>
-			<BusinessSettingsForm initial={profile} error={error} />
+			<SettingsTabs>
+				<BusinessSettingsForm initial={profile} error={error} />
+			</SettingsTabs>
 		</div>
 	);
 }

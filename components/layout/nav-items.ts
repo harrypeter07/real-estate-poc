@@ -26,7 +26,6 @@ export interface NavItem {
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Modules Upgrade", href: "/upgraded-modules", icon: Sparkles },
   { label: "Projects", href: "/projects", icon: Building2, moduleKey: "projects" },
   { label: "Advisors", href: "/advisors", icon: UserCheck, moduleKey: "projects" },
   { label: "Advisor Analytics", href: "/advisor-analytics", icon: BarChart3, moduleKey: "reports" },

@@ -35,9 +35,9 @@ export async function GET(req: Request) {
 			.from("plot_sales")
 			.select(`
 				*,
-				customers(id, name, phone),
+				customers(id, name, phone, email, address),
 				advisors(id, name),
-				plots(id, plot_number, facing, size_sqft, projects(id, name))
+				plots(id, plot_number, facing, size_sqft, rate_per_sqft, projects(id, name, location))
 			`, { count: "exact" })
 			.eq("business_id", businessId);
 
@@ -48,9 +48,9 @@ export async function GET(req: Request) {
 				.from("plot_sales")
 				.select(`
 					*,
-					customers(id, name, phone),
+					customers(id, name, phone, email, address),
 					advisors(id, name),
-					plots!inner(id, plot_number, facing, size_sqft, project_id, projects(id, name))
+					plots!inner(id, plot_number, facing, size_sqft, rate_per_sqft, project_id, projects(id, name, location))
 				`, { count: "exact" })
 				.eq("business_id", businessId)
 				.eq("plots.project_id", projectId);

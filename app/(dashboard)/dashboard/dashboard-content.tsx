@@ -51,7 +51,7 @@ export default async function DashboardContent({
 							</p>
 						</div>
 						<div className="mt-4 flex flex-col justify-end">
-							<p className="text-2xl font-extrabold tracking-tight leading-tight truncate">
+							<p className="text-lg min-[380px]:text-xl sm:text-2xl font-extrabold tracking-tight leading-tight break-words">
 								{formatCurrency(stats.summary.totalSalesValue)}
 							</p>
 							<p className="text-xs text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
@@ -60,7 +60,7 @@ export default async function DashboardContent({
 						</div>
 					</CardContent>
 				</Card>
-
+ 
 				<Card className="group bg-gradient-to-br from-white to-emerald-50/[0.12] dark:from-zinc-950 dark:to-emerald-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-500/40 dark:hover:border-emerald-800/40 shadow-sm hover:-translate-y-1.5 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_24px_rgba(16,185,129,0.12)] rounded-2xl">
 					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
 						<div className="flex items-center gap-3.5 w-full">
@@ -72,7 +72,7 @@ export default async function DashboardContent({
 							</p>
 						</div>
 						<div className="mt-4 flex flex-col justify-end">
-							<p className="text-2xl font-extrabold tracking-tight leading-tight text-emerald-600 dark:text-emerald-400 truncate">
+							<p className="text-lg min-[380px]:text-xl sm:text-2xl font-extrabold tracking-tight leading-tight text-emerald-600 dark:text-emerald-400 break-words">
 								{formatCurrency(stats.summary.totalRevenueCollected)}
 							</p>
 							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
@@ -81,7 +81,7 @@ export default async function DashboardContent({
 						</div>
 					</CardContent>
 				</Card>
-
+ 
 				<Card className="group bg-gradient-to-br from-white to-rose-50/[0.12] dark:from-zinc-950 dark:to-rose-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-rose-500/40 dark:hover:border-rose-800/40 shadow-sm hover:-translate-y-1.5 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_24px_rgba(244,63,94,0.12)] rounded-2xl">
 					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
 						<div className="flex items-center gap-3.5 w-full">
@@ -93,7 +93,7 @@ export default async function DashboardContent({
 							</p>
 						</div>
 						<div className="mt-4 flex flex-col justify-end">
-							<p className="text-2xl font-extrabold tracking-tight leading-tight text-red-600 dark:text-rose-400 truncate">
+							<p className="text-lg min-[380px]:text-xl sm:text-2xl font-extrabold tracking-tight leading-tight text-red-600 dark:text-rose-400 break-words">
 								{formatCurrency(stats.summary.totalExpenses)}
 							</p>
 							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
@@ -102,7 +102,7 @@ export default async function DashboardContent({
 						</div>
 					</CardContent>
 				</Card>
-
+ 
 				<Card className="group bg-gradient-to-br from-white to-blue-50/[0.12] dark:from-zinc-950 dark:to-blue-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-500/40 dark:hover:border-blue-800/40 shadow-sm hover:-translate-y-1.5 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_24px_rgba(59,130,246,0.12)] rounded-2xl">
 					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
 						<div className="flex items-center gap-3.5 w-full">
@@ -114,7 +114,7 @@ export default async function DashboardContent({
 							</p>
 						</div>
 						<div className="mt-4 flex flex-col justify-end">
-							<p className="text-2xl font-extrabold tracking-tight leading-tight text-blue-600 dark:text-blue-400 truncate">
+							<p className="text-lg min-[380px]:text-xl sm:text-2xl font-extrabold tracking-tight leading-tight text-blue-600 dark:text-blue-400 break-words">
 								{formatCurrency(stats.summary.netProfit)}
 							</p>
 							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">
@@ -123,7 +123,7 @@ export default async function DashboardContent({
 						</div>
 					</CardContent>
 				</Card>
-
+ 
 				<Card className="group bg-gradient-to-br from-white to-amber-50/[0.12] dark:from-zinc-950 dark:to-amber-950/[0.04] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-amber-500/40 dark:hover:border-amber-800/40 shadow-sm hover:-translate-y-1.5 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full hover:shadow-[0_12px_24px_rgba(245,158,11,0.12)] rounded-2xl">
 					<CardContent className="p-6 flex flex-col justify-between h-full w-full">
 						<div className="flex items-center gap-3.5 w-full">
@@ -135,7 +135,7 @@ export default async function DashboardContent({
 							</p>
 						</div>
 						<div className="mt-4 flex flex-col justify-end">
-							<p className="text-2xl font-extrabold tracking-tight leading-tight text-amber-700 dark:text-amber-500 truncate">
+							<p className="text-lg min-[380px]:text-xl sm:text-2xl font-extrabold tracking-tight leading-tight text-amber-700 dark:text-amber-505 break-words">
 								{formatCurrency((stats.summary as any).totalExtraCommissionPaid ?? 0)}
 							</p>
 							<p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1.5 flex items-center gap-1.5 truncate">

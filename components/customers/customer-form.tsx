@@ -312,10 +312,10 @@ export function CustomerForm({
 
   return (
     <Card className="max-w-4xl w-full border border-zinc-200/80 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden bg-white">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-zinc-100 p-6 sm:p-8 bg-zinc-50/50">
-        <div>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 p-6 sm:p-8 bg-zinc-50/50">
+        <div className="space-y-1">
           <CardTitle className="text-xl font-bold text-zinc-900">{mode === "edit" ? "Edit Customer" : "New Customer"}</CardTitle>
-          <CardDescription className="text-xs text-zinc-500 mt-1">Enter details for the plot buyer</CardDescription>
+          <CardDescription className="text-xs text-zinc-500">Enter details for the plot buyer</CardDescription>
         </div>
         {isDev ? (
           <Button 
@@ -323,7 +323,7 @@ export function CustomerForm({
             variant="outline" 
             size="sm" 
             onClick={fillMockData}
-            className="h-9 rounded-xl border-zinc-200 hover:bg-zinc-100/80 text-zinc-600 transition-all duration-200 hover:scale-102 font-medium text-xs shadow-sm"
+            className="w-full sm:w-auto h-9 rounded-xl border-zinc-200 hover:bg-zinc-100/80 text-zinc-600 transition-all duration-200 hover:scale-102 font-medium text-xs shadow-sm flex items-center justify-center gap-1.5"
           >
             Fill Mock Data
           </Button>
@@ -737,19 +737,19 @@ export function CustomerForm({
 
             {/* Action Buttons & Submit Status */}
             <div className="space-y-4 pt-4 border-t border-zinc-100">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => router.back()}
-                  className="rounded-xl border-zinc-200 hover:bg-zinc-50 px-5 h-10 transition-all font-semibold text-zinc-700 duration-200 cursor-pointer shadow-sm border"
+                  className="w-full sm:w-auto rounded-xl border-zinc-200 hover:bg-zinc-50 px-5 h-10 transition-all font-semibold text-zinc-700 duration-200 cursor-pointer shadow-sm border"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading || (mode === "edit" && !form.formState.isDirty)}
-                  className={`rounded-xl h-10 px-6 font-semibold shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] cursor-pointer bg-teal-600 hover:bg-teal-700 text-white ${
+                  className={`w-full sm:w-auto rounded-xl h-10 px-6 font-semibold shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] cursor-pointer bg-teal-600 hover:bg-teal-700 text-white ${
                     loading || (mode === "edit" && !form.formState.isDirty) ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 >

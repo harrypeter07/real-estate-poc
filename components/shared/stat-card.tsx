@@ -95,7 +95,7 @@ export function StatCard({
 
 				{/* Bottom Area: Value and optional badge/trend */}
 				<div className="mt-4 flex flex-col justify-end">
-					<p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight truncate">
+					<p className="text-lg min-[380px]:text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight break-words">
 						{displayValue}
 					</p>
 					

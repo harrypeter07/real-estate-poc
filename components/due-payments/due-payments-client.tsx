@@ -256,7 +256,7 @@ export function DuePaymentsClient({ advisors }: Props) {
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						placeholder="Search customer name..."
-						className="pl-10 h-9.5 text-xs rounded-xl border-zinc-200 bg-white hover:border-zinc-350 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0 font-bold"
+						className="pl-10 sm:pl-10 h-9.5 text-xs rounded-xl border-zinc-200 bg-white hover:border-zinc-350 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0 font-bold"
 					/>
 				</div>
 			</div>

@@ -310,7 +310,7 @@ export function AdvisorForm({
 
 	return (
 		<Card className="max-w-3xl w-full mx-auto border border-zinc-200/80 bg-white/70 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_40px_rgb(0,0,0,0.06)] hover:border-zinc-300/80">
-			<CardHeader className="relative border-b border-zinc-150 bg-zinc-50/50 p-6 sm:p-8 flex flex-row items-center justify-between gap-4">
+			<CardHeader className="relative border-b border-zinc-150 bg-zinc-50/50 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
 				<div className="space-y-1.5">
 					<CardTitle className="text-xl sm:text-2xl font-bold text-zinc-950 flex items-center gap-2.5">
 						<span className="h-9 w-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100 shadow-sm shrink-0">
@@ -336,9 +336,9 @@ export function AdvisorForm({
 						variant="outline"
 						size="sm"
 						onClick={fillMockData}
-						className="relative h-9 px-4 rounded-xl border-zinc-200 hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-700 text-zinc-700 text-xs font-bold transition-all duration-200 shadow-sm hover:shadow active:scale-95 flex items-center gap-1.5"
+						className="relative w-full sm:w-auto h-9 px-4 rounded-xl border-zinc-200 hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-700 text-zinc-700 text-xs font-bold transition-all duration-200 shadow-sm hover:shadow active:scale-95 flex items-center justify-center gap-1.5"
 					>
-						<Sparkles className="h-3.5 w-3.5 text-teal-500 animate-pulse" />
+						<Sparkles className="h-3.5 w-3.5 text-teal-500 animate-pulse animate-duration-1000 shrink-0" />
 						Fill Mock Data
 					</Button>
 				) : null}
@@ -759,7 +759,7 @@ export function AdvisorForm({
 							</div>
 						) : null}
 
-						<div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-150 bg-zinc-50/50 p-6 -mx-6 -mb-6 mt-4">
+						<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3 border-t border-zinc-150 bg-zinc-50/50 p-6 -mx-6 -mb-6 mt-4">
 							<Button
 								type="button"
 								variant="outline"
@@ -767,7 +767,7 @@ export function AdvisorForm({
 									onCancel?.();
 									if (redirectToList) router.back();
 								}}
-								className="h-10 px-5 rounded-xl font-bold border-zinc-250 bg-white hover:bg-zinc-50 hover:text-zinc-900 shadow-sm active:scale-98 transition-all shrink-0 cursor-pointer"
+								className="w-full sm:w-auto h-10 px-5 rounded-xl font-bold border-zinc-250 bg-white hover:bg-zinc-50 hover:text-zinc-900 shadow-sm active:scale-98 transition-all shrink-0 cursor-pointer"
 							>
 								Cancel
 							</Button>
@@ -778,7 +778,7 @@ export function AdvisorForm({
 									(mode === "edit" && !form.formState.isDirty) ||
 									(variant === "sub" && subMode === "existing" && (existingAdvisorIds.length === 0 || !parentAdvisorId))
 								}
-								className="h-10 min-w-[150px] rounded-xl font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/10 hover:shadow-lg hover:shadow-teal-500/20 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+								className="w-full sm:w-auto h-10 sm:min-w-[150px] rounded-xl font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/10 hover:shadow-lg hover:shadow-teal-500/20 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
 								onClick={
 									variant === "sub" && subMode === "existing"
 										? () => void handleExistingSubmit()

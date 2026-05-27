@@ -43,16 +43,16 @@ export default async function AdvisorsPage() {
 				title="Advisors"
 				subtitle={`${mains.length} main advisor${mains.length === 1 ? "" : "s"} · ${advisors.length} total`}
 				action={
-					<div className="flex flex-wrap gap-2.5">
-						<Link href="/advisors/new-sub">
-							<Button size="sm" variant="outline" className="h-9.5 px-4 bg-white hover:bg-zinc-50 border-zinc-200/80 hover:border-zinc-300 text-zinc-700 hover:text-zinc-950 active:scale-95 rounded-xl font-bold shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer">
-								<UserPlus className="h-4 w-4 text-zinc-500 hover:text-zinc-800" />
+					<div className="flex flex-row items-center gap-2.5 w-full sm:w-auto">
+						<Link href="/advisors/new-sub" className="flex-1 sm:flex-initial">
+							<Button size="sm" variant="outline" className="w-full sm:w-auto h-10 px-3 bg-white hover:bg-zinc-50 border-zinc-200 hover:border-zinc-300 text-zinc-700 hover:text-zinc-950 active:scale-95 rounded-xl font-bold shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 text-[11px] min-[360px]:text-xs cursor-pointer">
+								<UserPlus className="h-4 w-4 text-zinc-500 shrink-0" />
 								New Sub-advisor
 							</Button>
 						</Link>
-						<Link href="/advisors/new">
-							<Button size="sm" className="h-9.5 px-4 bg-teal-600 hover:bg-teal-700 text-white active:scale-95 border-none rounded-xl font-bold shadow-md shadow-teal-500/10 hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer">
-								<Plus className="h-4 w-4 text-teal-50" />
+						<Link href="/advisors/new" className="flex-1 sm:flex-initial">
+							<Button size="sm" className="w-full sm:w-auto h-10 px-3 bg-teal-600 hover:bg-teal-700 text-white active:scale-95 border-none rounded-xl font-bold shadow-md shadow-teal-500/10 hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 text-[11px] min-[360px]:text-xs cursor-pointer">
+								<Plus className="h-4 w-4 text-teal-50 shrink-0" />
 								New Advisor
 							</Button>
 						</Link>

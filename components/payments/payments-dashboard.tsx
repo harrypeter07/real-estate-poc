@@ -803,13 +803,13 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 								/>
 							</div>
 
-							<div className="flex justify-end gap-2.5 pt-3.5 border-t border-zinc-150/80">
+							<div className="flex flex-row items-center justify-end gap-2.5 pt-3.5 border-t border-zinc-150/80 w-full">
 								<Button 
 									size="sm" 
 									type="button" 
 									variant="outline" 
 									onClick={() => setAddOpen(false)}
-									className="h-9 px-4 text-xs font-black border-zinc-200 text-zinc-500 hover:text-zinc-700 bg-white rounded-xl shadow-xs transition-all cursor-pointer"
+									className="flex-1 sm:flex-initial h-10 px-4 text-xs font-black border-zinc-200 text-zinc-500 hover:text-zinc-700 bg-white rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center"
 								>
 									Cancel
 								</Button>
@@ -817,7 +817,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 									size="sm" 
 									type="submit" 
 									disabled={createPaymentMutation.isPending} 
-									className="h-9 px-4.5 text-xs font-black rounded-xl bg-teal-600 hover:bg-teal-700 text-white hover:shadow-[0_4px_12px_rgba(13,148,136,0.15)] transition-all cursor-pointer shadow-xs active:scale-[0.98] flex items-center gap-1"
+									className="flex-1 sm:flex-initial h-10 px-4 text-xs font-black rounded-xl bg-teal-600 hover:bg-teal-700 text-white hover:shadow-[0_4px_12px_rgba(13,148,136,0.15)] transition-all cursor-pointer shadow-xs active:scale-[0.98] flex items-center justify-center gap-1 shrink-0"
 								>
 									{createPaymentMutation.isPending ? (
 										<>

@@ -257,29 +257,29 @@ async function RecoveryContent() {
 	return (
 		<div className="space-y-6">
 			{/* KPI row */}
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+			<div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4">
 				<Card className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50/50 hover:-translate-y-1 hover:shadow-md hover:border-teal-500/25 transition-all duration-300 relative overflow-hidden group">
 					<CardContent className="pt-5 pb-4 flex flex-col justify-between">
 						<p className="text-[10px] text-zinc-450 font-black uppercase tracking-wider">Urgent (30d+ overdue)</p>
-						<p className="text-2xl font-black text-red-650 mt-2 font-mono">{totalUrgent}</p>
+						<p className="text-lg min-[380px]:text-xl sm:text-2xl font-black text-red-650 mt-2 font-mono break-words">{totalUrgent}</p>
 					</CardContent>
 				</Card>
 				<Card className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50/50 hover:-translate-y-1 hover:shadow-md hover:border-teal-500/25 transition-all duration-300 relative overflow-hidden group">
 					<CardContent className="pt-5 pb-4 flex flex-col justify-between">
 						<p className="text-[10px] text-zinc-450 font-black uppercase tracking-wider">Overdue</p>
-						<p className="text-2xl font-black text-orange-650 mt-2 font-mono">{totalOverdue}</p>
+						<p className="text-lg min-[380px]:text-xl sm:text-2xl font-black text-orange-655 mt-2 font-mono break-words">{totalOverdue}</p>
 					</CardContent>
 				</Card>
 				<Card className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50/50 hover:-translate-y-1 hover:shadow-md hover:border-teal-500/25 transition-all duration-300 relative overflow-hidden group">
 					<CardContent className="pt-5 pb-4 flex flex-col justify-between">
 						<p className="text-[10px] text-zinc-450 font-black uppercase tracking-wider">Upcoming EMIs</p>
-						<p className="text-2xl font-black text-zinc-750 mt-2 font-mono">{totalPending}</p>
+						<p className="text-lg min-[380px]:text-xl sm:text-2xl font-black text-zinc-750 mt-2 font-mono break-words">{totalPending}</p>
 					</CardContent>
 				</Card>
 				<Card className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50/50 hover:-translate-y-1 hover:shadow-md hover:border-teal-500/25 transition-all duration-300 relative overflow-hidden group">
 					<CardContent className="pt-5 pb-4 flex flex-col justify-between">
 						<p className="text-[10px] text-zinc-450 font-black uppercase tracking-wider">Total Outstanding</p>
-						<p className="text-2xl font-black text-zinc-900 mt-2 font-mono">{formatCurrency(totalOutstanding)}</p>
+						<p className="text-lg min-[380px]:text-xl sm:text-2xl font-black text-zinc-900 mt-2 font-mono break-words">{formatCurrency(totalOutstanding)}</p>
 					</CardContent>
 				</Card>
 			</div>

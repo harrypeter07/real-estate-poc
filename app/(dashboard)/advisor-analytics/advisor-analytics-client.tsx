@@ -385,7 +385,7 @@ export function AdvisorAnalyticsClient({
 			</Card>
 
 			{/* SECTION 1: METRICS ROW (6 KPI CARDS) */}
-			<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+			<div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
 				{[
 					{
 						title: "Total Bookings",
@@ -425,15 +425,19 @@ export function AdvisorAnalyticsClient({
 					},
 				].map((kpi, idx) => (
 					<Card key={idx} className="hover:-translate-y-1 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.015)] hover:shadow-md border border-zinc-200/80 rounded-2xl bg-gradient-to-tr from-white to-zinc-50/20 overflow-hidden group">
-						<CardContent className="p-4.5 flex flex-col justify-between h-full space-y-4">
-							<div className="flex items-center justify-between">
-								<p className="text-[10px] font-bold text-zinc-450 uppercase tracking-wider truncate">{kpi.title}</p>
-								<div className={`h-8 w-8 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 ${kpi.color}`}>
-									<kpi.icon className="h-4 w-4" />
+						<CardContent className="p-4 sm:p-4.5 flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+							<div className="flex items-start justify-between gap-1.5">
+								<p className="text-[9px] min-[380px]:text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider break-words line-clamp-2 leading-tight flex-1">
+									{kpi.title}
+								</p>
+								<div className={`h-7.5 w-7.5 sm:h-8 sm:w-8 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 shrink-0 ${kpi.color}`}>
+									<kpi.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 								</div>
 							</div>
-							<div className="space-y-1">
-								<p className="text-xl font-extrabold text-zinc-800 leading-none">{kpi.value}</p>
+							<div className="pt-1.5 sm:pt-0">
+								<p className="text-lg min-[380px]:text-xl sm:text-2xl font-extrabold text-zinc-800 dark:text-zinc-250 leading-none break-words">
+									{kpi.value}
+								</p>
 							</div>
 						</CardContent>
 					</Card>

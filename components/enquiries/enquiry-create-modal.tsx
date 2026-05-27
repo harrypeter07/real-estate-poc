@@ -228,7 +228,7 @@ export function EnquiryCreateModal({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-2xl flex-col gap-0 overflow-hidden p-0 border border-zinc-200/80 shadow-2xl rounded-2xl bg-white backdrop-blur-md">
 				{/* Modal Header */}
-				<DialogHeader className="shrink-0 border-b border-zinc-150 bg-gradient-to-r from-zinc-50 to-white px-6 py-5 flex flex-row items-center justify-between gap-3 text-left relative">
+				<DialogHeader className="shrink-0 border-b border-zinc-150 bg-gradient-to-r from-zinc-50 to-white px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left relative">
 					<div className="flex items-center gap-3">
 						<div className="h-10 w-10 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center text-teal-600 shadow-xs">
 							<Plus className="h-5 w-5" />
@@ -240,7 +240,7 @@ export function EnquiryCreateModal({
 							<p className="text-[11px] text-zinc-400 font-medium mt-0.5">Create a prospective customer enquiry into CRM pipeline.</p>
 						</div>
 					</div>
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
 						{isDev ? (
 							<Button
 								type="button"
@@ -295,7 +295,7 @@ export function EnquiryCreateModal({
 								}}
 								className="h-8.5 text-[11px] font-black border-teal-200/80 hover:border-teal-300 text-teal-700 bg-teal-50/30 hover:bg-teal-50/50 rounded-xl shadow-xs transition-all cursor-pointer px-3"
 							>
-								<Sparkles className="h-3.5 w-3.5 mr-1 text-teal-600" />
+								<Sparkles className="h-3.5 w-3.5 mr-1 text-teal-600 shrink-0" />
 								Fill Mock Data
 							</Button>
 						) : null}
@@ -669,12 +669,12 @@ export function EnquiryCreateModal({
 					</div>
 
 					{/* Modal Footer Actions */}
-					<div className="flex justify-end gap-3 pt-3 border-t border-zinc-150/80">
+					<div className="flex flex-col sm:flex-row justify-end gap-3 pt-3 border-t border-zinc-150/80">
 						<Button 
 							type="button" 
 							variant="outline" 
 							onClick={() => onOpenChange(false)}
-							className="h-10 text-xs font-black border-zinc-200 text-zinc-500 hover:text-zinc-700 bg-white rounded-xl shadow-xs cursor-pointer px-4.5"
+							className="w-full sm:w-auto h-10 text-xs font-black border-zinc-200 text-zinc-500 hover:text-zinc-700 bg-white rounded-xl shadow-xs cursor-pointer px-4.5"
 						>
 							Cancel
 						</Button>
@@ -683,7 +683,7 @@ export function EnquiryCreateModal({
 							onClick={onSubmit}
 							disabled={saving}
 							className={cn(
-								"h-10 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer shadow-xs px-5.5 active:scale-[0.98]",
+								"w-full sm:w-auto h-10 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer shadow-xs px-5.5 active:scale-[0.98]",
 								saving 
 									? "bg-zinc-100 text-zinc-400 border border-zinc-200"
 									: "bg-teal-600 hover:bg-teal-700 text-white hover:shadow-[0_4px_12px_rgba(13,148,136,0.15)]"

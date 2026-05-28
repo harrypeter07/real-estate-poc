@@ -13,6 +13,99 @@ export type ActionResponse = {
 	saleId?: string;
 };
 
+export async function getAdvisorCommissionRate(
+	supabase: any,
+	advisorId: string,
+	projectId: string,
+	phase: "token" | "full_payment"
+): Promise<number> {
+	// 1. Try to find project-specific override
+	const { data: projComm } = await supabase
+		.from("advisor_project_commissions")
+		.select("commission_token, commission_full_payment")
+		.eq("project_id", projectId)
+		.eq("advisor_id", advisorId)
+		.maybeSingle();
+
+	let rate = 0;
+	if (projComm) {
+		rate = Number(phase === "token" ? projComm.commission_token : projComm.commission_full_payment);
+	}
+
+	// 2. If rate is 0/null, fall back to global advisor settings
+	if (!rate) {
+		const { data: adv } = await supabase
+			.from("advisors")
+			.select("commission_token, commission_full_payment")
+			.eq("id", advisorId)
+			.maybeSingle();
+		if (adv) {
+			rate = Number(phase === "token" ? adv.commission_token : adv.commission_full_payment);
+		}
+	}
+
+	// 3. Fallback to default of 5% if it's still 0
+	return rate > 0 ? rate : 5;
+}
+
+export interface CommissionSplitResult {
+	advisor_id: string;
+	advisor_name: string;
+	commission_percentage: number;
+	amount: number;
+	notes: string;
+}
+
+export async function calculateHierarchicalCommissions(
+	supabase: any,
+	sellingAdvisorId: string,
+	projectId: string,
+	phase: "token" | "full_payment",
+	totalSaleAmount: number,
+	plotNumber: string
+): Promise<CommissionSplitResult[]> {
+	const splits: CommissionSplitResult[] = [];
+	let currentAdvisorId: string | null = sellingAdvisorId;
+	let level = 0;
+
+	// Base commission percentage for Level 0
+	const baseRate = await getAdvisorCommissionRate(supabase, sellingAdvisorId, projectId, phase);
+	const baseCommissionAmount = (baseRate / 100) * totalSaleAmount;
+
+	// Multipliers for parent levels (L0 gets 100%, L1 gets 20% of L0's, L2 gets 10% of L0's, L3 gets 5% of L0's)
+	const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
+
+	while (currentAdvisorId && level < 4) {
+		const { data } = await supabase
+			.from("advisors")
+			.select("id, name, parent_advisor_id")
+			.eq("id", currentAdvisorId)
+			.maybeSingle();
+
+		if (!data) break;
+		const adv = data as { id: string; name: string | null; parent_advisor_id: string | null };
+
+		const multiplier = levelMultipliers[level] ?? 0.05;
+		const commPct = baseRate * multiplier;
+		const amount = baseCommissionAmount * multiplier;
+
+		splits.push({
+			advisor_id: adv.id,
+			advisor_name: (adv as any).name || "Advisor",
+			commission_percentage: commPct,
+			amount: Math.round(amount * 100) / 100,
+			notes: level === 0
+				? `Direct Seller Commission (${baseRate}% on Plot ${plotNumber})`
+				: `Hierarchical Override (L${level} parent of ${(adv as any).name || "Advisor"}, ${commPct.toFixed(2)}% on Plot ${plotNumber})`
+		});
+
+		currentAdvisorId = (adv as any).parent_advisor_id;
+		level++;
+	}
+
+	return splits;
+}
+
 export async function createSale(
 	values: SaleFormValues
 ): Promise<ActionResponse> {
@@ -204,69 +297,30 @@ export async function createSale(
 		}
 	}
 
-	// 3. Commission rows (one per participant: main + optional sub-advisors)
+	// 3. Hierarchical Commission splits (auto-calculated up the parent advisor chain)
 	if (!soldByAdmin && parsed.data.advisor_id) {
-		const profitTotal = finance.profit;
-		if (profitTotal > 0.001) {
-			const mainId = parsed.data.advisor_id;
-			let splits = parsed.data.commission_splits;
+		const mainId = parsed.data.advisor_id;
+		const hierarchicalSplits = await calculateHierarchicalCommissions(
+			supabase,
+			mainId,
+			plotRow.project_id,
+			parsed.data.sale_phase,
+			finance.sellingPrice,
+			plotRow.plot_number
+		);
 
-			const { data: subRows } = await supabase
-				.from("advisors")
-				.select("id")
-				.eq("parent_advisor_id", mainId);
-			const allowedSub = new Set((subRows ?? []).map((r: { id: string }) => r.id));
-
-			if (!splits?.length) {
-				splits = [{ advisor_id: mainId, amount: profitTotal }];
-			} else {
-				const sum = splits.reduce((s, r) => s + r.amount, 0);
-				if (Math.abs(sum - profitTotal) > 0.05) {
-					return {
-						success: false,
-						error: `Commission split must total ₹ ${profitTotal.toLocaleString(
-							"en-IN",
-						)} (currently ₹ ${sum.toLocaleString("en-IN")}).`,
-					};
-				}
-				const seen = new Set<string>();
-				for (const row of splits) {
-					if (row.amount < -0.0001) {
-						return { success: false, error: "Commission amounts cannot be negative." };
-					}
-					if (seen.has(row.advisor_id)) {
-						return { success: false, error: "Duplicate advisor in commission split." };
-					}
-					seen.add(row.advisor_id);
-					if (row.advisor_id !== mainId && !allowedSub.has(row.advisor_id)) {
-						return {
-							success: false,
-							error:
-								"Commission split can only include the main advisor and their sub-advisors.",
-						};
-					}
-				}
-				if (!splits.some((r) => r.advisor_id === mainId)) {
-					return { success: false, error: "Commission split must include the main advisor." };
-				}
-			}
-
-			for (const row of splits) {
-				const { error: cErr } = await supabase.from("advisor_commissions").insert({
-					business_id: businessId,
-					advisor_id: row.advisor_id,
-					sale_id: sale.id,
-					commission_percentage: 0,
-					total_commission_amount: row.amount,
-					amount_paid: 0,
-					notes:
-						row.advisor_id === mainId
-							? `Profit-share (main) plot ${plotRow.plot_number}`
-							: `Profit-share (sub) plot ${plotRow.plot_number}`,
-				});
-				if (cErr) {
-					return { success: false, error: cErr.message };
-				}
+		for (const row of hierarchicalSplits) {
+			const { error: cErr } = await supabase.from("advisor_commissions").insert({
+				business_id: businessId,
+				advisor_id: row.advisor_id,
+				sale_id: sale.id,
+				commission_percentage: row.commission_percentage,
+				total_commission_amount: row.amount,
+				amount_paid: 0,
+				notes: row.notes,
+			});
+			if (cErr) {
+				return { success: false, error: cErr.message };
 			}
 		}
 	}

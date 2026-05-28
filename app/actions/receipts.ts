@@ -242,6 +242,33 @@ export async function generateReceipt(saleId: string): Promise<ReceiptResult> {
 	return await generateReceiptFromSaleRow({ saleId, supabase: sb, saleRow: s });
 }
 
+function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+	const paragraphs = String(text ?? "").split(/\r?\n/);
+	const lines: string[] = [];
+
+	for (const paragraph of paragraphs) {
+		const words = paragraph.split(" ");
+		let currentLine = "";
+
+		for (const word of words) {
+			const testLine = currentLine ? `${currentLine} ${word}` : word;
+			const width = font.widthOfTextAtSize(testLine, fontSize);
+			if (width <= maxWidth) {
+				currentLine = testLine;
+			} else {
+				if (currentLine) {
+					lines.push(currentLine);
+				}
+				currentLine = word;
+			}
+		}
+		if (currentLine) {
+			lines.push(currentLine);
+		}
+	}
+	return lines.length > 0 ? lines : ["—"];
+}
+
 async function generateReceiptFromSaleRow({
 	saleId,
 	supabase,
@@ -307,7 +334,7 @@ async function generateReceiptFromSaleRow({
 
 	// Build a styled PDF bill with proper table layout
 	const pdfDoc = await PDFDocument.create();
-	const page = pdfDoc.addPage([595, 842]); // A4 portrait
+	let page = pdfDoc.addPage([595, 842]); // A4 portrait
 	const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 	const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 	const { width, height } = page.getSize();
@@ -423,6 +450,35 @@ async function generateReceiptFromSaleRow({
 		// Add extra breathing space between table sections to avoid visual sticking.
 		if (!isFirstSection) y -= 8;
 
+		// Calculate height of each row dynamically.
+		const rowData = rows.map((r) => {
+			const keyLines = wrapText(r.key, 154, font, 10.2);
+			const valueLines = wrapText(
+				r.value,
+				337,
+				r.strong ? fontBold : font,
+				10.2
+			);
+			const height = Math.max(keyLines.length, valueLines.length) * 14 + 10;
+			return { r, keyLines, valueLines, height };
+		});
+
+		const bodyHeight = rowData.reduce((sum, rd) => sum + rd.height, 0);
+
+		// If this table overflows the page bottom, push to new page
+		if (y - 20 - bodyHeight < 55) {
+			page = pdfDoc.addPage([595, 842]);
+			page.drawText(wmText, {
+				x: 170,
+				y: 420,
+				size: wmSize,
+				font: fontBold,
+				color: rgb(0.93, 0.94, 0.97),
+				rotate: degrees(32),
+			});
+			y = height - 50; // reset y coordinate for new page
+		}
+
 		// Section title bar
 		page.drawRectangle({
 			x: left,
@@ -441,7 +497,6 @@ async function generateReceiptFromSaleRow({
 		y -= 24;
 
 		// Outer border
-		const bodyHeight = rows.length * rowHeight;
 		page.drawRectangle({
 			x: left,
 			y: y - bodyHeight,
@@ -459,38 +514,46 @@ async function generateReceiptFromSaleRow({
 			color: rgb(0.88, 0.9, 0.93),
 		});
 
-		for (let i = 0; i < rows.length; i++) {
-			const rowYTop = y - i * rowHeight;
-			const textY = rowYTop - 15;
-			const r = rows[i];
+		let currentY = y;
+		for (let i = 0; i < rowData.length; i++) {
+			const { r, keyLines, valueLines, height: rowH } = rowData[i];
 
 			// Horizontal divider
 			if (i > 0) {
 				page.drawLine({
-					start: { x: left, y: rowYTop },
-					end: { x: left + tableWidth, y: rowYTop },
+					start: { x: left, y: currentY },
+					end: { x: left + tableWidth, y: currentY },
 					thickness: 1,
 					color: rgb(0.9, 0.92, 0.95),
 				});
 			}
 
-			page.drawText(r.key, {
-				x: left + 8,
-				y: textY,
-				size: 10.2,
-				font,
-				color: rgb(0.35, 0.39, 0.45),
-			});
-			page.drawText(r.value, {
-				x: left + col1 + 8,
-				y: textY,
-				size: 10.2,
-				font: r.strong ? fontBold : font,
-				color: rgb(0.12, 0.12, 0.12),
-			});
+			// Draw key lines
+			for (let k = 0; k < keyLines.length; k++) {
+				page.drawText(keyLines[k], {
+					x: left + 8,
+					y: currentY - 14 - k * 14,
+					size: 10.2,
+					font,
+					color: rgb(0.35, 0.39, 0.45),
+				});
+			}
+
+			// Draw value lines
+			for (let v = 0; v < valueLines.length; v++) {
+				page.drawText(valueLines[v], {
+					x: left + col1 + 8,
+					y: currentY - 14 - v * 14,
+					size: 10.2,
+					font: r.strong ? fontBold : font,
+					color: rgb(0.12, 0.12, 0.12),
+				});
+			}
+
+			currentY -= rowH;
 		}
 
-		y -= bodyHeight + 18;
+		y = currentY - 18;
 		isFirstSection = false;
 	};
 

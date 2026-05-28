@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { getRecoveryData, type RecoveryRow as RecoveryRowType } from "@/app/actions/recovery-actions";
 import { PageHeader } from "@/components/shared/page-header";
+import { RecoveryTabs } from "@/components/recovery/recovery-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -365,21 +366,23 @@ export default async function RecoveryDashboardPage() {
 				title="Recovery Dashboard"
 				subtitle="Monitor overdue payments, urgent accounts, and take action to collect outstanding balances"
 			/>
-			<Suspense
-				fallback={
-					<div className="space-y-4">
-						<div className="grid grid-cols-4 gap-4">
-							{[1, 2, 3, 4].map((i) => (
-								<div key={i} className="h-20 bg-zinc-100 rounded-lg animate-pulse" />
-							))}
+			<RecoveryTabs>
+				<Suspense
+					fallback={
+						<div className="space-y-4">
+							<div className="grid grid-cols-4 gap-4">
+								{[1, 2, 3, 4].map((i) => (
+									<div key={i} className="h-20 bg-zinc-100 rounded-lg animate-pulse" />
+								))}
+							</div>
+							<div className="h-48 bg-zinc-100 rounded-lg animate-pulse" />
+							<div className="h-32 bg-zinc-100 rounded-lg animate-pulse" />
 						</div>
-						<div className="h-48 bg-zinc-100 rounded-lg animate-pulse" />
-						<div className="h-32 bg-zinc-100 rounded-lg animate-pulse" />
-					</div>
-				}
-			>
-				<RecoveryContent />
-			</Suspense>
+					}
+				>
+					<RecoveryContent />
+				</Suspense>
+			</RecoveryTabs>
 		</div>
 	);
 }

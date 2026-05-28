@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Calculator, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Calculator, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import {
   Button,
   Input,
@@ -63,7 +63,7 @@ export function SaleForm({
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
   const [subComboKey, setSubComboKey] = useState(0);
   const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
-  const showFillMock = isDev;
+  const showFillMock = false;
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
 
@@ -143,20 +143,12 @@ export function SaleForm({
     });
   }, [allowedProjectIdsForAdvisor, plots, soldByAdmin]);
 
-  const topLevelAdvisors = useMemo(
-    () => (advisors as any[]).filter((a) => !a.parent_advisor_id),
-    [advisors],
-  );
-
   const filteredAdvisors = useMemo(() => {
     if (!allowedAdvisorIdsForProject) {
-      console.log("[SaleForm] No project filter, using all top-level advisors:", topLevelAdvisors);
-      return topLevelAdvisors;
+      return advisors;
     }
-    const matches = topLevelAdvisors.filter((a) => allowedAdvisorIdsForProject.has(a.id));
-    console.log(`[SaleForm] Project filter active. Top-level: ${topLevelAdvisors.length} | Matches project: ${matches.length}`, matches);
-    return matches;
-  }, [topLevelAdvisors, allowedAdvisorIdsForProject]);
+    return (advisors as any[]).filter((a) => allowedAdvisorIdsForProject.has(a.id));
+  }, [advisors, allowedAdvisorIdsForProject]);
 
   useEffect(() => {
     console.log("[SaleForm] Raw advisors from props:", advisors);
@@ -370,30 +362,60 @@ export function SaleForm({
     }
   }, [assignedFaceRatePerSqft, plotSize, plotBaseRatePerSqft, receivedNow, soldByAdmin]);
 
-  const commissionParticipantIds =
-    selectedAdvisorId && !soldByAdmin ? [selectedAdvisorId, ...subAdvisorIds] : [];
-  const splitSumManual =
-    commissionParticipantIds.length > 1
-      ? commissionParticipantIds.slice(0, -1).reduce(
-          (s, id) => s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
-          0,
-        )
-      : 0;
-  const splitLastAuto =
-    commissionParticipantIds.length > 1
-      ? Math.max(0, finance.profit - splitSumManual)
-      : 0;
-  const SPLIT_EPS = 0.02;
-  const commissionSplitOverflow =
-    commissionParticipantIds.length > 1 &&
-    finance.profit > 0.001 &&
-    splitSumManual > finance.profit + SPLIT_EPS;
-  const commissionSplitTotal =
-    commissionParticipantIds.length > 1 && finance.profit > 0.001
-      ? splitSumManual + splitLastAuto
-      : commissionParticipantIds.length === 1 && finance.profit > 0.001
-        ? finance.profit
-        : 0;
+  const calculatedSplits = useMemo(() => {
+    if (soldByAdmin || !selectedAdvisorId || !totalSaleAmount) return [];
+
+    const splits = [];
+    let currentId = selectedAdvisorId;
+    let level = 0;
+    
+    const advisor = (advisors as any[]).find((a) => a.id === selectedAdvisorId);
+    if (!advisor) return [];
+
+    // Project rate override
+    const assignment = (advisorAssignments ?? []).find(
+      (a) => a.advisor_id === selectedAdvisorId && a.project_id === selectedProjectId
+    );
+    let baseRate = 0;
+    if (assignment) {
+      baseRate = Number((assignment as any).commission_rate ?? (assignment as any).commission_token ?? 0);
+    }
+    if (!baseRate) {
+      baseRate = Number(selectedPhase === "token" ? advisor.commission_token : advisor.commission_full_payment);
+    }
+    if (!baseRate) {
+      baseRate = 5; // default 5%
+    }
+
+    const baseCommissionAmount = (baseRate / 100) * totalSaleAmount;
+    const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
+
+    while (currentId && level < 4) {
+      const adv = (advisors as any[]).find((a) => a.id === currentId);
+      if (!adv) break;
+
+      const multiplier = levelMultipliers[level] ?? 0.05;
+      const commPct = baseRate * multiplier;
+      const amount = baseCommissionAmount * multiplier;
+
+      splits.push({
+        advisor_id: adv.id,
+        name: adv.name,
+        code: adv.code,
+        commission_percentage: commPct,
+        amount: Math.round(amount * 100) / 100,
+        level
+      });
+
+      currentId = adv.parent_advisor_id;
+      level++;
+    }
+
+    return splits;
+  }, [selectedAdvisorId, totalSaleAmount, selectedPhase, advisors, advisorAssignments, selectedProjectId, soldByAdmin]);
+
+  const commissionSplitOverflow = false;
+  const commissionSplitTotal = calculatedSplits.reduce((sum, r) => sum + r.amount, 0);
 
   useEffect(() => {
     if (!selectedPlotId || plotSize <= 0 || plotBaseRatePerSqft <= 0) {
@@ -841,121 +863,39 @@ export function SaleForm({
                   />
                 )}
 
-                {!soldByAdmin && selectedAdvisorId && subOptions.length > 0 ? (
-                  <div className="p-3.5 space-y-2 rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950/20 shadow-inner">
-                    <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                      Sub-advisors (optional)
+                {!soldByAdmin && selectedAdvisorId && calculatedSplits.length > 0 ? (
+                  <div className="p-3.5 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/20 dark:border-amber-900/30 dark:bg-amber-950/10 shadow-sm">
+                    <div className="text-xs font-black text-amber-900 dark:text-amber-400 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+                      Automatic Hierarchical Commission Splits
                     </div>
-                    <p className="text-[10px] text-zinc-500 font-medium">
-                      Add team members under this advisor. Commission (total profit ₹{" "}
-                      {formatCurrency(finance.profit)}) is split below.
+                    <p className="text-[10px] text-zinc-550 dark:text-zinc-400 font-semibold leading-relaxed">
+                      Commission is split up the advisor parent chain. Rates are determined by advisor profile and project commission rates.
                     </p>
-                    <SearchableCombobox
-                      key={subComboKey}
-                      options={subOptions
-                        .filter((s) => !subAdvisorIds.includes(s.id))
-                        .map((s) => ({
-                          value: s.id,
-                          label: s.name,
-                          subtitle: s.code,
-                          keywords: s.phone,
-                        }))}
-                      value=""
-                      onChange={(id) => {
-                        if (id && !subAdvisorIds.includes(id)) {
-                          setSubAdvisorIds((prev) => [...prev, id]);
-                          setSubComboKey((k) => k + 1);
-                        }
-                      }}
-                      placeholder="Add sub-advisor…"
-                      emptyMessage="No more sub-advisors."
-                    />
-                    {subAdvisorIds.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1.5">
-                        {subAdvisorIds.map((sid) => {
-                          const sub = subOptions.find((s) => s.id === sid);
-                          return (
-                            <button
-                              key={sid}
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold text-zinc-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all dark:border-zinc-805 dark:bg-zinc-900"
-                              onClick={() => {
-                                setSubAdvisorIds((prev) => prev.filter((x) => x !== sid));
-                                setSplitByAdvisor((prev) => {
-                                  const next = { ...prev };
-                                  delete next[sid];
-                                  return next;
-                                });
-                              }}
-                            >
-                              {sub?.name ?? sid.slice(0, 8)}
-                              <span className="text-zinc-450">×</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                              {!soldByAdmin && selectedAdvisorId && finance.profit > 0.001 && commissionParticipantIds.length > 1 ? (
-                  <div className="p-3.5 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/30 dark:border-amber-905/30 dark:bg-amber-950/10">
-                    <div className="text-xs font-bold text-amber-900 dark:text-amber-400">
-                      Commission split (₹ from total profit)
-                    </div>
-                    <div className="space-y-1.5">
-                      {commissionParticipantIds.map((aid, idx) => {
-                        const isLast = idx === commissionParticipantIds.length - 1;
-                        const adv =
-                          aid === selectedAdvisorId
-                            ? filteredAdvisors.find((a) => a.id === aid)
-                            : subOptions.find((s) => s.id === aid);
-                        const label =
-                          aid === selectedAdvisorId
-                            ? `${adv?.name ?? "Main"} (main)`
-                            : `${adv?.name ?? "Sub"}`;
-                        return (
-                          <div key={aid} className="flex gap-2 items-center text-xs">
-                            <span className="flex-1 min-w-0 truncate text-zinc-700 dark:text-zinc-300">{label}</span>
-                            {isLast ? (
-                              <span className="w-28 font-mono font-bold tabular-nums text-right text-zinc-800 dark:text-zinc-200 bg-amber-100/50 dark:bg-amber-950/30 px-2 py-1 rounded">
-                                {formatCurrency(splitLastAuto)}
-                              </span>
-                            ) : (
-                              <Input
-                                type="number"
-                                min={0}
-                                step={0.01}
-                                className="w-28 h-8 font-mono text-xs text-right bg-white focus:ring-1 focus:ring-amber-500 focus:border-amber-450"
-                                value={splitByAdvisor[aid] ?? ""}
-                                onChange={(e) =>
-                                  setSplitByAdvisor((prev) => ({
-                                    ...prev,
-                                    [aid]: e.target.value,
-                                  }))
-                                }
-                                placeholder="0"
-                              />
-                            )}
+                    <div className="space-y-2 pt-1 border-t border-amber-200/40">
+                      {calculatedSplits.map((row) => (
+                        <div key={row.advisor_id} className="flex justify-between items-center text-xs">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                              {row.name} {row.level === 0 ? "(Seller)" : `(L${row.level} Parent)`}
+                            </span>
+                            <span className="text-[9px] text-zinc-400 font-mono">
+                              Code: {row.code} &middot; {row.commission_percentage.toFixed(2)}% rate
+                            </span>
                           </div>
-                        );
-                      })}
+                          <span className="font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
+                            {formatCurrency(row.amount)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="space-y-1 text-[10px] text-amber-800 dark:text-amber-500 border-t border-amber-200/40 pt-2 font-medium">
-                      <p className="flex justify-between">
-                        <span>Total split:</span>
-                        <span className="font-bold tabular-nums">{formatCurrency(commissionSplitTotal)} / {formatCurrency(finance.profit)}</span>
-                      </p>
-                      <p className="flex justify-between">
-                        <span>Left for {commissionParticipantIds[commissionParticipantIds.length - 1] === selectedAdvisorId ? "main" : "sub-advisor"} (auto):</span>
-                        <span className="font-bold tabular-nums">{formatCurrency(splitLastAuto)}</span>
-                      </p>
+                    <div className="flex justify-between text-[10px] font-bold text-amber-800 dark:text-amber-500 border-t border-amber-200/40 pt-2 leading-none">
+                      <span>Total Payout:</span>
+                      <span className="font-mono font-black">
+                        {formatCurrency(commissionSplitTotal)}
+                      </span>
                     </div>
-                    {commissionSplitOverflow ? (
-                      <p className="text-[10px] font-bold text-red-600">
-                        ⚠️ Entered amounts exceed total profit. Reduce earlier rows.
-                      </p>
-                    ) : null}
                   </div>
-                ) : null}
-                </div>
                 ) : null}
 
                 {!soldByAdmin && selectedAdvisorId ? (

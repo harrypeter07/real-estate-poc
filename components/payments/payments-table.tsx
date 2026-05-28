@@ -434,7 +434,9 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                     require("jspdf-autotable");
                     const doc = new jsPDF();
                     
-                    const bizName = selected.plot_sales?.plots?.projects?.businesses?.name || "SInfra Property Management";
+                    // Load builder display name from settings
+                    const savedBizName = typeof window !== "undefined" ? localStorage.getItem("app_business_display_name") : null;
+                    const bizName = savedBizName || selected.plot_sales?.plots?.projects?.businesses?.name || "SInfra Property Management";
                     
                     doc.setFontSize(18);
                     doc.text("PAYMENT RECEIPT", 105, 20, { align: "center" });
@@ -467,9 +469,21 @@ export function PaymentsTable({ payments }: { payments: any[] }) {
                     doc.setFontSize(10);
                     doc.text("Notes:", 14, finalY + 10);
                     doc.setFontSize(9);
-                    doc.text(selected.notes || "No additional notes.", 14, finalY + 16, { maxWidth: 180 });
                     
-                    doc.text("This is a computer-generated receipt.", 105, 280, { align: "center" });
+                    const notesText = selected.notes || "No additional notes.";
+                    const splitNotes = doc.splitTextToSize(notesText, 180);
+                    doc.text(splitNotes, 14, finalY + 16);
+                    
+                    const notesHeight = splitNotes.length * 4.5;
+                    let footerY = 280;
+                    
+                    // If notes overflow the page, add page and reset footer coordinate
+                    if (finalY + 16 + notesHeight > 270) {
+                      doc.addPage();
+                      footerY = 280;
+                    }
+                    
+                    doc.text("This is a computer-generated receipt.", 105, footerY, { align: "center" });
 
                     doc.save(`receipt_${selected.slip_number || "payment"}.pdf`);
                     toast.success("Payment receipt downloaded");

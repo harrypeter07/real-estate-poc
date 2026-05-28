@@ -28,6 +28,8 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { ProjectDocumentsModal } from "@/components/projects/project-documents-modal";
 import { getProjectDocuments } from "@/app/actions/project-documents";
 import { RecentSalesList } from "@/components/projects/recent-sales-list";
+import { getBusinessProfile } from "@/app/actions/business-settings";
+import { ProjectPdfButton } from "@/components/projects/project-pdf-button";
 
 
 interface Props {
@@ -46,6 +48,7 @@ export default async function ProjectDetailPage({
 	const advisors = await getAdvisors();
 	const advisorAssignments = await getAdvisorAssignmentsByProject(id);
 	const projectDocs = await getProjectDocuments(id);
+	const businessProfile = await getBusinessProfile();
 
 	if (!data) {
 		notFound();
@@ -114,6 +117,12 @@ export default async function ProjectDetailPage({
 				showBackButton
 				action={
 					<div className="flex flex-wrap gap-2">
+						<ProjectPdfButton
+							project={project}
+							plots={plots}
+							businessProfile={businessProfile}
+							plotCounts={plotCounts}
+						/>
 						<Link href={`/projects/${project.id}?edit=true`}>
 							<Button variant="outline" size="sm">
 								<Pencil className="h-4 w-4 mr-2" />

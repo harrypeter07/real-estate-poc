@@ -21,6 +21,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
 import {
@@ -47,6 +52,7 @@ interface PlotFormProps {
 		size_sqft: number;
 		rate_per_sqft: number;
 		facing: string | null;
+		type?: string | null;
 		notes: string | null;
 	};
 }
@@ -64,6 +70,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 			size_sqft: initialPlotNumeric(initialData?.size_sqft) as any,
 			rate_per_sqft: initialPlotNumeric(initialData?.rate_per_sqft) as any,
 			facing: initialData?.facing ?? "",
+			type: (initialData?.type || "plot") as any,
 			notes: initialData?.notes ?? "",
 		},
 	});
@@ -83,8 +90,10 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 			"South-East",
 			"South-West",
 		];
+		const types = ["plot", "flat", "villa", "farmhouse", "commercial", "other"];
 		const randomNum = Math.floor(Math.random() * 200) + 1;
 		const randomFacing = facings[Math.floor(Math.random() * facings.length)];
+		const randomType = types[Math.floor(Math.random() * types.length)] as any;
 		const randomSize = [1000, 1200, 1500, 1800, 2000, 2400, 3000, 5000][
 			Math.floor(Math.random() * 8)
 		];
@@ -97,7 +106,8 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 			size_sqft: randomSize,
 			rate_per_sqft: randomRate,
 			facing: randomFacing,
-			notes: `This is a premium ${randomFacing} facing plot in a prime location. Excellent for residential development.`,
+			type: randomType,
+			notes: `This is a premium ${randomFacing} facing ${randomType} in a prime location. Excellent for residential development.`,
 		});
 	};
 
@@ -294,6 +304,36 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 								</div>
 							</div>
 						)}
+
+						<FormField
+							control={form.control}
+							name="type"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Property Type</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+										value={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select property type" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											<SelectItem value="plot">Plot</SelectItem>
+											<SelectItem value="flat">Flat</SelectItem>
+											<SelectItem value="villa">Villa</SelectItem>
+											<SelectItem value="farmhouse">Farmhouse</SelectItem>
+											<SelectItem value="commercial">Commercial</SelectItem>
+											<SelectItem value="other">Other</SelectItem>
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						<FormField
 							control={form.control}

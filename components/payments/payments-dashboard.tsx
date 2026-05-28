@@ -204,13 +204,18 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 
 	const handlePrintPDF = (pay: any) => {
 		const doc = new jsPDF();
+		
+		// Load builder display name from settings
+		const savedBizName = typeof window !== "undefined" ? localStorage.getItem("app_business_display_name") : null;
+		const bizName = savedBizName || "M.G. Infrastructure Developers";
+
 		doc.setFont("helvetica", "bold");
 		doc.setFontSize(16);
 		doc.text("PAYMENT COLLECTION RECEIPT", 105, 20, { align: "center" });
 
 		doc.setFontSize(10);
 		doc.setFont("helvetica", "normal");
-		doc.text("M.G. Infrastructure Developers", 105, 26, { align: "center" });
+		doc.text(bizName, 105, 26, { align: "center" });
 		doc.line(15, 30, 195, 30);
 
 		const body = [
@@ -232,13 +237,25 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 		});
 
 		const finalY = (doc as any).lastAutoTable.finalY || 120;
+		
+		// Draw notes
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(10);
 		doc.text("Remarks / Notes:", 15, finalY + 12);
+		
 		doc.setFont("helvetica", "italic");
-		doc.text(pay.notes || "No remarks logged.", 15, finalY + 18, { maxWidth: 175 });
+		const notesText = pay.notes || "No remarks logged.";
+		const splitNotes = doc.splitTextToSize(notesText, 175);
+		doc.text(splitNotes, 15, finalY + 18);
+		
+		// Calculate Y offset based on notes height
+		const notesHeight = splitNotes.length * 5;
+		const sigLineY = finalY + 18 + notesHeight + 15;
+		const sigTextY = sigLineY + 5;
 
 		doc.setFont("helvetica", "bold");
-		doc.text("Authorized Signature", 195, finalY + 45, { align: "right" });
-		doc.line(140, finalY + 40, 195, finalY + 40);
+		doc.text("Authorized Signature", 195, sigTextY, { align: "right" });
+		doc.line(140, sigLineY, 195, sigLineY);
 
 		doc.save(`Receipt_${pay.slip_number}.pdf`);
 	};

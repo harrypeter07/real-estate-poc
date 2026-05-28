@@ -180,79 +180,164 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 		const p = sale.plots;
 		const c = sale.customers;
 
+		// Fetch builder details from settings (localStorage)
+		const savedBizName = typeof window !== "undefined" ? localStorage.getItem("app_business_display_name") : null;
+		const savedTagline = typeof window !== "undefined" ? localStorage.getItem("app_business_tagline") : null;
+		const bizName = savedBizName || "M.G. INFRASTRUCTURE";
+		const tagline = savedTagline || "Premium Real Estate Developers & Builders";
+
 		doc.setLineWidth(1);
 		doc.rect(5, 5, 200, 287);
 
 		doc.setFont("helvetica", "bold");
-		doc.setFontSize(22);
+		doc.setFontSize(20);
 		doc.setTextColor(30, 41, 59);
-		doc.text("M.G. INFRASTRUCTURE", 105, 25, { align: "center" });
+		doc.text(bizName.toUpperCase(), 105, 23, { align: "center" });
 
-		doc.setFontSize(10);
+		doc.setFontSize(9.5);
 		doc.setFont("helvetica", "normal");
 		doc.setTextColor(100, 116, 139);
-		doc.text("Premium Real Estate Developers & Builders", 105, 30, { align: "center" });
-		doc.text("Email: contact@mginfra.local | Contact: +91 9876543210", 105, 35, { align: "center" });
+		doc.text(tagline, 105, 28, { align: "center" });
+		doc.text("Email: contact@mginfra.local | Contact: +91 9876543210", 105, 33, { align: "center" });
 
 		doc.setLineWidth(0.5);
 		doc.setDrawColor(200, 200, 200);
-		doc.line(15, 40, 195, 40);
+		doc.line(15, 38, 195, 38);
 
 		doc.setFont("helvetica", "bold");
-		doc.setFontSize(14);
+		doc.setFontSize(13);
 		doc.setTextColor(15, 23, 42);
-		doc.text("PLOT BOOKING AGREEMENT", 105, 50, { align: "center" });
+		doc.text("PLOT BOOKING AGREEMENT", 105, 47, { align: "center" });
 
 		doc.setFont("helvetica", "normal");
-		doc.setFontSize(10);
-		doc.text(`Booking Date: ${sale.token_date || "—"}`, 15, 60);
-		doc.text(`Agreement No: MG-${saleId.slice(0, 8).toUpperCase()}`, 195, 60, { align: "right" });
+		doc.setFontSize(9.5);
+		doc.text(`Booking Date: ${sale.token_date || "—"}`, 15, 56);
+		doc.text(`Agreement No: MG-${saleId.slice(0, 8).toUpperCase()}`, 195, 56, { align: "right" });
 
+		let currentY = 63;
+
+		// 1. Customer Details Block
+		const custLines: string[] = [];
+		custLines.push(...doc.splitTextToSize(`Name: ${c?.name || "—"}`, 170));
+		custLines.push(...doc.splitTextToSize(`Phone: ${c?.phone || "—"}`, 170));
+		custLines.push(...doc.splitTextToSize(`Email: ${c?.email || "—"}`, 170));
+		custLines.push(...doc.splitTextToSize(`Address: ${c?.address || "—"}`, 170));
+
+		const custBlockHeight = 8 + custLines.length * 5.5 + 4;
 		doc.setFillColor(248, 250, 252);
-		doc.rect(15, 68, 180, 45, "F");
-		doc.setFont("helvetica", "bold");
-		doc.text("CUSTOMER DETAILS", 20, 75);
-		doc.setFont("helvetica", "normal");
-		doc.text(`Name: ${c?.name || "—"}`, 20, 82);
-		doc.text(`Phone: ${c?.phone || "—"}`, 20, 88);
-		doc.text(`Email: ${c?.email || "—"}`, 20, 94);
-		doc.text(`Address: ${c?.address || "—"}`, 20, 100);
+		doc.rect(15, currentY, 180, custBlockHeight, "F");
 
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(9.5);
+		doc.setTextColor(30, 41, 59);
+		doc.text("CUSTOMER DETAILS", 20, currentY + 6);
+
+		doc.setFont("helvetica", "normal");
+		doc.setTextColor(51, 65, 85);
+		let lineY = currentY + 11.5;
+		custLines.forEach((line) => {
+			doc.text(line, 20, lineY);
+			lineY += 5.5;
+		});
+
+		currentY += custBlockHeight + 5;
+
+		// 2. Property Specifications Block
+		const propLines: string[] = [];
+		propLines.push(...doc.splitTextToSize(`Project Layout: ${p?.projects?.name || "—"}`, 170));
+		propLines.push(...doc.splitTextToSize(`Plot Number: ${p?.plot_number || "—"}`, 170));
+		propLines.push(...doc.splitTextToSize(`Area Size: ${p?.size_sqft || "—"} sqft`, 170));
+		propLines.push(...doc.splitTextToSize(`Location: ${p?.projects?.location || "—"}`, 170));
+
+		const propBlockHeight = 8 + propLines.length * 5.5 + 4;
 		doc.setFillColor(248, 250, 252);
-		doc.rect(15, 120, 180, 45, "F");
-		doc.setFont("helvetica", "bold");
-		doc.text("PROPERTY SPECIFICATIONS", 20, 127);
-		doc.setFont("helvetica", "normal");
-		doc.text(`Project Layout: ${p?.projects?.name || "—"}`, 20, 134);
-		doc.text(`Plot Number: ${p?.plot_number || "—"}`, 20, 140);
-		doc.text(`Area Size: ${p?.size_sqft || "—"} sqft`, 20, 146);
-		doc.text(`Location: ${p?.projects?.location || "—"}`, 20, 152);
+		doc.rect(15, currentY, 180, propBlockHeight, "F");
 
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(9.5);
+		doc.setTextColor(30, 41, 59);
+		doc.text("PROPERTY SPECIFICATIONS", 20, currentY + 6);
+
+		doc.setFont("helvetica", "normal");
+		doc.setTextColor(51, 65, 85);
+		lineY = currentY + 11.5;
+		propLines.forEach((line) => {
+			doc.text(line, 20, lineY);
+			lineY += 5.5;
+		});
+
+		currentY += propBlockHeight + 5;
+
+		// 3. Financial Settlement Summary Block
+		const finLines: string[] = [];
+		finLines.push(...doc.splitTextToSize(`Total Sale Cost: Rs. ${sale.total_sale_amount.toLocaleString("en-IN")}`, 170));
+		finLines.push(...doc.splitTextToSize(`Discount Awarded: Rs. ${sale.discount_amount.toLocaleString("en-IN")}`, 170));
+		finLines.push(...doc.splitTextToSize(`Down Payment: Rs. ${sale.down_payment.toLocaleString("en-IN")}`, 170));
+		finLines.push(...doc.splitTextToSize(`Outstanding Balance: Rs. ${sale.remaining_amount.toLocaleString("en-IN")}`, 170));
+
+		const finBlockHeight = 8 + finLines.length * 5.5 + 4;
 		doc.setFillColor(248, 250, 252);
-		doc.rect(15, 172, 180, 45, "F");
-		doc.setFont("helvetica", "bold");
-		doc.text("FINANCIAL SETTLEMENT SUMMARY", 20, 179);
-		doc.setFont("helvetica", "normal");
-		doc.text(`Total Sale Cost: Rs. ${sale.total_sale_amount.toLocaleString("en-IN")}`, 20, 186);
-		doc.text(`Discount Awarded: Rs. ${sale.discount_amount.toLocaleString("en-IN")}`, 20, 192);
-		doc.text(`Down Payment: Rs. ${sale.down_payment.toLocaleString("en-IN")}`, 20, 198);
-		doc.text(`Outstanding Balance: Rs. ${sale.remaining_amount.toLocaleString("en-IN")}`, 20, 204);
+		doc.rect(15, currentY, 180, finBlockHeight, "F");
 
 		doc.setFont("helvetica", "bold");
-		doc.text("TERMS AND CONDITIONS:", 15, 230);
+		doc.setFontSize(9.5);
+		doc.setTextColor(30, 41, 59);
+		doc.text("FINANCIAL SETTLEMENT SUMMARY", 20, currentY + 6);
+
+		doc.setFont("helvetica", "normal");
+		doc.setTextColor(51, 65, 85);
+		lineY = currentY + 11.5;
+		finLines.forEach((line) => {
+			doc.text(line, 20, lineY);
+			lineY += 5.5;
+		});
+
+		currentY += finBlockHeight + 8;
+
+		// 4. Terms and Conditions
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(9.5);
+		doc.setTextColor(30, 41, 59);
+		doc.text("TERMS AND CONDITIONS:", 15, currentY);
+
 		doc.setFont("helvetica", "normal");
 		doc.setFontSize(8);
-		doc.text("1. All payments towards monthly installments must be paid by the designated due date.", 15, 237);
-		doc.text("2. Delays in installment payments exceeding 30 days are subject to late fee penalties.", 15, 242);
-		doc.text("3. In the event of booking cancellation, refunds will be processed minus administrative charges.", 15, 247);
+		doc.setTextColor(71, 85, 105);
 
-		doc.setFontSize(10);
+		const term1 = "1. All payments towards monthly installments must be paid by the designated due date.";
+		const term2 = "2. Delays in installment payments exceeding 30 days are subject to late fee penalties.";
+		const term3 = "3. In the event of booking cancellation, refunds will be processed minus administrative charges.";
+
+		const term1Lines = doc.splitTextToSize(term1, 180);
+		const term2Lines = doc.splitTextToSize(term2, 180);
+		const term3Lines = doc.splitTextToSize(term3, 180);
+
+		lineY = currentY + 5;
+		term1Lines.forEach((l: string) => { doc.text(l, 15, lineY); lineY += 4.5; });
+		term2Lines.forEach((l: string) => { doc.text(l, 15, lineY); lineY += 4.5; });
+		term3Lines.forEach((l: string) => { doc.text(l, 15, lineY); lineY += 4.5; });
+
+		// Handle page overflow for signature block
+		if (lineY > 255) {
+			doc.addPage();
+			doc.setLineWidth(1);
+			doc.rect(5, 5, 200, 287);
+			lineY = 30; // reset to top of new page
+		}
+
+		const sigLineY = Math.max(270, lineY + 12);
+		const sigTextY = sigLineY + 5;
+
+		doc.setLineWidth(0.5);
+		doc.setDrawColor(200, 200, 200);
+		doc.line(15, sigLineY, 70, sigLineY);
+		doc.line(140, sigLineY, 195, sigLineY);
+
+		doc.setFontSize(9.5);
 		doc.setFont("helvetica", "bold");
-		doc.text("Authorized Representative", 15, 275);
-		doc.text("Customer Signature", 195, 275, { align: "right" });
-
-		doc.line(15, 270, 70, 270);
-		doc.line(140, 270, 195, 270);
+		doc.setTextColor(30, 41, 59);
+		doc.text("Authorized Representative", 15, sigTextY);
+		doc.text("Customer Signature", 195, sigTextY, { align: "right" });
 
 		doc.save(`MG_Agreement_${p?.plot_number || "Plot"}.pdf`);
 		toast.success("Booking Agreement downloaded!");

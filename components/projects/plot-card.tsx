@@ -58,6 +58,7 @@ interface PlotCardProps {
 		rate_per_sqft: number;
 		status: string;
 		facing: string | null;
+		type?: string | null;
 	};
 	projectId: string;
 }
@@ -78,13 +79,16 @@ export function PlotCard({ plot, projectId }: PlotCardProps) {
 		>
 			<Card className="h-full overflow-hidden transition-colors border-zinc-200 group-hover:border-zinc-400">
 				<CardHeader className="flex flex-row items-center justify-between p-4 pb-2 space-y-0">
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 flex-wrap">
 						<Badge
 							variant="outline"
 							className={`${config.className} font-medium px-2 py-0.5`}
 						>
 							<StatusIcon className="w-3 h-3 mr-1" />
 							{config.label}
+						</Badge>
+						<Badge variant="outline" className="capitalize bg-zinc-50 text-zinc-600 border-zinc-200 text-[10px] font-medium px-1.5 py-0.5">
+							{plot.type || "plot"}
 						</Badge>
 						<span className="text-lg font-bold text-zinc-900">
 							{plot.plot_number}

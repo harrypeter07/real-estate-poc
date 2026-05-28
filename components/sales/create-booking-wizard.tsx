@@ -26,6 +26,7 @@ import {
 import { Button, Input, Textarea } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
+import { getAdvisorAssignmentsByProject } from "@/app/actions/advisor-projects";
 
 type WizardProps = {
 	customers: Array<{ id: string; name: string; phone: string }>;
@@ -65,6 +66,10 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 	const [emiStartDate, setEmiStartDate] = useState("");
 	const [emiMonths, setEmiMonths] = useState(12);
 	const [previewEmis, setPreviewEmis] = useState<any[]>([]);
+
+	// Project Assigned Advisors State
+	const [assignedAdvisors, setAssignedAdvisors] = useState<Array<{ id: string; name: string }>>([]);
+	const [loadingAssignedAdvisors, setLoadingAssignedAdvisors] = useState(false);
 
 	// Queries
 	const { data: plots, isLoading: loadingPlots } = useQuery({
@@ -156,6 +161,38 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 		calculateEmiPreview();
 	}, [totalSaleAmount, discountAmount, downPayment, monthlyEmi, emiDay, emiStartDate, emiMonths]);
 
+	// Fetch advisors assigned to the selected project
+	useEffect(() => {
+		if (selectedPlotDetails?.project_id) {
+			setLoadingAssignedAdvisors(true);
+			getAdvisorAssignmentsByProject(selectedPlotDetails.project_id)
+				.then((assignments) => {
+					const clean = assignments
+						.map((asm) => asm.advisor)
+						.filter((a): a is NonNullable<typeof a> => a !== null)
+						.map((a) => ({ id: a.id, name: a.name }));
+					setAssignedAdvisors(clean);
+					// Auto select first assigned advisor if not set or not in list
+					if (clean.length > 0) {
+						setAdvisorId(clean[0].id);
+					} else {
+						setAdvisorId("");
+					}
+				})
+				.catch((err) => {
+					console.error("Failed to load assigned advisors:", err);
+					setAssignedAdvisors([]);
+					setAdvisorId("");
+				})
+				.finally(() => {
+					setLoadingAssignedAdvisors(false);
+				});
+		} else {
+			setAssignedAdvisors([]);
+			setAdvisorId("");
+		}
+	}, [selectedPlotDetails?.project_id]);
+
 	const handleSelectCustomer = (c: any) => {
 		setSelectedCustomerId(c.id);
 		setCustSearch(`${c.name} (${c.phone})`);
@@ -212,7 +249,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 		createBookingMutation.mutate({
 			plot_id: selectedPlotId,
 			customer_id: customerIdToUse,
-			advisor_id: advisorId || advisors[0]?.id,
+			advisor_id: advisorId || assignedAdvisors[0]?.id || advisors[0]?.id,
 			sale_phase: salePhase,
 			token_date: new Date().toISOString().split("T")[0],
 			total_sale_amount: Number(totalSaleAmount),
@@ -526,12 +563,23 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									onChange={(e) => setAdvisorId(e.target.value)}
 									className="text-xs h-10 border border-zinc-200 bg-white rounded-xl px-3 w-full font-bold focus:outline-none focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 transition-all"
 								>
-									<option value="">Select Advisor</option>
-									{advisors.map((a) => (
-										<option key={a.id} value={a.id}>
-											{a.name}
-										</option>
-									))}
+									{loadingAssignedAdvisors ? (
+										<option value="">Loading assigned advisors...</option>
+									) : selectedPlotDetails ? (
+										<>
+											<option value="">Select Advisor</option>
+											{assignedAdvisors.map((a) => (
+												<option key={a.id} value={a.id}>
+													{a.name}
+												</option>
+											))}
+											{assignedAdvisors.length === 0 && (
+												<option value="" disabled>No advisors assigned to this project</option>
+											)}
+										</>
+									) : (
+										<option value="">Select a unit first</option>
+									)}
 								</select>
 							</div>
 

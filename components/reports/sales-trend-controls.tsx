@@ -36,7 +36,7 @@ export function SalesTrendControls() {
 		else p.delete("to");
 
 		startTransition(() => {
-			router.push(`/dashboard?${p.toString()}`);
+			router.push(`/dashboard?${p.toString()}`, { scroll: false });
 		});
 	}
 
@@ -49,7 +49,7 @@ export function SalesTrendControls() {
 		else p.delete("to");
 
 		startTransition(() => {
-			router.push(`/dashboard?${p.toString()}`);
+			router.push(`/dashboard?${p.toString()}`, { scroll: false });
 		});
 	}
 
@@ -114,6 +114,7 @@ export function SalesTrendControls() {
 						className="w-full sm:w-36 h-9 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
 					<Button
+						type="button"
 						size="sm"
 						variant="outline"
 						onClick={applyDateRange}

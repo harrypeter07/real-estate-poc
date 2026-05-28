@@ -580,7 +580,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 			{/* Dialogs exactly same functionality upgraded UI */}
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className={cn("rounded-2xl border border-zinc-200/80 bg-white shadow-2xl z-50 overflow-hidden p-0", dialogMode === "manage" ? "max-w-lg" : "max-w-2xl")}>
-					<DialogHeader className="px-6 py-4.5 border-b border-zinc-150 bg-gradient-to-r from-zinc-50 to-white flex flex-row items-center justify-between">
+					<DialogHeader className="px-4 sm:px-6 py-4 border-b border-zinc-150 bg-gradient-to-r from-zinc-50 to-white flex flex-row items-center justify-between">
 						<DialogTitle className="font-black text-zinc-850 text-xs uppercase tracking-wider flex items-center gap-2 m-0">
 							<div className="h-6 w-6 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
 								{dialogMode === "manage" ? <Settings className="h-3.5 w-3.5" /> : <History className="h-3.5 w-3.5" />}
@@ -590,7 +590,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 					</DialogHeader>
 
 					{selected && (
-						<div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+						<div className="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
 							<div className="space-y-3">
 								{dialogMode === "history" &&
 									Array.isArray(selected.sale_commission_team_rows) &&
@@ -650,7 +650,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 								)}
 
 								{dialogMode === "manage" && (
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
 										<InfoRow label="Commission on this sale" value={formatCurrency(selected.total_commission_amount)} strong />
 										<InfoRow label="Paid out so far" value={formatCurrency(selected.amount_paid)} />
 										<InfoRow
@@ -726,14 +726,14 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 
 							{dialogMode === "manage" ? (
 								<div className="space-y-3.5 pt-3 border-t border-zinc-150">
-									<div className="rounded-xl border border-zinc-200 p-4.5 space-y-3.5 bg-zinc-50/30 shadow-3xs">
+									<div className="rounded-xl border border-zinc-200 p-4 sm:p-5 space-y-4 bg-zinc-50/30 shadow-3xs">
 										<div className="text-xs font-black text-zinc-800 uppercase tracking-wider">
 											Log Commission Payout
 										</div>
 
-										<div className="grid grid-cols-2 gap-3">
-											<div className="space-y-1">
-												<div className="text-[10px] uppercase font-black text-zinc-400 tracking-wider">Amount</div>
+										<div className="grid grid-cols-2 gap-3 sm:gap-4">
+											<div className="space-y-2">
+												<label className="block text-[10px] uppercase font-black text-zinc-450 tracking-wider">Amount</label>
 												<Input
 													type="number"
 													value={payAmount}
@@ -745,8 +745,8 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 													className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus:visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 												/>
 											</div>
-											<div className="space-y-1">
-												<div className="text-[10px] uppercase font-black text-zinc-400 tracking-wider">Date</div>
+											<div className="space-y-2">
+												<label className="block text-[10px] uppercase font-black text-zinc-450 tracking-wider">Date</label>
 												<Input
 													type="date"
 													value={paidDate}
@@ -757,9 +757,9 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 											</div>
 										</div>
 
-										<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-											<div className="space-y-1">
-												<div className="text-[10px] uppercase font-black text-zinc-400 tracking-wider">Mode</div>
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+											<div className="space-y-2">
+												<label className="block text-[10px] uppercase font-black text-zinc-450 tracking-wider">Mode</label>
 												<Select
 													value={paymentMode}
 													onValueChange={(v) =>
@@ -777,10 +777,10 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 													</SelectContent>
 												</Select>
 											</div>
-											<div className="space-y-1">
-												<div className="text-[10px] uppercase font-black text-zinc-400 tracking-wider">
+											<div className="space-y-2">
+												<label className="block text-[10px] uppercase font-black text-zinc-450 tracking-wider">
 													Reference # (optional)
-												</div>
+												</label>
 												<Input
 													value={referenceNumber}
 													onChange={(e) => setReferenceNumber(e.target.value)}
@@ -798,8 +798,8 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 											onChange={setReceiptPath}
 										/>
 
-										<div className="space-y-1">
-											<div className="text-[10px] uppercase font-black text-zinc-400 tracking-wider">Note (optional)</div>
+										<div className="space-y-2">
+											<label className="block text-[10px] uppercase font-black text-zinc-450 tracking-wider">Note (optional)</label>
 											<Textarea
 												rows={2}
 												value={note}

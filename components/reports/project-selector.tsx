@@ -38,11 +38,11 @@ export function ProjectSelector({ projects }: ProjectSelectorProps) {
 					if (v && v !== "all") params.set("project", v);
 					else params.delete("project");
 					startTransition(() => {
-						router.push(`/reports?${params.toString()}`);
+						router.push(`/reports?${params.toString()}`, { scroll: false });
 					});
 				}}
 			>
-				<SelectTrigger className="w-full sm:w-[240px] h-9.5 rounded-xl border-zinc-200/85 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 focus:ring-teal-500/8 focus:border-teal-500 transition-all font-bold text-xs shadow-xs text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white cursor-pointer">
+				<SelectTrigger className="w-full sm:w-[280px] h-9.5 rounded-xl border-zinc-200/85 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 focus:ring-teal-500/8 focus:border-teal-500 transition-all font-bold text-xs shadow-xs text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white cursor-pointer">
 					<SelectValue placeholder="Select project for analytics" />
 				</SelectTrigger>
 				<SelectContent className="rounded-xl border border-zinc-200 bg-white dark:bg-zinc-950 text-xs font-bold shadow-lg">

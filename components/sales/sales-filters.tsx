@@ -170,7 +170,7 @@ export function SalesFilters({
 					</span>
 					
 					<Select value={selectedPhase} onValueChange={setSelectedPhase}>
-						<SelectTrigger className="w-36 h-9 rounded-xl border-zinc-200 bg-white text-xs font-bold focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 transition-all focus:ring-offset-0">
+						<SelectTrigger className="w-52 h-9 rounded-xl border-zinc-200 bg-white text-xs font-bold focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 transition-all focus:ring-offset-0">
 							<SelectValue placeholder="Sales Phase" />
 						</SelectTrigger>
 						<SelectContent className="rounded-xl border-zinc-200 shadow-lg text-xs font-bold">
@@ -214,21 +214,21 @@ export function SalesFilters({
 
 			{/* Bottom row: Custom Date Range Picker & Action CTA controls */}
 			<div className="pt-3 border-t border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-				<div className="flex flex-wrap items-center gap-2">
-					<span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-2">Custom range</span>
-					<div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-xl border border-zinc-200/50">
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+					<span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-2 shrink-0">Custom range</span>
+					<div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-xl border border-zinc-200/50 w-full sm:w-auto">
 						<Input
 							type="date"
 							value={customFrom}
 							onChange={(e) => setCustomFrom(e.target.value)}
-							className="w-34 h-8 text-[11px] font-bold border-zinc-200 bg-white rounded-lg focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
+							className="flex-1 sm:w-34 sm:flex-initial h-8 text-[11px] font-bold border-zinc-200 bg-white rounded-lg focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 						/>
-						<span className="text-[11px] text-zinc-400 font-bold uppercase px-0.5">to</span>
+						<span className="text-[11px] text-zinc-400 font-bold uppercase px-0.5 shrink-0">to</span>
 						<Input
 							type="date"
 							value={customTo}
 							onChange={(e) => setCustomTo(e.target.value)}
-							className="w-34 h-8 text-[11px] font-bold border-zinc-200 bg-white rounded-lg focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
+							className="flex-1 sm:w-34 sm:flex-initial h-8 text-[11px] font-bold border-zinc-200 bg-white rounded-lg focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 						/>
 					</div>
 				</div>

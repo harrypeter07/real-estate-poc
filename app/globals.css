@@ -78,3 +78,82 @@ input[type="number"]::-webkit-inner-spin-button {
 			linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background-2)) 55%, hsl(var(--background)) 100%);
 	}
 }
+
+/* Mobile Date Picker Custom Alignment and Contrast Fixes (Only active on screens < 768px to protect desktop UI/UX) */
+@media (max-width: 767px) {
+	/* Fix mobile date input text cutoff, vertical alignment, and text visibility/color issues */
+	input[type="date"] {
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: flex-start !important;
+		line-height: normal !important;
+		padding-top: 0 !important;
+		padding-bottom: 0 !important;
+		color: #181c1c !important; /* Forces visible dark text in light mode */
+		-webkit-text-fill-color: #181c1c !important;
+	}
+
+	/* Ensure the webkit date/time edit field is centered and takes full height without clipping */
+	input[type="date"]::-webkit-datetime-edit {
+		display: inline-flex !important;
+		align-items: center !important;
+		height: 100% !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		box-sizing: border-box !important;
+		color: #181c1c !important;
+		-webkit-text-fill-color: #181c1c !important;
+	}
+
+	input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+		display: inline-flex !important;
+		align-items: center !important;
+		height: 100% !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		color: #181c1c !important;
+		-webkit-text-fill-color: #181c1c !important;
+	}
+
+	input[type="date"]::-webkit-datetime-edit-text,
+	input[type="date"]::-webkit-datetime-edit-month-field,
+	input[type="date"]::-webkit-datetime-edit-day-field,
+	input[type="date"]::-webkit-datetime-edit-year-field {
+		display: inline-block !important;
+		vertical-align: middle !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		color: #181c1c !important;
+		-webkit-text-fill-color: #181c1c !important;
+	}
+
+	/* Dark mode overrides to guarantee visibility of white text on dark backgrounds */
+	.dark input[type="date"] {
+		color: #ffffff !important;
+		-webkit-text-fill-color: #ffffff !important;
+	}
+
+	.dark input[type="date"]::-webkit-datetime-edit,
+	.dark input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+	.dark input[type="date"]::-webkit-datetime-edit-text,
+	.dark input[type="date"]::-webkit-datetime-edit-month-field,
+	.dark input[type="date"]::-webkit-datetime-edit-day-field,
+	.dark input[type="date"]::-webkit-datetime-edit-year-field {
+		color: #ffffff !important;
+		-webkit-text-fill-color: #ffffff !important;
+	}
+
+	/* Make the native calendar/time picker indicator invisible but stretch it across the entire input box so that clicking anywhere triggers the native picker */
+	input[type="date"]::-webkit-calendar-picker-indicator,
+	input[type="time"]::-webkit-calendar-picker-indicator {
+		position: absolute !important;
+		left: 0 !important;
+		top: 0 !important;
+		width: 100% !important;
+		height: 100% !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		opacity: 0 !important;
+		cursor: pointer !important;
+	}
+}

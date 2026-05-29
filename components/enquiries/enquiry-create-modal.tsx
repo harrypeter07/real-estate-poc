@@ -228,7 +228,7 @@ export function EnquiryCreateModal({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="flex max-h-[min(90dvh,calc(100vh-1.5rem))] max-w-2xl flex-col gap-0 overflow-hidden p-0 border border-zinc-200/80 shadow-2xl rounded-2xl bg-white backdrop-blur-md">
 				{/* Modal Header */}
-				<DialogHeader className="shrink-0 border-b border-zinc-150 bg-gradient-to-r from-zinc-50 to-white px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left relative">
+				<DialogHeader className="shrink-0 border-b border-zinc-150 bg-gradient-to-r from-zinc-50 to-white px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left relative">
 					<div className="flex items-center gap-3">
 						<div className="h-10 w-10 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center text-teal-600 shadow-xs">
 							<Plus className="h-5 w-5" />
@@ -312,10 +312,10 @@ export function EnquiryCreateModal({
 				</DialogHeader>
 
 				{/* Modal Body */}
-				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 bg-zinc-50/30 space-y-6">
+				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 bg-zinc-50/30 space-y-5 sm:space-y-6">
 					
 					{/* Section 1: 👤 Personal Information */}
-					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4.5 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4 sm:p-5 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
 						<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
 							<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
 								<User className="h-4 w-4" />
@@ -323,9 +323,9 @@ export function EnquiryCreateModal({
 							<h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Personal Information</h4>
 						</div>
 
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Name</label>
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Name</label>
 								<Input
 									value={form.name}
 									onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
@@ -333,8 +333,8 @@ export function EnquiryCreateModal({
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Phone</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Phone</label>
 								<Input
 									value={form.phone}
 									inputMode="numeric"
@@ -349,7 +349,7 @@ export function EnquiryCreateModal({
 								/>
 
 								{tempCustomers.length > 0 && (
-									<div className="space-y-1.5 pt-2 border-t border-dashed border-zinc-100 mt-2">
+									<div className="space-y-2 pt-2 border-t border-dashed border-zinc-100 mt-2">
 										<label className="text-[9px] font-black uppercase tracking-wider text-teal-650 block">Match Temporary Customer</label>
 										<SearchableCombobox
 											value={selectedTempCustomerId}
@@ -365,8 +365,8 @@ export function EnquiryCreateModal({
 									</div>
 								)}
 							</div>
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Alternate Phone</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Alternate Phone</label>
 								<Input
 									value={form.alternate_phone}
 									inputMode="numeric"
@@ -380,8 +380,8 @@ export function EnquiryCreateModal({
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Email ID</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Email ID</label>
 								<Input
 									value={form.email_id ?? ""}
 									placeholder="customer@email.com"
@@ -394,8 +394,8 @@ export function EnquiryCreateModal({
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Birth Date</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Birth Date</label>
 								<Input
 									type="date"
 									value={form.birth_date ?? ""}
@@ -408,8 +408,8 @@ export function EnquiryCreateModal({
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 								/>
 							</div>
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">City / Location</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">City / Location</label>
 								<Input
 									value={form.address ?? ""}
 									placeholder="e.g. Besa, Nagpur"
@@ -421,7 +421,7 @@ export function EnquiryCreateModal({
 					</div>
 
 					{/* Section 2: 🏠 Requirement Details */}
-					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4.5 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4 sm:p-5 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
 						<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
 							<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
 								<Building className="h-4 w-4" />
@@ -429,9 +429,9 @@ export function EnquiryCreateModal({
 							<h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Requirement Details</h4>
 						</div>
 
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Project</label>
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Project</label>
 								<SearchableCombobox
 									value={form.project_id ?? ""}
 									onChange={(v) =>
@@ -452,8 +452,8 @@ export function EnquiryCreateModal({
 								/>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">How did they find us?</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">How did they find us?</label>
 								<Select
 									value={form.category}
 									onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}
@@ -471,8 +471,8 @@ export function EnquiryCreateModal({
 								</Select>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Property Type</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Property Type</label>
 								<Input
 									value={form.property_type ?? ""}
 									placeholder="e.g. Flats"
@@ -486,8 +486,8 @@ export function EnquiryCreateModal({
 								/>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Segment</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Segment</label>
 								<Input
 									value={form.segment ?? ""}
 									placeholder="e.g. Mid"
@@ -501,8 +501,8 @@ export function EnquiryCreateModal({
 								/>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Budget Min (₹)</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Budget Min (₹)</label>
 								<Input
 									type="number"
 									value={form.budget_min ?? ""}
@@ -518,8 +518,8 @@ export function EnquiryCreateModal({
 								/>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Budget Max (₹)</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Budget Max (₹)</label>
 								<Input
 									type="number"
 									value={form.budget_max ?? ""}
@@ -535,8 +535,8 @@ export function EnquiryCreateModal({
 								/>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Preferred Location</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Preferred Location</label>
 								<Input
 									value={form.preferred_location ?? ""}
 									placeholder="e.g. Besa"
@@ -550,8 +550,8 @@ export function EnquiryCreateModal({
 								/>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">BHK / Size Requirement</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">BHK / Size Requirement</label>
 								<Input
 									value={form.bhk_size_requirement ?? ""}
 									placeholder="e.g. 2BHK, 1200 sqft"
@@ -568,7 +568,7 @@ export function EnquiryCreateModal({
 					</div>
 
 					{/* Section 3: 📝 Enquiry details & notes */}
-					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4.5 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4 sm:p-5 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
 						<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
 							<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
 								<FileText className="h-4 w-4" />
@@ -576,8 +576,8 @@ export function EnquiryCreateModal({
 							<h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Enquiry Details</h4>
 						</div>
 
-						<div className="space-y-1.5">
-							<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Notes / Requirements details</label>
+						<div className="space-y-2">
+							<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Notes / Requirements details</label>
 							<Textarea
 								rows={3}
 								value={form.details}
@@ -589,7 +589,7 @@ export function EnquiryCreateModal({
 					</div>
 
 					{/* Section 4: 📅 Follow-up & Assignment */}
-					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4.5 space-y-5 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+					<div className="bg-white border border-zinc-200/60 rounded-2xl p-4 sm:p-5 space-y-5 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
 						<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
 							<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
 								<Calendar className="h-4 w-4" />
@@ -597,9 +597,9 @@ export function EnquiryCreateModal({
 							<h4 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Follow-Up & Assignment</h4>
 						</div>
 
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Follow-up date</label>
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Follow-up date</label>
 								<Input
 									type="date"
 									value={form.follow_up_date ?? ""}
@@ -611,8 +611,8 @@ export function EnquiryCreateModal({
 								<p className="text-[10px] text-zinc-400 font-medium leading-normal mt-1">Must be on or after visit date (if applicable).</p>
 							</div>
 
-							<div className="space-y-1.5">
-								<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Assigned Advisor (Admin)</label>
+							<div className="space-y-2">
+								<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450">Assigned Advisor (Admin)</label>
 								<SearchableCombobox
 									value={form.assigned_advisor_id ?? ""}
 									onChange={(v) =>
@@ -633,7 +633,7 @@ export function EnquiryCreateModal({
 
 						{/* Segmented status buttons/chips group */}
 						<div className="space-y-2 pt-2 border-t border-zinc-100">
-							<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block mb-1">Pipeline Status</label>
+							<label className="block text-[10px] font-black uppercase tracking-wider text-zinc-450 mb-2">Pipeline Status</label>
 							<div className="flex flex-wrap gap-2.5">
 								{(
 									[

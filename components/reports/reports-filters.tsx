@@ -34,7 +34,7 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 		if (end) params.set("to", end);
 		else params.delete("to");
 		startTransition(() => {
-			router.push(`${basePath}?${params.toString()}`);
+			router.push(`${basePath}?${params.toString()}`, { scroll: false });
 		});
 	}
 
@@ -151,6 +151,7 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 					</div>
 
 					<Button
+						type="button"
 						size="sm"
 						onClick={() => setRange(customFrom, customTo)}
 						disabled={!customFrom || !customTo || isPending}

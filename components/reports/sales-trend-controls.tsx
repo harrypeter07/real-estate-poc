@@ -36,7 +36,7 @@ export function SalesTrendControls() {
 		else p.delete("to");
 
 		startTransition(() => {
-			router.push(`/dashboard?${p.toString()}`);
+			router.push(`/dashboard?${p.toString()}`, { scroll: false });
 		});
 	}
 
@@ -49,7 +49,7 @@ export function SalesTrendControls() {
 		else p.delete("to");
 
 		startTransition(() => {
-			router.push(`/dashboard?${p.toString()}`);
+			router.push(`/dashboard?${p.toString()}`, { scroll: false });
 		});
 	}
 
@@ -99,26 +99,27 @@ export function SalesTrendControls() {
 				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 shrink-0">
 					<CalendarRange className="h-3.5 w-3.5" /> Filter Range:
 				</span>
-				<div className="flex items-center gap-2 w-full sm:w-auto">
+				<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
 					<Input
 						type="date"
 						value={from}
 						onChange={(e) => setFrom(e.target.value)}
-						className="flex-1 sm:w-40 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+						className="flex-1 sm:w-40 h-9 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
-					<span className="text-zinc-400 text-xs font-bold shrink-0">to</span>
+					<span className="text-zinc-400 text-xs font-bold text-center shrink-0">to</span>
 					<Input
 						type="date"
 						value={to}
 						onChange={(e) => setTo(e.target.value)}
-						className="flex-1 sm:w-40 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+						className="flex-1 sm:w-40 h-9 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
 					<Button
+						type="button"
 						size="sm"
 						variant="outline"
 						onClick={applyDateRange}
 						disabled={isPending || (from === fromParam && to === toParam)}
-						className="h-8.5 px-3.5 rounded-xl text-xs font-bold hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-zinc-900 transition-all duration-300 cursor-pointer shrink-0"
+						className="w-full sm:w-auto h-9 px-4 rounded-xl text-xs font-bold hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-zinc-900 transition-all duration-300 cursor-pointer shrink-0 mt-1 sm:mt-0"
 					>
 						{isPending ? (
 							<>

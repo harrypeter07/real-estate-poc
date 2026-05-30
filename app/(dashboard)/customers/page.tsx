@@ -14,8 +14,8 @@ export default async function CustomersPage() {
         title="Customers"
         subtitle={`${customers.length} registered plot buyers`}
         action={
-          <Link href="/customers/new">
-            <Button size="sm" className="h-9.5 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer">
+          <Link href="/customers/new" className="w-full sm:w-auto">
+            <Button size="sm" className="w-full sm:w-auto h-10 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer flex items-center justify-center">
               <Plus className="h-4 w-4 mr-1.5 shrink-0" />
               New Customer
             </Button>

@@ -289,19 +289,19 @@ export function EnquiriesClient({
 					</div>
 				}
 				action={
-					<div className="flex gap-2.5 flex-wrap items-center">
+					<div className="flex flex-row items-center gap-2.5 w-full sm:w-auto">
 						<Button
 							size="sm"
 							variant="outline"
 							onClick={() => setTempCustomersOpen(true)}
-							className="rounded-2xl h-9.5 text-xs font-bold border-zinc-200/80 bg-white hover:bg-zinc-50 hover:border-zinc-300 shadow-sm hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-300"
+							className="flex-1 sm:flex-initial w-full sm:w-auto h-10 px-3 rounded-2xl text-[11px] min-[360px]:text-xs font-bold border-zinc-200/80 bg-white hover:bg-zinc-50 hover:border-zinc-300 shadow-sm hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-300 cursor-pointer shrink-0 truncate flex items-center justify-center"
 						>
 							Enquiry Customers
 						</Button>
 						<Button 
 							size="sm" 
 							onClick={() => setCreateOpen(true)} 
-							className="bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white text-xs font-black rounded-2xl hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer h-9.5 flex items-center justify-center shrink-0"
+							className="flex-1 sm:flex-initial w-full sm:w-auto h-10 px-3 bg-gradient-to-r from-teal-600 via-teal-650 to-emerald-600 text-white text-[11px] min-[360px]:text-xs font-black rounded-2xl hover:from-teal-500 hover:via-teal-550 hover:to-emerald-500 border border-teal-500/20 shadow-sm hover:shadow-[0_4px_15px_rgba(13,148,136,0.25)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-300 cursor-pointer flex items-center justify-center shrink-0 truncate"
 						>
 							New Lead / Enquiry
 						</Button>
@@ -361,8 +361,8 @@ export function EnquiriesClient({
 			</div>
 
 			{/* Filters Bar */}
-			<div className="flex flex-col lg:flex-row gap-4 bg-gradient-to-r from-white to-zinc-50/30 p-4 rounded-2xl border border-zinc-200/80 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all duration-300">
-				<div className="relative flex-1 group">
+			<div className="flex flex-col lg:flex-row lg:flex-wrap xl:flex-nowrap items-stretch lg:items-center gap-4 bg-gradient-to-r from-white to-zinc-50/30 p-4 rounded-2xl border border-zinc-200/80 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] transition-all duration-300">
+				<div className="relative flex-1 min-w-[200px] w-full group">
 					<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 transition-all duration-300 group-hover:text-zinc-650 group-focus-within:text-teal-650 group-focus-within:scale-105 pointer-events-none" />
 					<Input
 						value={query}
@@ -371,13 +371,13 @@ export function EnquiriesClient({
 						className="pl-10 sm:pl-10 h-10 w-full bg-white border-zinc-200/80 rounded-2xl text-xs transition-all duration-300 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:border-zinc-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.015)] focus:shadow-[0_8px_20px_rgba(13,148,136,0.05)] placeholder:text-zinc-400 font-bold focus-visible:ring-offset-0"
 					/>
 				</div>
-				<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:border-l lg:border-zinc-200 lg:pl-4">
-					<div className="flex flex-wrap items-center gap-3">
+				<div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 lg:border-l lg:border-zinc-200 lg:pl-4 w-full lg:w-auto">
+					<div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
 						<Select
 							value={projectFilter}
 							onValueChange={(val) => setProjectFilter(val)}
 						>
-							<SelectTrigger className="h-10 rounded-2xl border-zinc-200/80 bg-white px-4 text-xs font-bold text-zinc-700 w-[165px] focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 shadow-sm transition-all duration-300 cursor-pointer">
+							<SelectTrigger className="h-10 rounded-2xl border-zinc-200/80 bg-white px-4 text-xs font-bold text-zinc-700 w-full sm:w-auto sm:min-w-[165px] shrink-0 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 shadow-sm transition-all duration-300 cursor-pointer">
 								<SelectValue placeholder="🏢 All Projects" />
 							</SelectTrigger>
 							<SelectContent className="rounded-2xl border border-zinc-200/80 bg-white text-xs font-bold shadow-lg">
@@ -394,7 +394,7 @@ export function EnquiriesClient({
 							value={statusFilter}
 							onValueChange={(val) => setStatusFilter(val)}
 						>
-							<SelectTrigger className="h-10 rounded-2xl border-zinc-200/80 bg-white px-4 text-xs font-bold text-zinc-700 w-[145px] focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 shadow-sm transition-all duration-300 cursor-pointer">
+							<SelectTrigger className="h-10 rounded-2xl border-zinc-200/80 bg-white px-4 text-xs font-bold text-zinc-700 w-full sm:w-auto sm:min-w-[145px] shrink-0 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-300 shadow-sm transition-all duration-300 cursor-pointer">
 								<SelectValue placeholder="🗂 All Stages" />
 							</SelectTrigger>
 							<SelectContent className="rounded-2xl border border-zinc-200/80 bg-white text-xs font-bold shadow-lg">
@@ -408,37 +408,40 @@ export function EnquiriesClient({
 						</Select>
 					</div>
 
-					<div className="flex items-center gap-3">
-						<div className="flex p-0.5 bg-zinc-100 rounded-2xl border border-zinc-200/60 shadow-inner">
+					<div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+						<div className="flex items-center p-0.5 bg-zinc-100 rounded-2xl border border-zinc-200/60 shadow-inner shrink-0 w-full sm:w-auto justify-center sm:justify-start">
 							<button
+								type="button"
 								onClick={() => setViewMode("kanban")}
 								className={cn(
-									"px-3.5 py-1.5 rounded-1.5xl text-xs font-black flex items-center gap-1.5 transition-all duration-300 cursor-pointer",
+									"px-3.5 py-1.5 rounded-1.5xl text-xs font-black flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer shrink-0 select-none flex-1 sm:flex-initial",
 									viewMode === "kanban"
 										? "bg-white text-teal-650 shadow-[0_2px_8px_rgba(0,0,0,0.06)] font-bold"
 										: "text-zinc-400 hover:text-zinc-650"
 								)}
 								title="Kanban Board"
 							>
-								<LayoutGrid className="h-3.5 w-3.5" />
+								<LayoutGrid className="h-3.5 w-3.5 shrink-0" />
 								<span className="hidden sm:inline">Pipeline</span>
 							</button>
 							<button
+								type="button"
 								onClick={() => setViewMode("list")}
 								className={cn(
-									"px-3.5 py-1.5 rounded-1.5xl text-xs font-black flex items-center gap-1.5 transition-all duration-300 cursor-pointer",
+									"px-3.5 py-1.5 rounded-1.5xl text-xs font-black flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer shrink-0 select-none flex-1 sm:flex-initial",
 									viewMode === "list"
 										? "bg-white text-teal-650 shadow-[0_2px_8px_rgba(0,0,0,0.06)] font-bold"
 										: "text-zinc-400 hover:text-zinc-650"
 								)}
 								title="List view"
 							>
-								<List className="h-3.5 w-3.5" />
+								<List className="h-3.5 w-3.5 shrink-0" />
 								<span className="hidden sm:inline">Table</span>
 							</button>
 						</div>
 
 						<Button
+							type="button"
 							variant="outline"
 							size="sm"
 							onClick={() => {
@@ -446,9 +449,9 @@ export function EnquiriesClient({
 								refetch();
 								refetchPipeline();
 							}}
-							className="rounded-2xl h-10 text-xs font-bold border-zinc-200/80 bg-white hover:bg-zinc-50 hover:border-zinc-300 shadow-sm hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-300 px-4 flex items-center gap-1.5 cursor-pointer shrink-0"
+							className="rounded-2xl h-10 text-xs font-bold border-zinc-200/80 bg-white hover:bg-zinc-50 hover:border-zinc-300 shadow-sm hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-300 px-4 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 w-full sm:w-auto"
 						>
-							<Sparkles className="h-3.5 w-3.5 text-teal-500" />
+							<Sparkles className="h-3.5 w-3.5 text-teal-500 shrink-0" />
 							<span>Refresh</span>
 						</Button>
 					</div>

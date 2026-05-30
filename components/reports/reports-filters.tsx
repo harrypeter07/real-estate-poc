@@ -34,7 +34,7 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 		if (end) params.set("to", end);
 		else params.delete("to");
 		startTransition(() => {
-			router.push(`${basePath}?${params.toString()}`);
+			router.push(`${basePath}?${params.toString()}`, { scroll: false });
 		});
 	}
 
@@ -127,34 +127,35 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 					Custom Range
 				</span>
 				
-				<div className="flex items-center gap-2 w-full sm:w-auto">
-					<div className="relative rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all duration-200">
+				<div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+					<div className="relative flex-1 min-w-[120px] sm:w-36 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all duration-200">
 						<Input
 							type="date"
 							value={customFrom}
 							onChange={(e) => setCustomFrom(e.target.value)}
-							className="w-full sm:w-36 h-9 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus:outline-none"
+							className="w-full h-9 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus:outline-none"
 						/>
 					</div>
 					
-					<span className="text-zinc-400 font-bold text-xs flex items-center justify-center">
+					<span className="text-zinc-400 font-bold text-xs flex items-center justify-center shrink-0">
 						<ArrowRight className="h-3 w-3 text-zinc-300 dark:text-zinc-700" />
 					</span>
 					
-					<div className="relative rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all duration-200">
+					<div className="relative flex-1 min-w-[120px] sm:w-36 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all duration-200">
 						<Input
 							type="date"
 							value={customTo}
 							onChange={(e) => setCustomTo(e.target.value)}
-							className="w-full sm:w-36 h-9 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus:outline-none"
+							className="w-full h-9 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus:outline-none"
 						/>
 					</div>
 
 					<Button
+						type="button"
 						size="sm"
 						onClick={() => setRange(customFrom, customTo)}
 						disabled={!customFrom || !customTo || isPending}
-						className="h-9 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10 hover:shadow-lg hover:shadow-indigo-600/20 active:scale-95 transition-all duration-200 flex items-center gap-1.5"
+						className="w-full sm:w-auto h-9 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10 hover:shadow-lg hover:shadow-indigo-600/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0"
 					>
 						{isPending ? (
 							<>

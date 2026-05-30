@@ -2,8 +2,8 @@
 
 import {
 	CartesianGrid,
-	Line,
-	LineChart,
+	Area,
+	AreaChart,
 	ResponsiveContainer,
 	Tooltip,
 	XAxis,
@@ -30,16 +30,25 @@ export function SalesTrendLineChart({
 		max === min ? [0, max === 0 ? 1 : max * 1.2] : [yMin, yMax];
 
 	return (
-		<div className="w-full" style={{ height: 260 }}>
+		<div className="w-full relative" style={{ height: 220 }}>
 			<ResponsiveContainer width="100%" height="100%">
-				<LineChart
+				<AreaChart
 					data={data}
-					margin={{ top: 8, right: 16, bottom: 0, left: 8 }}
+					margin={{ top: 12, right: 5, bottom: 0, left: -5 }}
 				>
-					<CartesianGrid strokeDasharray="3 3" />
+					<defs>
+						<linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+							<stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+						</linearGradient>
+					</defs>
+					<CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
 					<XAxis
 						dataKey="month"
-						tick={{ fontSize: 12 }}
+						tick={{ fontSize: 9, fill: "#71717a" }}
+						tickLine={false}
+						axisLine={{ stroke: "#e4e4e7" }}
+						dy={5}
 						tickFormatter={(v: any) => {
 							const s = String(v ?? "");
 							if (granularity === "week" && s.includes("-W")) {
@@ -51,12 +60,24 @@ export function SalesTrendLineChart({
 					/>
 					<YAxis
 						domain={domain}
+						width={40}
+						tick={{ fontSize: 9, fill: "#71717a" }}
+						tickLine={false}
+						axisLine={false}
 						tickFormatter={(v) =>
 							formatCurrency(Number(v))
 						}
 					/>
 					<Tooltip
-						formatter={(v: any) => formatCurrency(Number(v))}
+						contentStyle={{
+							backgroundColor: "rgba(255, 255, 255, 0.98)",
+							borderRadius: "12px",
+							border: "1px solid #e4e4e7",
+							boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+							fontSize: "11px",
+							fontWeight: "bold",
+						}}
+						formatter={(v: any) => [formatCurrency(Number(v)), "Sales Value"]}
 						labelFormatter={(label: any) => {
 							const s = String(label ?? "");
 							if (granularity === "week" && s.includes("-W")) {
@@ -66,14 +87,17 @@ export function SalesTrendLineChart({
 							return `Month: ${s}`;
 						}}
 					/>
-					<Line
+					<Area
 						type="monotone"
 						dataKey="value"
-						stroke="#16a34a"
+						stroke="#10b981"
 						strokeWidth={2}
-						dot={false}
+						fillOpacity={1}
+						fill="url(#colorSales)"
+						dot={data.length === 1 ? { r: 5, stroke: "#10b981", strokeWidth: 2, fill: "#ffffff" } : { r: 3, stroke: "#10b981", strokeWidth: 1.5, fill: "#ffffff" }}
+						activeDot={{ r: 5, stroke: "#10b981", strokeWidth: 2, fill: "#ffffff" }}
 					/>
-				</LineChart>
+				</AreaChart>
 			</ResponsiveContainer>
 		</div>
 	);

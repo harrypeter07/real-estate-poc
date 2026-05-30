@@ -32,10 +32,9 @@ export const projectSchema = z.object({
 	registration_charges: z.number().nonnegative("Registration charges must be 0 or greater").default(0),
 
 	// Scheme
-	down_payment_percent: z
+	down_payment_amount: z
 		.number()
-		.min(0, "Down payment % must be at least 0")
-		.max(100, "Down payment % cannot exceed 100")
+		.nonnegative("Down payment must be 0 or greater")
 		.default(0),
 	emi_months: z.number().int().nonnegative("EMI months must be 0 or greater").default(0),
 	emi_type: z.enum(["Fixed", "Flexible", "Step-up", "Balloon"]).default("Fixed"),

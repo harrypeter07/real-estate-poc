@@ -54,13 +54,13 @@ export function SalesTrendControls() {
 	}
 
 	return (
-		<div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center justify-between p-3.5 bg-zinc-55/20 dark:bg-zinc-900/10 border border-zinc-150 dark:border-zinc-850 rounded-2xl">
+		<div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between p-3.5 bg-zinc-50/20 dark:bg-zinc-900/10 border border-zinc-200/50 dark:border-zinc-800/60 rounded-2xl">
 			{/* Granularity Toggle Switches */}
-			<div className="flex flex-wrap gap-2.5 items-center">
-				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mr-1 flex items-center gap-1.5">
+			<div className="flex flex-col sm:flex-row gap-2.5 items-start sm:items-center">
+				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
 					<LayoutGrid className="h-3.5 w-3.5" /> Granularity:
 				</span>
-				<div className="flex bg-zinc-100/80 dark:bg-zinc-900/60 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-inner">
+				<div className="flex bg-zinc-100/80 dark:bg-zinc-900/60 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-inner w-full sm:w-auto">
 					<button
 						type="button"
 						disabled={isPending}
@@ -68,7 +68,7 @@ export function SalesTrendControls() {
 							setTrend("week");
 							pushNow("week");
 						}}
-						className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
+						className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
 							trend === "week"
 								? "bg-white dark:bg-zinc-950 text-teal-600 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
 								: "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent"
@@ -83,7 +83,7 @@ export function SalesTrendControls() {
 							setTrend("month");
 							pushNow("month");
 						}}
-						className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
+						className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
 							trend === "month"
 								? "bg-white dark:bg-zinc-950 text-teal-600 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
 								: "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent"
@@ -95,8 +95,8 @@ export function SalesTrendControls() {
 			</div>
 
 			{/* Custom Range Override inside Widget */}
-			<div className="flex flex-wrap gap-2.5 items-center w-full sm:w-auto border-t sm:border-t-0 border-zinc-200/60 dark:border-zinc-800/60 pt-3 sm:pt-0 sm:border-l sm:pl-4">
-				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mr-1 flex items-center gap-1.5">
+			<div className="flex flex-col sm:flex-row gap-2.5 items-start sm:items-center w-full md:w-auto border-t md:border-t-0 border-zinc-200/60 dark:border-zinc-800/60 pt-3 md:pt-0 md:border-l md:pl-4">
+				<span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 shrink-0">
 					<CalendarRange className="h-3.5 w-3.5" /> Filter Range:
 				</span>
 				<div className="flex items-center gap-2 w-full sm:w-auto">
@@ -104,21 +104,21 @@ export function SalesTrendControls() {
 						type="date"
 						value={from}
 						onChange={(e) => setFrom(e.target.value)}
-						className="w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+						className="flex-1 sm:w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
-					<span className="text-zinc-400 text-xs font-bold">to</span>
+					<span className="text-zinc-400 text-xs font-bold shrink-0">to</span>
 					<Input
 						type="date"
 						value={to}
 						onChange={(e) => setTo(e.target.value)}
-						className="w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+						className="flex-1 sm:w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
 					<Button
 						size="sm"
 						variant="outline"
 						onClick={applyDateRange}
 						disabled={isPending || (!from && !to)}
-						className="h-8.5 px-3.5 rounded-xl text-xs font-bold hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-zinc-900 transition-all duration-300 cursor-pointer"
+						className="h-8.5 px-3.5 rounded-xl text-xs font-bold hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-zinc-900 transition-all duration-300 cursor-pointer shrink-0"
 					>
 						{isPending ? (
 							<>
@@ -134,3 +134,4 @@ export function SalesTrendControls() {
 		</div>
 	);
 }
+

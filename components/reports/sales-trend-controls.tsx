@@ -70,7 +70,7 @@ export function SalesTrendControls() {
 						}}
 						className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
 							trend === "week"
-								? "bg-white dark:bg-zinc-950 text-teal-600 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
+								? "bg-white dark:bg-zinc-950 text-teal-650 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
 								: "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent"
 						}`}
 					>
@@ -85,7 +85,7 @@ export function SalesTrendControls() {
 						}}
 						className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-250 cursor-pointer ${
 							trend === "month"
-								? "bg-white dark:bg-zinc-950 text-teal-600 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
+								? "bg-white dark:bg-zinc-950 text-teal-650 dark:text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.1)] border border-zinc-200/60 dark:border-zinc-850 scale-[1.02]"
 								: "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent"
 						}`}
 					>
@@ -104,20 +104,20 @@ export function SalesTrendControls() {
 						type="date"
 						value={from}
 						onChange={(e) => setFrom(e.target.value)}
-						className="flex-1 sm:w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+						className="flex-1 sm:w-40 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
 					<span className="text-zinc-400 text-xs font-bold shrink-0">to</span>
 					<Input
 						type="date"
 						value={to}
 						onChange={(e) => setTo(e.target.value)}
-						className="flex-1 sm:w-32 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+						className="flex-1 sm:w-40 h-8.5 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-xs font-semibold focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
 					/>
 					<Button
 						size="sm"
 						variant="outline"
 						onClick={applyDateRange}
-						disabled={isPending || (!from && !to)}
+						disabled={isPending || (from === fromParam && to === toParam)}
 						className="h-8.5 px-3.5 rounded-xl text-xs font-bold hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-zinc-900 transition-all duration-300 cursor-pointer shrink-0"
 					>
 						{isPending ? (
@@ -134,4 +134,3 @@ export function SalesTrendControls() {
 		</div>
 	);
 }
-

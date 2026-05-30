@@ -65,6 +65,13 @@ input[type="number"]::-webkit-inner-spin-button {
 	margin: 0 !important;
 }
 
+/* Ensure calendar picker indicator is visible and clickable on date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+	cursor: pointer;
+	opacity: 1;
+	display: block;
+}
+
 @layer base {
 	* {
 		@apply border-border;

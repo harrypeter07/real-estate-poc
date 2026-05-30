@@ -332,3 +332,74 @@ export async function updateHrEmployee(
 	revalidatePath("/hr/employees");
 	return { success: true };
 }
+
+export async function upsertManualAttendance(form: {
+	employee_id: string;
+	work_date: string;
+	attendance_type: "present" | "leave" | "holiday";
+	in_time?: string;
+	out_time?: string;
+	overtime_hours?: number;
+}) {
+	const r = await requireAdminSupabase();
+	if (r.error || !r.supabase) return { success: false, error: r.error ?? "Forbidden" };
+
+	const dateCheck = assertYmd("Work date", form.work_date);
+	if (dateCheck) return { success: false, error: dateCheck };
+
+	let duration_minutes: number | null = null;
+	let overtime_minutes = 0;
+
+	if (form.attendance_type === "present") {
+		if (form.in_time && form.out_time) {
+			const [inH, inM] = form.in_time.split(":").map(Number);
+			const [outH, outM] = form.out_time.split(":").map(Number);
+			if (
+				Number.isInteger(inH) &&
+				Number.isInteger(inM) &&
+				Number.isInteger(outH) &&
+				Number.isInteger(outM)
+			) {
+				let dur = outH * 60 + outM - (inH * 60 + inM);
+				if (dur < 0) dur += 24 * 60; // shift crossed midnight
+				duration_minutes = dur;
+			} else {
+				duration_minutes = 480; // default 8 hours
+			}
+		} else {
+			duration_minutes = 480; // default 8 hours
+		}
+		if (form.overtime_hours && form.overtime_hours > 0) {
+			overtime_minutes = Math.round(form.overtime_hours * 60);
+		}
+	}
+
+	const formatTime = (t: string | undefined) => {
+		if (!t) return null;
+		const parts = t.split(":");
+		if (parts.length === 2) return `${parts[0]}:${parts[1]}:00`;
+		if (parts.length === 3) return t;
+		return null;
+	};
+
+	const { error } = await r.supabase.from("hr_attendance").upsert(
+		{
+			employee_id: form.employee_id,
+			work_date: form.work_date,
+			in_time: formatTime(form.in_time),
+			out_time: formatTime(form.out_time),
+			duration_minutes,
+			overtime_minutes,
+			attendance_type: form.attendance_type,
+			is_valid: true,
+		},
+		{ onConflict: "employee_id,work_date" }
+	);
+
+	if (error) {
+		return { success: false, error: error.message };
+	}
+
+	revalidatePath("/hr/attendance");
+	return { success: true };
+}

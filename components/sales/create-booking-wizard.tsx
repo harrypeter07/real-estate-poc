@@ -211,9 +211,19 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 			toast.error("Please pick a plot unit");
 			return;
 		}
-		if (step === 3 && totalSaleAmount <= 0) {
-			toast.error("Sale amount must be greater than zero");
-			return;
+		if (step === 3) {
+			if (totalSaleAmount <= 0) {
+				toast.error("Sale amount must be greater than zero");
+				return;
+			}
+			if (downPayment < 0) {
+				toast.error("Down payment cannot be negative");
+				return;
+			}
+			if (downPayment > totalSaleAmount) {
+				toast.error("Down payment cannot exceed total sale amount");
+				return;
+			}
 		}
 		setStep((s) => s + 1);
 	};

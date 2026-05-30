@@ -77,7 +77,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			rate_per_sqft: initialData?.rate_per_sqft ? Number(initialData.rate_per_sqft) : 0,
 			plc_charges: initialData?.plc_charges ? Number(initialData.plc_charges) : 0,
 			registration_charges: initialData?.registration_charges ? Number(initialData.registration_charges) : 0,
-			down_payment_percent: initialData?.down_payment_percent ?? initialData?.down_payment_percentage ? Number(initialData.down_payment_percent ?? initialData.down_payment_percentage) : 0,
+			down_payment_amount: initialData?.down_payment_amount ?? initialData?.down_payment_percent ?? initialData?.down_payment_percentage ? Number(initialData.down_payment_amount ?? initialData.down_payment_percent ?? initialData.down_payment_percentage) : 0,
 			emi_months: initialData?.emi_months ? Number(initialData.emi_months) : 0,
 			emi_type: (initialData?.emi_type as any) ?? "Fixed",
 			offer_details: initialData?.offer_details ?? "",
@@ -142,7 +142,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			rate_per_sqft: 1800,
 			plc_charges: 150000,
 			registration_charges: 75000,
-			down_payment_percent: 20,
+			down_payment_amount: 150000,
 			emi_months: 36,
 			emi_type: "Fixed",
 			offer_details: "20% down payment, 36 months interest-free EMI",
@@ -605,14 +605,14 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
 								<FormField
 									control={form.control}
-									name="down_payment_percent"
+									name="down_payment_amount"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Down Payment %</FormLabel>
+											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Down Payment (₹)</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
-													placeholder="e.g. 20"
+													placeholder="e.g. 150000"
 													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 													{...field}
 													onChange={(e) => {

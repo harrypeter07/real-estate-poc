@@ -10,6 +10,7 @@ import {
 	mapDbRowsToAttendanceVM,
 } from "@/components/hr/hr-attendance-records-view";
 import { HrAttendanceDeleteModal } from "@/components/hr/hr-attendance-delete-modal";
+import { HrAttendanceManualModal } from "@/components/hr/hr-attendance-manual-modal";
 import type { HrEmployeeRow } from "@/app/actions/hr";
 
 export function HrAttendanceClient({
@@ -39,6 +40,7 @@ export function HrAttendanceClient({
 					<Button asChild variant="ghost" size="sm">
 						<Link href="/hr">Back</Link>
 					</Button>
+					<HrAttendanceManualModal employees={employees} />
 					<HrAttendanceDeleteModal employees={employees} />
 					<HrAttendanceUpload
 						onComplete={(r) => {

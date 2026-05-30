@@ -457,16 +457,16 @@ export default async function DashboardContent({
 			{/* Sales Trend Chart Section */}
 			{trendData.length > 0 && (
 				<Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md shadow-sm rounded-2xl transition-all duration-300 ease-out hover:border-teal-500/25 hover:shadow-[0_10px_20px_rgba(20,184,166,0.05)] overflow-hidden">
-					<CardHeader className="pb-3.5 border-b border-zinc-100 dark:border-zinc-850/65 px-6 sm:px-8">
+					<CardHeader className="pb-3.5 border-b border-zinc-100 dark:border-zinc-850/65 px-4 sm:px-8">
 						<CardTitle className="text-xs sm:text-sm font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-2.5">
 							<BarChart3 className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" /> Sales Trend by {trendMode === "week" ? "Week" : "Month"}
 						</CardTitle>
 					</CardHeader>
-					<CardContent className="p-6 sm:p-8 space-y-4">
+					<CardContent className="p-3 sm:p-8 px-3.5 sm:px-8 space-y-4">
 						<div className="mb-2">
 							<SalesTrendControls />
 						</div>
-						<div className="rounded-xl border border-zinc-100 dark:border-zinc-900 bg-zinc-50/20 dark:bg-zinc-900/5 p-4 transition-all duration-300 hover:border-zinc-200 dark:hover:border-zinc-800/80">
+						<div className="rounded-xl border border-zinc-100 dark:border-zinc-900 bg-zinc-50/20 dark:bg-zinc-900/5 p-2 sm:p-4 transition-all duration-300 hover:border-zinc-200 dark:hover:border-zinc-800/80">
 							<SalesTrendLineChart data={trendData} granularity={trendMode} />
 						</div>
 					</CardContent>

@@ -33,15 +33,48 @@ CREATE TYPE sale_phase AS ENUM
 -- =============================================
 CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID,
   name TEXT NOT NULL,
+  project_name TEXT,
+  project_code TEXT,
   location TEXT,
+  google_maps_link TEXT DEFAULT '',
+  project_type TEXT DEFAULT 'Plot',
   total_plots_count INT NOT NULL DEFAULT 0,
-  layout_expense DECIMAL(12,2) DEFAULT 0,
+  starting_plot_number INT DEFAULT 1,
+  layout_expense DECIMAL(15,2) DEFAULT 0,
+  starting_price DECIMAL(15,2) DEFAULT 0,
+  rate_per_sqft DECIMAL(10,2) DEFAULT 0,
+  plc_charges DECIMAL(10,2) DEFAULT 0,
+  registration_charges DECIMAL(10,2) DEFAULT 0,
+  down_payment_amount DECIMAL(15,2) DEFAULT 0,
+  emi_months INT DEFAULT 0,
+  emi_type TEXT DEFAULT 'Fixed',
+  offer_details TEXT DEFAULT '',
+  status TEXT DEFAULT 'Active',
   description TEXT,
+  amenities TEXT DEFAULT '',
+  nearby_locations TEXT DEFAULT '',
+  internal_notes TEXT DEFAULT '',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Sync project name trigger
+CREATE OR REPLACE FUNCTION sync_project_name()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.name = COALESCE(NEW.project_name, NEW.name, '');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_project_name ON public.projects;
+CREATE TRIGGER trg_sync_project_name
+  BEFORE INSERT OR UPDATE ON public.projects
+  FOR EACH ROW EXECUTE FUNCTION sync_project_name();
+
 
 -- =============================================
 -- TABLE 2: plots

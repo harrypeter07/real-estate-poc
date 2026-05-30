@@ -28,6 +28,8 @@ const CATEGORY_OPTIONS = [
 	"General",
 	"Site Visit",
 	"WhatsApp",
+	"Website",
+	"Instagram",
 	"Booking",
 	"Follow-up",
 	"Referral",

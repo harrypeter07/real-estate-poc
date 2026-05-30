@@ -211,9 +211,9 @@ export function ProjectPdfButton({
 			[
 				"Registration Charges:",
 				project.registration_charges ? formatPdfCurrency(project.registration_charges) : "—",
-				"Down Payment Percentage:",
+				"Down Payment:",
 				project.down_payment_percentage
-					? `${project.down_payment_percentage}%`
+					? formatPdfCurrency(project.down_payment_percentage)
 					: "—",
 			],
 			[

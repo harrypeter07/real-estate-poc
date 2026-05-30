@@ -79,7 +79,7 @@ export async function createProject(
 		rate_per_sqft: parsed.data.rate_per_sqft ?? 0,
 		plc_charges: parsed.data.plc_charges ?? 0,
 		registration_charges: parsed.data.registration_charges ?? 0,
-		down_payment_percent: parsed.data.down_payment_percent ?? 0,
+		down_payment_amount: parsed.data.down_payment_amount ?? 0,
 		emi_months: parsed.data.emi_months ?? 0,
 		emi_type: parsed.data.emi_type ?? "Fixed",
 		offer_details: parsed.data.offer_details ?? "",
@@ -171,7 +171,7 @@ export async function updateProject(
 		rate_per_sqft: parsed.data.rate_per_sqft ?? 0,
 		plc_charges: parsed.data.plc_charges ?? 0,
 		registration_charges: parsed.data.registration_charges ?? 0,
-		down_payment_percent: parsed.data.down_payment_percent ?? 0,
+		down_payment_amount: parsed.data.down_payment_amount ?? 0,
 		emi_months: parsed.data.emi_months ?? 0,
 		emi_type: parsed.data.emi_type ?? "Fixed",
 		offer_details: parsed.data.offer_details ?? "",
@@ -238,7 +238,7 @@ export async function getProjects() {
 		name: p.project_name ?? p.name ?? "",
 		code: p.project_code ?? p.code ?? "",
 		down_payment_percentage:
-			p.down_payment_percent ?? p.down_payment_percentage ?? 0,
+			p.down_payment_amount ?? p.down_payment_percent ?? p.down_payment_percentage ?? 0,
 	}));
 }
 
@@ -260,7 +260,7 @@ export async function getProjectById(id: string) {
 		name: project.project_name ?? project.name ?? "",
 		code: project.project_code ?? project.code ?? "",
 		down_payment_percentage:
-			project.down_payment_percent ?? project.down_payment_percentage ?? 0,
+			project.down_payment_amount ?? project.down_payment_percent ?? project.down_payment_percentage ?? 0,
 	};
 }
 
@@ -308,7 +308,7 @@ export async function getProjectWithStats(
 		name: project.project_name ?? project.name ?? "",
 		code: project.project_code ?? project.code ?? "",
 		down_payment_percentage:
-			project.down_payment_percent ?? project.down_payment_percentage ?? 0,
+			project.down_payment_amount ?? project.down_payment_percent ?? project.down_payment_percentage ?? 0,
 	};
 
 	const { data: plots } = await supabase
@@ -457,7 +457,7 @@ export async function getProjectsWithPlotCounts() {
 			name: project.project_name ?? project.name ?? "",
 			code: project.project_code ?? project.code ?? "",
 			down_payment_percentage:
-				project.down_payment_percent ?? project.down_payment_percentage ?? 0,
+				project.down_payment_amount ?? project.down_payment_percent ?? project.down_payment_percentage ?? 0,
 		};
 		return {
 			...mapped,

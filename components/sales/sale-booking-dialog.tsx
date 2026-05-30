@@ -33,6 +33,7 @@ export function SaleBookingDialog({
     rate_per_sqft: number;
     status: string;
     facing: string | null;
+    type?: string | null;
   };
 }) {
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,11 @@ export function SaleBookingDialog({
   const [advisors, setAdvisorsState] = useState<any[]>([]);
   const [advisorAssignments, setAdvisorAssignments] = useState<any[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
+
+  const plotTypeLabelCap = useMemo(() => {
+    const t = String(plot.type || "Plot").trim();
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }, [plot.type]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +88,7 @@ export function SaleBookingDialog({
         plot_number: plot.plot_number,
         size_sqft: Number(plot.size_sqft ?? 0),
         rate_per_sqft: Number(plot.rate_per_sqft ?? 0),
+        type: plot.type || "plot",
         total_amount: Number(plot.size_sqft ?? 0) * Number(plot.rate_per_sqft ?? 0),
         projects: {
           id: projectId,
@@ -99,7 +106,7 @@ export function SaleBookingDialog({
             <div className="min-w-0">
               <div className="truncate">Sell / Book</div>
               <div className="text-xs text-zinc-500 font-normal truncate">
-                {projectName} • Plot {plot.plot_number}
+                {projectName} • {plotTypeLabelCap} {plot.plot_number}
               </div>
             </div>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

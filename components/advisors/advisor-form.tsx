@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,7 @@ import {
 	createSubAdvisor,
 	updateAdvisor,
 	setAdvisorParent,
+	getNextAdvisorCode,
 } from "@/app/actions/advisors";
 import { isDev } from "@/lib/is-dev";
 
@@ -94,6 +95,23 @@ export function AdvisorForm({
 			is_active: initialData?.is_active ?? true,
 		},
 	});
+
+	const loadNextCode = () => {
+		if (mode === "create" && !initialData?.code) {
+			getNextAdvisorCode()
+				.then((code) => {
+					form.setValue("code", code);
+				})
+				.catch((err) => {
+					console.error("Failed to generate advisor code:", err);
+				});
+		}
+	};
+
+	// Auto-generate advisor code on mount for new registrations
+	useEffect(() => {
+		loadNextCode();
+	}, [mode, initialData, form]);
 
 	const fillMockData = () => {
 		const names = [
@@ -252,6 +270,7 @@ export function AdvisorForm({
 						notes: "",
 						is_active: true,
 					});
+					loadNextCode();
 				}
 			}
 			onSuccess?.();
@@ -551,11 +570,13 @@ export function AdvisorForm({
 															className="pl-10 sm:pl-10 h-10 bg-white border-zinc-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 rounded-xl transition-all duration-200 text-sm placeholder:text-zinc-400"
 															{...field}
 															value={field.value ?? ""}
-															onChange={(e) =>
-																field.onChange(
-																	e.target.value.replace(/\D/g, "").slice(0, 10)
-																)
-															}
+															onChange={(e) => {
+																let val = e.target.value.replace(/\D/g, "");
+																while (val.startsWith("0")) {
+																	val = val.substring(1);
+																}
+																field.onChange(val.slice(0, 10));
+															}}
 														/>
 													</div>
 												</FormControl>

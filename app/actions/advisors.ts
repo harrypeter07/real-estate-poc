@@ -120,12 +120,14 @@ export async function createAdvisor(
 		};
 	}
 
+	const uniqueCode = await getOrGenerateUniqueCode(parsed.data.code, businessId, supabase);
+
 	const { data: advisor, error } = await supabase
 		.from("advisors")
 		.insert({
 			business_id: businessId,
 			name: parsed.data.name,
-			code: parsed.data.code,
+			code: uniqueCode,
 			phone: parsed.data.phone,
 			email: advisorEmail,
 			address: parsed.data.address || null,
@@ -355,13 +357,15 @@ export async function createSubAdvisor(
 		};
 	}
 
+	const uniqueCode = await getOrGenerateUniqueCode(parsed.data.code, businessId, supabase);
+
 	const { data: advisor, error } = await supabase
 		.from("advisors")
 		.insert({
 			business_id: businessId,
 			parent_advisor_id: parsed.data.parent_advisor_id,
 			name: parsed.data.name,
-			code: parsed.data.code,
+			code: uniqueCode,
 			phone: parsed.data.phone,
 			email: advisorEmail,
 			address: parsed.data.address || null,
@@ -914,4 +918,79 @@ export async function getAdvisorAnalytics(
 		sales: salesList,
 		commissions: commList,
 	};
+}
+
+export async function getNextAdvisorCode(): Promise<string> {
+	const supabase = await createClient();
+	if (!supabase) return "MG101";
+
+	const { data, error } = await supabase
+		.from("advisors")
+		.select("code");
+
+	if (error || !data) return "MG101";
+
+	let maxNum = 100;
+	for (const row of data) {
+		const codeStr = String(row.code ?? "").trim();
+		const match = /^MG(\d+)$/i.exec(codeStr);
+		if (match) {
+			const num = parseInt(match[1], 10);
+			if (!isNaN(num) && num > maxNum) {
+				maxNum = num;
+			}
+		}
+	}
+
+	return `MG${maxNum + 1}`;
+}
+
+async function getOrGenerateUniqueCode(proposedCode: string, businessId: string, supabase: any): Promise<string> {
+	const cleanProposed = String(proposedCode ?? "").trim();
+
+	// If the proposed code is not empty, check if it's already taken in the business
+	if (cleanProposed) {
+		const { data: existing, error } = await supabase
+			.from("advisors")
+			.select("id")
+			.eq("business_id", businessId)
+			.eq("code", cleanProposed)
+			.maybeSingle();
+
+		if (!existing && !error) {
+			return cleanProposed;
+		}
+	}
+
+	// If it is taken or empty, auto-generate a unique code
+	const { data, error } = await supabase
+		.from("advisors")
+		.select("code")
+		.eq("business_id", businessId);
+
+	const existingCodes = new Set<string>();
+	let maxNum = 100;
+
+	if (data && !error) {
+		for (const row of data) {
+			const codeStr = String(row.code ?? "").trim();
+			existingCodes.add(codeStr.toLowerCase());
+			const match = /^MG(\d+)$/i.exec(codeStr);
+			if (match) {
+				const num = parseInt(match[1], 10);
+				if (!isNaN(num) && num > maxNum) {
+					maxNum = num;
+				}
+			}
+		}
+	}
+
+	let nextNum = maxNum + 1;
+	while (true) {
+		const candidate = `MG${nextNum}`;
+		if (!existingCodes.has(candidate.toLowerCase())) {
+			return candidate;
+		}
+		nextNum++;
+	}
 }

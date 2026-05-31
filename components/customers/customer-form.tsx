@@ -382,7 +382,13 @@ export function CustomerForm({
                           maxLength={10}
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, "");
+                            while (val.startsWith("0")) {
+                              val = val.substring(1);
+                            }
+                            field.onChange(val.slice(0, 10));
+                          }}
                           className="rounded-xl border-zinc-200 bg-white hover:border-zinc-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all duration-200 shadow-sm px-3.5 h-10 text-sm placeholder:text-zinc-400 font-sans"
                         />
                       </FormControl>
@@ -405,7 +411,13 @@ export function CustomerForm({
                           maxLength={10}
                           {...field}
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, "");
+                            while (val.startsWith("0")) {
+                              val = val.substring(1);
+                            }
+                            field.onChange(val.slice(0, 10));
+                          }}
                           className="rounded-xl border-zinc-200 bg-white hover:border-zinc-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all duration-200 shadow-sm px-3.5 h-10 text-sm placeholder:text-zinc-400 font-sans"
                         />
                       </FormControl>

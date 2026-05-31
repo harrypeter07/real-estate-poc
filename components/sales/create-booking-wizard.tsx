@@ -415,7 +415,13 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Phone</label>
 									<Input
 										value={newCustomerPhone}
-										onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, ""))}
+										onChange={(e) => {
+											let val = e.target.value.replace(/\D/g, "");
+											while (val.startsWith("0")) {
+												val = val.substring(1);
+											}
+											setNewCustomerPhone(val.slice(0, 10));
+										}}
 										placeholder="10-Digit Mobile"
 										className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 										maxLength={10}

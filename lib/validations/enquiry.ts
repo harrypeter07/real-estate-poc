@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sanitizePhoneNumber } from "@/lib/utils/phone";
 
 export const enquiryStatusSchema = z.enum([
 	"new",
@@ -10,16 +11,20 @@ export const enquiryStatusSchema = z.enum([
 
 export const enquiryCustomerSchema = z.object({
 	name: z.string().min(2, "Name is required"),
-	phone: z
-		.string()
-		.regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
-	alternate_phone: z
-		.string()
-		.optional()
-		.default("")
-		.refine((v) => v === "" || /^\d{10}$/.test(v), {
-			message: "Alternate phone must be exactly 10 digits",
-		}),
+	phone: z.preprocess(
+		(v) => sanitizePhoneNumber(v as string),
+		z.string().regex(/^\d{10}$/, "Phone number must be exactly 10 digits")
+	),
+	alternate_phone: z.preprocess(
+		(v) => (v ? sanitizePhoneNumber(v as string) : ""),
+		z
+			.string()
+			.optional()
+			.default("")
+			.refine((v) => v === "" || /^\d{10}$/.test(v), {
+				message: "Alternate phone must be exactly 10 digits",
+			})
+	),
 	// City / Location input (stored in `enquiry_customers.address`)
 	address: z.string().optional().default(""),
 	email_id: z.string().email("Invalid email").optional().nullable(),

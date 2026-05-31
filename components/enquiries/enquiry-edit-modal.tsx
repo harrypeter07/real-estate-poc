@@ -143,11 +143,15 @@ export function EnquiryEditModal({
 							<Input
 								value={form.phone}
 								inputMode="numeric"
-								onChange={(e) =>
+								onChange={(e) => {
+									let val = e.target.value.replace(/\D/g, "");
+									while (val.startsWith("0")) {
+										val = val.substring(1);
+									}
 									setForm(
-										(s) => s && { ...s, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }
-									)
-								}
+										(s) => s && { ...s, phone: val.slice(0, 10) }
+									);
+								}}
 							/>
 						</div>
 					</div>

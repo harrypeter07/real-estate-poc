@@ -218,8 +218,11 @@ export function HrEmployeeDialog(props: HrEmployeeDialogProps) {
 										placeholder="9876543210"
 										value={form.phone}
 										onChange={(e) => {
-											const v = e.target.value.replace(/\D/g, "").slice(0, 10);
-											setForm((f) => ({ ...f, phone: v }));
+											let val = e.target.value.replace(/\D/g, "");
+											while (val.startsWith("0")) {
+												val = val.substring(1);
+											}
+											setForm((f) => ({ ...f, phone: val.slice(0, 10) }));
 										}}
 										className="!pl-10 h-10 rounded-xl font-mono border-zinc-200 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 hover:border-zinc-300 font-bold transition-all placeholder:text-zinc-400"
 									/>
@@ -359,4 +362,3 @@ export function HrEmployeeDialog(props: HrEmployeeDialogProps) {
 		</>
 	);
 }
-

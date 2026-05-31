@@ -354,8 +354,11 @@ export function BusinessSettingsForm({
 											value={phone}
 											maxLength={10}
 											onChange={(e) => {
-												const val = e.target.value.replace(/\D/g, ""); // Restrict to numbers only
-												setPhone(val);
+												let val = e.target.value.replace(/\D/g, ""); // Restrict to numbers only
+												while (val.startsWith("0")) {
+													val = val.substring(1);
+												}
+												setPhone(val.slice(0, 10));
 											}}
 											placeholder="10-digit mobile number"
 											className="h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold"

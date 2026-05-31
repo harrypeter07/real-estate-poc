@@ -198,14 +198,9 @@ export function SaleForm({
     }
     const linked = (advisors as any[]).find((a) => a.id === customerAdvisorId);
     if (!linked?.id) return;
-    const parentId = String(linked.parent_advisor_id ?? "").trim();
-    if (parentId) {
-      form.setValue("advisor_id", parentId);
-      setPreferredCustomerSubAdvisorId(linked.id);
-    } else {
-      form.setValue("advisor_id", linked.id);
-      setPreferredCustomerSubAdvisorId(null);
-    }
+    // Always select the customer's linked advisor directly, regardless of whether they have a parent advisor
+    form.setValue("advisor_id", linked.id);
+    setPreferredCustomerSubAdvisorId(null);
   }, [advisors, customers, form, selectedCustomerId, soldByAdmin]);
 
   useEffect(() => {

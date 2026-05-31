@@ -44,6 +44,10 @@ interface SaleFormProps {
     project_id: string;
     advisor_id: string;
     commission_rate: number;
+    commission_token?: number;
+    commission_agreement?: number;
+    commission_registry?: number;
+    commission_full_payment?: number;
   }>;
 }
 
@@ -385,7 +389,11 @@ export function SaleForm({
     );
     let baseRate = 0;
     if (assignment) {
-      baseRate = Number((assignment as any).commission_rate ?? (assignment as any).commission_token ?? 0);
+      baseRate = Number(
+        selectedPhase === "token"
+          ? (assignment as any).commission_token
+          : (assignment as any).commission_full_payment
+      );
     }
     if (!baseRate) {
       baseRate = Number(selectedPhase === "token" ? advisor.commission_token : advisor.commission_full_payment);
@@ -394,7 +402,11 @@ export function SaleForm({
       baseRate = 5; // default 5%
     }
 
-    const baseCommissionAmount = (baseRate / 100) * totalSaleAmount;
+    // Cap the baseRate by the margin percentage (profit / totalSaleAmount)
+    const profit = finance.profit;
+    const marginPercentage = totalSaleAmount > 0 ? (profit / totalSaleAmount) * 100 : 0;
+    const cappedBaseRate = Math.max(0, Math.min(baseRate, marginPercentage));
+    const baseCommissionAmount = (cappedBaseRate / 100) * totalSaleAmount;
     const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
 
     while (currentId && level < 4) {
@@ -402,7 +414,7 @@ export function SaleForm({
       if (!adv) break;
 
       const multiplier = levelMultipliers[level] ?? 0.05;
-      const commPct = baseRate * multiplier;
+      const commPct = cappedBaseRate * multiplier;
       const amount = baseCommissionAmount * multiplier;
 
       splits.push({
@@ -419,7 +431,7 @@ export function SaleForm({
     }
 
     return splits;
-  }, [selectedAdvisorId, totalSaleAmount, selectedPhase, advisors, advisorAssignments, selectedProjectId, soldByAdmin]);
+  }, [selectedAdvisorId, totalSaleAmount, selectedPhase, advisors, advisorAssignments, selectedProjectId, soldByAdmin, finance.profit]);
 
   const commissionSplitOverflow = false;
   const commissionSplitTotal = calculatedSplits.reduce((sum, r) => sum + r.amount, 0);

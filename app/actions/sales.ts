@@ -62,7 +62,8 @@ export async function calculateHierarchicalCommissions(
 	projectId: string,
 	phase: "token" | "full_payment",
 	totalSaleAmount: number,
-	plotNumber: string
+	plotNumber: string,
+	profit: number
 ): Promise<CommissionSplitResult[]> {
 	const splits: CommissionSplitResult[] = [];
 	let currentAdvisorId: string | null = sellingAdvisorId;
@@ -70,7 +71,11 @@ export async function calculateHierarchicalCommissions(
 
 	// Base commission percentage for Level 0
 	const baseRate = await getAdvisorCommissionRate(supabase, sellingAdvisorId, projectId, phase);
-	const baseCommissionAmount = (baseRate / 100) * totalSaleAmount;
+	
+	// Cap the baseRate by the margin percentage (profit / totalSaleAmount)
+	const marginPercentage = totalSaleAmount > 0 ? (profit / totalSaleAmount) * 100 : 0;
+	const cappedBaseRate = Math.max(0, Math.min(baseRate, marginPercentage));
+	const baseCommissionAmount = (cappedBaseRate / 100) * totalSaleAmount;
 
 	// Multipliers for parent levels (L0 gets 100%, L1 gets 20% of L0's, L2 gets 10% of L0's, L3 gets 5% of L0's)
 	const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
@@ -86,7 +91,7 @@ export async function calculateHierarchicalCommissions(
 		const adv = data as { id: string; name: string | null; parent_advisor_id: string | null };
 
 		const multiplier = levelMultipliers[level] ?? 0.05;
-		const commPct = baseRate * multiplier;
+		const commPct = cappedBaseRate * multiplier;
 		const amount = baseCommissionAmount * multiplier;
 
 		splits.push({
@@ -95,7 +100,7 @@ export async function calculateHierarchicalCommissions(
 			commission_percentage: commPct,
 			amount: Math.round(amount * 100) / 100,
 			notes: level === 0
-				? `Direct Seller Commission (${baseRate}% on Plot ${plotNumber})`
+				? `Direct Seller Commission (${cappedBaseRate.toFixed(2)}% on Plot ${plotNumber})`
 				: `Hierarchical Override (L${level} parent of ${(adv as any).name || "Advisor"}, ${commPct.toFixed(2)}% on Plot ${plotNumber})`
 		});
 
@@ -306,7 +311,8 @@ export async function createSale(
 			plotRow.project_id,
 			parsed.data.sale_phase,
 			finance.sellingPrice,
-			plotRow.plot_number
+			plotRow.plot_number,
+			finance.profit
 		);
 
 		for (const row of hierarchicalSplits) {

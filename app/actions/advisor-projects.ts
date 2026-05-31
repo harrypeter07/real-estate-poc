@@ -14,6 +14,10 @@ export type AdvisorProjectAssignment = {
 	project_id: string;
 	advisor_id: string;
 	commission_rate: number;
+	commission_token?: number;
+	commission_agreement?: number;
+	commission_registry?: number;
+	commission_full_payment?: number;
 	created_at: string;
 	updated_at: string;
 	advisor?: {
@@ -119,6 +123,10 @@ export async function getAdvisorAssignmentsByProject(
 			project_id: row.project_id,
 			advisor_id: row.advisor_id,
 			commission_rate: Number(row.commission_rate ?? row.commission_token ?? 0),
+			commission_token: Number(row.commission_token ?? 0),
+			commission_agreement: Number(row.commission_agreement ?? 0),
+			commission_registry: Number(row.commission_registry ?? 0),
+			commission_full_payment: Number(row.commission_full_payment ?? 0),
 			created_at: row.created_at,
 			updated_at: row.updated_at,
 			advisor: row.advisors
@@ -155,6 +163,10 @@ export async function getAdvisorAssignments(): Promise<AdvisorProjectAssignment[
 			project_id: row.project_id,
 			advisor_id: row.advisor_id,
 			commission_rate: Number(row.commission_rate ?? row.commission_token ?? 0),
+			commission_token: Number(row.commission_token ?? 0),
+			commission_agreement: Number(row.commission_agreement ?? 0),
+			commission_registry: Number(row.commission_registry ?? 0),
+			commission_full_payment: Number(row.commission_full_payment ?? 0),
 			created_at: row.created_at,
 			updated_at: row.updated_at,
 			advisor: row.advisors

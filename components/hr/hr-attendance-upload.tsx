@@ -203,12 +203,11 @@ export function HrAttendanceUpload(props?: {
 			/>
 			<Button
 				size="sm"
-				variant="default"
-				className="gap-2"
+				className="gap-2 bg-teal-600 hover:bg-teal-700 active:scale-98 text-white font-extrabold h-9 rounded-xl shadow-xs hover:shadow-md hover:shadow-teal-500/10 transition-all duration-200 cursor-pointer text-xs px-3.5 border-0"
 				disabled={loading}
 				onClick={() => inputRef.current?.click()}
 			>
-				{loading && !preview ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+				{loading && !preview ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Upload className="h-4 w-4 shrink-0" />}
 				Upload Excel / CSV
 			</Button>
 

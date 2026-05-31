@@ -111,6 +111,18 @@ export function SaleForm({
     [plots, selectedPlotId]
   );
 
+  const plotTypeLabel = useMemo(() => {
+    if (!selectedPlot?.type) return "plot";
+    const t = String(selectedPlot.type).trim().toLowerCase();
+    return t;
+  }, [selectedPlot]);
+
+  const plotTypeLabelCap = useMemo(() => {
+    if (!selectedPlot?.type) return "Plot";
+    const t = String(selectedPlot.type).trim();
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }, [selectedPlot]);
+
   const selectedProjectId =
     selectedPlot?.project_id ?? selectedPlot?.projects?.id ?? null;
 
@@ -692,7 +704,7 @@ export function SaleForm({
       <CardHeader className="flex flex-row justify-between items-center p-0 pb-3 space-y-0">
         <div>
           <CardTitle className="text-base font-bold text-zinc-800 dark:text-zinc-100">New Sale / Booking</CardTitle>
-          <CardDescription className="text-[11px] text-zinc-500">Record a new plot transaction</CardDescription>
+          <CardDescription className="text-[11px] text-zinc-500">Record a new {plotTypeLabel} transaction</CardDescription>
         </div>
         {showFillMock ? (
           <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2.5" onClick={fillMockData}>
@@ -708,7 +720,7 @@ export function SaleForm({
           <div className="flex flex-wrap items-center gap-3 md:gap-4 rounded-xl border border-zinc-200/50 bg-zinc-50/60 p-2.5 mb-4 text-[11px] font-medium dark:border-zinc-800 dark:bg-zinc-900/30 shadow-inner">
             <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-zinc-150 text-zinc-700 dark:bg-zinc-850 dark:border-zinc-800 dark:text-zinc-300 shadow-sm font-semibold">
               <span>🏠</span>
-              <span>Plot #{selectedPlot.plot_number}</span>
+              <span>{plotTypeLabelCap} #{selectedPlot.plot_number}</span>
             </div>
             
             <div className="inline-flex items-center gap-1 text-zinc-500">
@@ -748,7 +760,7 @@ export function SaleForm({
                     name="plot_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-semibold text-zinc-500">Select Plot *</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-zinc-500">Select {plotTypeLabelCap} *</FormLabel>
                         <Select 
                           onValueChange={(v) => {
                             field.onChange(v);
@@ -758,7 +770,7 @@ export function SaleForm({
                         >
                           <FormControl>
                             <SelectTrigger onBlur={() => markTouched("plot_id")} className="h-9 focus:ring-1 focus:ring-indigo-500/20">
-                              <SelectValue placeholder="Choose an available plot" />
+                              <SelectValue placeholder={`Choose an available ${plotTypeLabel}`} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -921,11 +933,11 @@ export function SaleForm({
                           />
                         </FormControl>
                         <p className="text-[10px] text-zinc-400 mt-1">
-                          Prefills from Manage on this project; edit for this plot only if needed.
+                          Prefills from Manage on this project; edit for this {plotTypeLabel} only if needed.
                         </p>
                         {advisorRateInvalid ? (
                           <p className="text-[10px] font-bold text-red-600 mt-1 flex items-center gap-1">
-                            ⚠️ Price is less than plot admin rate ({formatCurrencyShort(plotBaseRatePerSqft)}/sqft).
+                            ⚠️ Price is less than {plotTypeLabel} admin rate ({formatCurrencyShort(plotBaseRatePerSqft)}/sqft).
                           </p>
                         ) : null}
                         {plotBaseRatePerSqft > 0 &&
@@ -1136,7 +1148,7 @@ export function SaleForm({
                     <div className="grid grid-cols-2 gap-3.5 text-xs">
                       <div>
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                          Plot base rate / sqft
+                          {plotTypeLabelCap} base rate / sqft
                         </div>
                         <div className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">
                           {formatCurrencyShort(plotBaseRatePerSqft)}/sqft
@@ -1144,7 +1156,7 @@ export function SaleForm({
                       </div>
                       <div>
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 text-right">
-                          Plot Size
+                          {plotTypeLabelCap} Size
                         </div>
                         <div className="font-bold text-right text-zinc-800 dark:text-zinc-200 mt-0.5">
                           {plotSize.toLocaleString("en-IN")} sqft
@@ -1161,14 +1173,14 @@ export function SaleForm({
                       </div>
                       <div>
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 text-right">
-                          {soldByAdmin ? "Admin (plot base) / sqft" : "Advisor selling price / sqft"}
+                          {soldByAdmin ? `Admin (${plotTypeLabel} base) / sqft` : "Advisor selling price / sqft"}
                         </div>
                         <div className="font-bold text-right text-zinc-800 dark:text-zinc-200 mt-0.5">
                           {formatCurrencyShort(assignedFaceRatePerSqft)}/sqft
                         </div>
                         {advisorRateInvalid ? (
                           <div className="text-[10px] font-bold text-red-550 text-right mt-0.5">
-                            Below plot admin rate
+                            Below {plotTypeLabel} admin rate
                           </div>
                         ) : null}
                       </div>

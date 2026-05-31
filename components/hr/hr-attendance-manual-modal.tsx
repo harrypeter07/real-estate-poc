@@ -89,8 +89,8 @@ export function HrAttendanceManualModal({ employees }: Props) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button type="button" variant="outline" size="sm" className="gap-1.5 border-teal-200/80 hover:border-teal-300 text-teal-700 bg-teal-50/20 hover:bg-teal-50/30">
-					<Calendar className="h-3.5 w-3.5" />
+				<Button type="button" size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold h-9 rounded-xl shadow-xs hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-200 cursor-pointer text-xs px-3.5 border-0">
+					<Calendar className="h-3.5 w-3.5 shrink-0" />
 					Mark attendance manually
 				</Button>
 			</DialogTrigger>

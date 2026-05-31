@@ -194,8 +194,8 @@ export function HrAttendanceDeleteModal({ employees }: Props) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button type="button" variant="destructive" size="sm" className="gap-1.5">
-					<Trash2 className="h-3.5 w-3.5" />
+				<Button type="button" size="sm" className="gap-1.5 bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold h-9 rounded-xl shadow-xs hover:shadow-md hover:shadow-red-500/10 transition-all duration-200 cursor-pointer text-xs px-3.5 border-0">
+					<Trash2 className="h-3.5 w-3.5 shrink-0" />
 					Delete attendance
 				</Button>
 			</DialogTrigger>

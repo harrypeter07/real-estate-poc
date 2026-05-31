@@ -341,12 +341,16 @@ export function EnquiryCreateModal({
 									value={form.phone}
 									inputMode="numeric"
 									placeholder="10 digits"
-									onChange={(e) =>
+									onChange={(e) => {
+										let val = e.target.value.replace(/\D/g, "");
+										while (val.startsWith("0")) {
+											val = val.substring(1);
+										}
 										setForm((s) => ({
 											...s,
-											phone: e.target.value.replace(/\D/g, "").slice(0, 10),
-										}))
-									}
+											phone: val.slice(0, 10),
+										}));
+									}}
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 								/>
 
@@ -373,12 +377,16 @@ export function EnquiryCreateModal({
 									value={form.alternate_phone}
 									inputMode="numeric"
 									placeholder="optional"
-									onChange={(e) =>
+									onChange={(e) => {
+										let val = e.target.value.replace(/\D/g, "");
+										while (val.startsWith("0")) {
+											val = val.substring(1);
+										}
 										setForm((s) => ({
 											...s,
-											alternate_phone: e.target.value.replace(/\D/g, "").slice(0, 10),
-										}))
-									}
+											alternate_phone: val.slice(0, 10),
+										}));
+									}}
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 								/>
 							</div>

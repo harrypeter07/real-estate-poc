@@ -155,8 +155,11 @@ export function HrEmployeeDialog(props: HrEmployeeDialogProps) {
 								placeholder="9876543210"
 								value={form.phone}
 								onChange={(e) => {
-									const v = e.target.value.replace(/\D/g, "").slice(0, 10);
-									setForm((f) => ({ ...f, phone: v }));
+									let val = e.target.value.replace(/\D/g, "");
+									while (val.startsWith("0")) {
+										val = val.substring(1);
+									}
+									setForm((f) => ({ ...f, phone: val.slice(0, 10) }));
 								}}
 							/>
 						</div>

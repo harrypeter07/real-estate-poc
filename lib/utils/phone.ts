@@ -14,3 +14,12 @@ export function normalizePhoneKey(input: string | null | undefined): string | nu
 export function digitsOnly(input: string): string {
 	return String(input ?? "").replace(/\D/g, "");
 }
+
+/** Strips non-digits and leading zeros. */
+export function sanitizePhoneNumber(input: string | null | undefined): string {
+	let clean = String(input ?? "").replace(/\D/g, "");
+	while (clean.startsWith("0")) {
+		clean = clean.substring(1);
+	}
+	return clean;
+}

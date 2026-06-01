@@ -63,7 +63,8 @@ export async function calculateHierarchicalCommissions(
 	phase: "token" | "full_payment",
 	totalSaleAmount: number,
 	plotNumber: string,
-	profit: number
+	profit: number,
+	splitWithParent: boolean = true
 ): Promise<CommissionSplitResult[]> {
 	const splits: CommissionSplitResult[] = [];
 	let currentAdvisorId: string | null = sellingAdvisorId;
@@ -103,6 +104,10 @@ export async function calculateHierarchicalCommissions(
 				? `Direct Seller Commission (${cappedBaseRate.toFixed(2)}% on Plot ${plotNumber})`
 				: `Hierarchical Override (L${level} parent of ${(adv as any).name || "Advisor"}, ${commPct.toFixed(2)}% on Plot ${plotNumber})`
 		});
+
+		if (!splitWithParent) {
+			break;
+		}
 
 		currentAdvisorId = (adv as any).parent_advisor_id;
 		level++;
@@ -312,7 +317,8 @@ export async function createSale(
 			parsed.data.sale_phase,
 			finance.sellingPrice,
 			plotRow.plot_number,
-			finance.profit
+			finance.profit,
+			parsed.data.split_with_parent ?? true
 		);
 
 		for (const row of hierarchicalSplits) {

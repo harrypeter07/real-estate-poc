@@ -9,7 +9,12 @@ import {
 	type AdvisorFormValues,
 } from "@/lib/validations/advisor";
 import { getCurrentBusinessId } from "@/lib/auth/current-business";
-import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
+import {
+	buildAdvisorPasswordFromNameAndPhone,
+	generateRandomAdvisorPassword,
+	extractPasswordAndNotes,
+	formatNotesWithPassword,
+} from "@/lib/auth/advisor-password";
 import { mapUniquePhoneViolation } from "@/lib/utils/db-errors";
 
 export type ActionResponse = {
@@ -106,10 +111,13 @@ export async function createAdvisor(
 	const admin = createAdminClient();
 
 	const advisorEmail = parsed.data.email?.trim() || toAdvisorEmail(parsed.data.phone);
-	const password =
-		parsed.data.use_phone_as_password || !parsed.data.password?.trim()
-			? buildAdvisorPasswordFromNameAndPhone(parsed.data.name, parsed.data.phone)
-			: parsed.data.password;
+	const isDefault = parsed.data.use_phone_as_password || !parsed.data.password?.trim();
+	const rawPassword = isDefault
+		? generateRandomAdvisorPassword(parsed.data.name)
+		: parsed.data.password.trim();
+	const password = rawPassword.length >= 6 ? rawPassword : rawPassword.padEnd(6, "0");
+
+	const finalNotes = formatNotesWithPassword(parsed.data.notes, password);
 
 	const businessId = await getCurrentBusinessId();
 	if (!businessId) {
@@ -132,7 +140,7 @@ export async function createAdvisor(
 			email: advisorEmail,
 			address: parsed.data.address || null,
 			birth_date: parsed.data.birth_date || null,
-			notes: parsed.data.notes || null,
+			notes: finalNotes || null,
 			is_active: parsed.data.is_active,
 		})
 		.select("id")
@@ -208,6 +216,15 @@ export async function updateAdvisor(
 
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
+	const { data: existingAdv } = await supabase
+		.from("advisors")
+		.select("notes")
+		.eq("id", id)
+		.maybeSingle();
+
+	const { password: existingPassword } = extractPasswordAndNotes(existingAdv?.notes);
+	const finalNotes = formatNotesWithPassword(parsed.data.notes, existingPassword);
+
 	const admin = createAdminClient();
 
 	const { data: updatedAdvisor, error } = await supabase
@@ -222,7 +239,7 @@ export async function updateAdvisor(
 				: toAdvisorEmail(parsed.data.phone),
 			address: parsed.data.address || null,
 			birth_date: parsed.data.birth_date || null,
-			notes: parsed.data.notes || null,
+			notes: finalNotes || null,
 			is_active: parsed.data.is_active,
 			updated_at: new Date().toISOString(),
 		})
@@ -343,10 +360,13 @@ export async function createSubAdvisor(
 	}
 
 	const advisorEmail = parsed.data.email?.trim() || toAdvisorEmail(parsed.data.phone);
-	const password =
-		parsed.data.use_phone_as_password || !parsed.data.password?.trim()
-			? buildAdvisorPasswordFromNameAndPhone(parsed.data.name, parsed.data.phone)
-			: parsed.data.password;
+	const isDefault = parsed.data.use_phone_as_password || !parsed.data.password?.trim();
+	const rawPassword = isDefault
+		? generateRandomAdvisorPassword(parsed.data.name)
+		: parsed.data.password.trim();
+	const password = rawPassword.length >= 6 ? rawPassword : rawPassword.padEnd(6, "0");
+
+	const finalNotes = formatNotesWithPassword(parsed.data.notes, password);
 
 	const businessId = await getCurrentBusinessId();
 	if (!businessId) {
@@ -370,7 +390,7 @@ export async function createSubAdvisor(
 			email: advisorEmail,
 			address: parsed.data.address || null,
 			birth_date: parsed.data.birth_date || null,
-			notes: parsed.data.notes || null,
+			notes: finalNotes || null,
 			is_active: parsed.data.is_active,
 		})
 		.select("id")

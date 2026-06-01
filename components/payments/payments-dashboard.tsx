@@ -67,6 +67,15 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 	const limit = 20;
 
 	// Queries
+	const { data: emiOverview, isLoading: loadingOverview } = useQuery({
+		queryKey: ["payments-emi-overview"],
+		queryFn: async () => {
+			const res = await fetch("/api/payments/emi-overview");
+			if (!res.ok) throw new Error("Failed to fetch EMI overview");
+			return res.json();
+		},
+	});
+
 	const { data: paymentsRes, isLoading: loadingPayments } = useQuery({
 		queryKey: ["payments-list", page],
 		queryFn: async () => {
@@ -127,6 +136,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 			setSelectedEmiId("");
 			queryClient.invalidateQueries({ queryKey: ["payments-list"] });
 			queryClient.invalidateQueries({ queryKey: ["payments-summary"] });
+			queryClient.invalidateQueries({ queryKey: ["payments-emi-overview"] });
 			queryClient.invalidateQueries({ queryKey: ["sale-emis"] });
 
 			handlePrintPDF(data.payment);
@@ -148,6 +158,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 			toast.success("Payment confirmed!");
 			queryClient.invalidateQueries({ queryKey: ["payments-list"] });
 			queryClient.invalidateQueries({ queryKey: ["payments-summary"] });
+			queryClient.invalidateQueries({ queryKey: ["payments-emi-overview"] });
 		},
 	});
 
@@ -166,6 +177,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 			setWaiveOpen(false);
 			setWaverReason("");
 			queryClient.invalidateQueries({ queryKey: ["penalties-list"] });
+			queryClient.invalidateQueries({ queryKey: ["payments-emi-overview"] });
 		},
 		onError: (err: any) => {
 			toast.error(err.message);
@@ -185,6 +197,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 		onSuccess: () => {
 			toast.success("Penalty marked as paid!");
 			queryClient.invalidateQueries({ queryKey: ["penalties-list"] });
+			queryClient.invalidateQueries({ queryKey: ["payments-emi-overview"] });
 		},
 	});
 
@@ -267,6 +280,274 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 
 	return (
 		<div className="space-y-6">
+			{/* Recent EMI / Upcoming Payments Overview section */}
+			<div className="bg-zinc-50/40 border border-zinc-200/80 rounded-3xl p-6 shadow-[0_1px_3px_rgba(9,9,11,0.01)] space-y-6">
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+					<div className="space-y-1">
+						<div className="flex items-center gap-2">
+							<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
+								<Sparkles className="h-4 w-4 animate-pulse" />
+							</div>
+							<h3 className="text-sm font-black text-zinc-800 uppercase tracking-wider">EMI & Collections Intelligence</h3>
+						</div>
+						<p className="text-[11px] text-zinc-450 font-bold uppercase tracking-wide">
+							Real-time pipelines for upcoming installments, outstanding recovery, and recent payment successes
+						</p>
+					</div>
+				</div>
+
+				{loadingOverview ? (
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+						{[1, 2, 3].map((i) => (
+							<Card key={i} className="border border-zinc-200 bg-white rounded-2xl p-5 shadow-2xs">
+								<div className="flex flex-col items-center justify-center py-10 space-y-3">
+									<Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+									<span className="text-[10px] uppercase font-black text-zinc-400 tracking-wider">Analyzing pipeline...</span>
+								</div>
+							</Card>
+						))}
+					</div>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+						{/* 1. Overdue Dues */}
+						<Card className="border border-zinc-200/80 bg-white rounded-2xl shadow-2xs overflow-hidden flex flex-col">
+							<div className="px-5 py-4 bg-red-50/30 border-b border-zinc-150 flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<div className="h-6 w-6 rounded-md bg-red-50 text-red-650 flex items-center justify-center border border-red-100/50">
+										<ShieldAlert className="h-3.5 w-3.5" />
+									</div>
+									<h4 className="text-xs font-black text-zinc-750 uppercase tracking-wider">Overdue Collections</h4>
+								</div>
+								<Badge variant="outline" className="bg-red-50 text-red-700 border-red-150 font-mono text-[10px] font-black rounded-md px-2 py-0.5">
+									{emiOverview?.overdue?.length || 0} Alert{emiOverview?.overdue?.length !== 1 ? 's' : ''}
+								</Badge>
+							</div>
+							<div className="px-5 py-4 space-y-4 flex-1 overflow-y-auto max-h-[420px]">
+								{!emiOverview?.overdue || emiOverview.overdue.length === 0 ? (
+									<div className="flex flex-col items-center justify-center py-16 text-center">
+										<div className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100/50 flex items-center justify-center mb-3">
+											<CheckCircle2 className="h-5 w-5" />
+										</div>
+										<p className="text-[11px] font-black text-zinc-700 uppercase tracking-wider">All Clear</p>
+										<p className="text-[10px] text-zinc-400 font-semibold mt-1">No overdue EMIs on record.</p>
+									</div>
+								) : (
+									emiOverview.overdue.map((emi: any) => {
+										const daysOverdue = emi.due_date ? Math.ceil((new Date().getTime() - new Date(emi.due_date).getTime()) / (24 * 60 * 60 * 1000)) : 0;
+										return (
+											<div key={emi.id} className="group relative bg-zinc-50/20 border border-zinc-150/80 hover:bg-white hover:border-red-300 hover:shadow-[0_8px_30px_rgb(239,68,68,0.04)] hover:-translate-y-0.5 rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3.5">
+												{/* Header Row */}
+												<div className="flex items-start justify-between gap-3">
+													<div className="space-y-1 min-w-0 flex-1">
+														<p className="text-xs font-black text-zinc-950 tracking-tight uppercase truncate group-hover:text-red-650 transition-colors">{emi.customer_name}</p>
+														<div className="flex items-center gap-1.5 text-[9px] text-zinc-400 font-black uppercase tracking-wider">
+															<Building2 className="h-3.5 w-3.5 text-zinc-350 shrink-0" />
+															<span className="truncate">Plot {emi.plot_number} • {emi.project_name}</span>
+														</div>
+													</div>
+													<Badge variant="outline" className="bg-red-50/75 text-red-750 border-red-100/80 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded shrink-0">
+														Overdue
+													</Badge>
+												</div>
+
+												{/* Floating Divider */}
+												<div className="h-px bg-zinc-200/60 dark:bg-zinc-800/60 mx-1.5" />
+
+												{/* Grid Details Row */}
+												<div className="grid grid-cols-2 gap-x-6 gap-y-4">
+													<div className="space-y-1.5">
+														<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Due Date</span>
+														<div className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-550 font-bold">
+															<Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+															<span>{formatDate(emi.due_date)}</span>
+														</div>
+													</div>
+													<div className="space-y-1.5 text-right">
+														<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Amount Owed</span>
+														<span className="font-extrabold text-xs font-mono text-red-500 tracking-tight">{formatCurrency(emi.emi_amount)}</span>
+													</div>
+													<div className="space-y-1.5">
+														<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Total Bal</span>
+														<span className="font-mono text-[10px] text-zinc-550 font-bold">{formatCurrency(emi.total_remaining_balance)}</span>
+													</div>
+													<div className="space-y-1.5 text-right">
+														<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Overdue Duration</span>
+														<span className="text-[10px] text-red-650 font-black uppercase tracking-wider inline-flex items-center justify-end gap-1">
+															<Clock className="h-3.5 w-3.5 animate-pulse shrink-0" />
+															{daysOverdue > 0 ? `${daysOverdue} Days Late` : 'Due Today'}
+														</span>
+													</div>
+												</div>
+
+												{emi.last_payment_date && (
+													<>
+														<div className="h-px bg-zinc-200/40 dark:bg-zinc-800/40 mx-1.5" />
+														<p className="text-[9px] text-zinc-400 font-semibold italic text-right">
+															Last payment: <span className="font-bold text-zinc-500 not-italic font-mono">{formatDate(emi.last_payment_date)}</span>
+														</p>
+													</>
+												)}
+											</div>
+										);
+									})
+								)}
+							</div>
+						</Card>
+
+						{/* 2. Upcoming EMIs */}
+						<Card className="border border-zinc-200/80 bg-white rounded-2xl shadow-2xs overflow-hidden flex flex-col">
+							<div className="px-5 py-4 bg-blue-50/30 border-b border-zinc-150 flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<div className="h-6 w-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100/50">
+										<Clock className="h-3.5 w-3.5" />
+									</div>
+									<h4 className="text-xs font-black text-zinc-750 uppercase tracking-wider">Upcoming Schedules</h4>
+								</div>
+								<Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100/50 font-mono text-[10px] font-black rounded-md px-2 py-0.5">
+									{emiOverview?.upcoming?.length || 0} Dues
+								</Badge>
+							</div>
+							<div className="px-5 py-4 space-y-4 flex-1 overflow-y-auto max-h-[420px]">
+								{!emiOverview?.upcoming || emiOverview.upcoming.length === 0 ? (
+									<div className="flex flex-col items-center justify-center py-16 text-center">
+										<div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-150 flex items-center justify-center mb-3">
+											<Calendar className="h-5 w-5 text-zinc-400" />
+										</div>
+										<p className="text-[11px] font-black text-zinc-700 uppercase tracking-wider">No Pipeline Dues</p>
+										<p className="text-[10px] text-zinc-400 font-semibold mt-1">No upcoming EMIs next 30 days.</p>
+									</div>
+								) : (									emiOverview.upcoming.map((emi: any) => (
+										<div key={emi.id} className="group relative bg-zinc-50/20 border border-zinc-150/80 hover:bg-white hover:border-blue-300 hover:shadow-[0_8px_30px_rgb(59,130,246,0.04)] hover:-translate-y-0.5 rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3.5">
+											{/* Header Row */}
+											<div className="flex items-start justify-between gap-3">
+												<div className="space-y-1 min-w-0 flex-1">
+													<p className="text-xs font-black text-zinc-950 tracking-tight uppercase truncate group-hover:text-blue-650 transition-colors">{emi.customer_name}</p>
+													<div className="flex items-center gap-1.5 text-[9px] text-zinc-400 font-black uppercase tracking-wider">
+														<Building2 className="h-3.5 w-3.5 text-zinc-350 shrink-0" />
+														<span className="truncate">Plot {emi.plot_number} • {emi.project_name}</span>
+													</div>
+												</div>
+												<Badge variant="outline" className="bg-blue-50/75 text-blue-750 border-blue-100/80 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded shrink-0">
+													Upcoming
+												</Badge>
+											</div>
+
+											{/* Floating Divider */}
+											<div className="h-px bg-zinc-200/60 dark:bg-zinc-800/60 mx-1.5" />
+
+											{/* Grid Details Row */}
+											<div className="grid grid-cols-2 gap-x-6 gap-y-4">
+												<div className="space-y-1.5">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Due Date</span>
+													<div className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-550 font-bold">
+														<Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+														<span>{formatDate(emi.due_date)}</span>
+													</div>
+												</div>
+												<div className="space-y-1.5 text-right">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">EMI Amount</span>
+													<span className="font-extrabold text-xs font-mono text-blue-600 tracking-tight">{formatCurrency(emi.emi_amount)}</span>
+												</div>
+												<div className="space-y-1.5">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Total Bal</span>
+													<span className="font-mono text-[10px] text-zinc-550 font-bold">{formatCurrency(emi.total_remaining_balance)}</span>
+												</div>
+												<div className="space-y-1.5 text-right">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Installment</span>
+													<span className="text-[10px] text-blue-650 font-black uppercase tracking-wider">
+														EMI {emi.emi_number}
+													</span>
+												</div>
+											</div>
+											{emi.last_payment_date && (
+												<>
+													<div className="h-px bg-zinc-200/40 dark:bg-zinc-800/40 mx-1.5" />
+													<p className="text-[9px] text-zinc-400 font-semibold italic text-right">
+														Last payment: <span className="font-bold text-zinc-500 not-italic font-mono">{formatDate(emi.last_payment_date)}</span>
+													</p>
+												</>
+											)}
+										</div>
+									))
+								)}
+							</div>
+						</Card>
+
+						{/* 3. Recent Success Collections */}
+						<Card className="border border-zinc-200/80 bg-white rounded-2xl shadow-2xs overflow-hidden flex flex-col">
+							<div className="px-5 py-4 bg-emerald-50/30 border-b border-zinc-150 flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<div className="h-6 w-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
+										<CheckCircle2 className="h-3.5 w-3.5" />
+									</div>
+									<h4 className="text-xs font-black text-zinc-750 uppercase tracking-wider">Recent Success</h4>
+								</div>
+								<Badge variant="outline" className="bg-emerald-50 text-emerald-705 border-emerald-150 font-mono text-[10px] font-black rounded-md px-2 py-0.5">
+									{emiOverview?.recent?.length || 0} Cleared
+								</Badge>
+							</div>
+							<div className="px-5 py-4 space-y-4 flex-1 overflow-y-auto max-h-[420px]">
+								{!emiOverview?.recent || emiOverview.recent.length === 0 ? (
+									<div className="flex flex-col items-center justify-center py-16 text-center">
+										<div className="h-10 w-10 rounded-full bg-zinc-50 border border-zinc-150 flex items-center justify-center mb-3">
+											<Receipt className="h-5 w-5 text-zinc-400" />
+										</div>
+										<p className="text-[11px] font-black text-zinc-750 uppercase tracking-wider">No Paid EMIs</p>
+										<p className="text-[10px] text-zinc-450 font-semibold mt-1">Payments ledger will log details here.</p>
+									</div>
+								) : (
+									emiOverview.recent.map((emi: any) => (
+										<div key={emi.id} className="group relative bg-zinc-50/20 border border-zinc-150/80 hover:bg-white hover:border-emerald-300 hover:shadow-[0_8px_30px_rgb(16,185,129,0.04)] hover:-translate-y-0.5 rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3.5">
+											{/* Header Row */}
+											<div className="flex items-start justify-between gap-3">
+												<div className="space-y-1 min-w-0 flex-1">
+													<p className="text-xs font-black text-zinc-950 tracking-tight uppercase truncate group-hover:text-emerald-700 transition-colors">{emi.customer_name}</p>
+													<div className="flex items-center gap-1.5 text-[9px] text-zinc-400 font-black uppercase tracking-wider">
+														<Building2 className="h-3.5 w-3.5 text-zinc-350 shrink-0" />
+														<span className="truncate">Plot {emi.plot_number} • {emi.project_name}</span>
+													</div>
+												</div>
+												<Badge variant="outline" className="bg-emerald-50 text-emerald-750 border-emerald-100/80 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded shrink-0">
+													Cleared
+												</Badge>
+											</div>
+
+											{/* Floating Divider */}
+											<div className="h-px bg-zinc-200/60 dark:bg-zinc-800/60 mx-1.5" />
+
+											{/* Grid Details Row */}
+											<div className="grid grid-cols-2 gap-x-6 gap-y-4">
+												<div className="space-y-1.5">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Payment Date</span>
+													<div className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-550 font-bold">
+														<Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+														<span>{formatDate(emi.paid_date)}</span>
+													</div>
+												</div>
+												<div className="space-y-1.5 text-right">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Amount Paid</span>
+													<span className="font-extrabold text-xs font-mono text-emerald-600 tracking-tight">{formatCurrency(emi.paid_amount)}</span>
+												</div>
+												<div className="space-y-1.5">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Total Bal</span>
+													<span className="font-mono text-[10px] text-zinc-550 font-bold">{formatCurrency(emi.total_remaining_balance)}</span>
+												</div>
+												<div className="space-y-1.5 text-right">
+													<span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider block">Payment Mode</span>
+													<span className="text-[10px] text-emerald-650 font-black uppercase tracking-wider">
+														via {emi.payment_mode}
+													</span>
+												</div>
+											</div>
+										</div>
+									))
+								)}
+							</div>
+						</Card>
+					</div>
+				)}
+			</div>
+
 			{/* Stats Grid - Glassmorphism Finance Style */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 				{/* Card 1: Total Collected */}

@@ -4,9 +4,10 @@ import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/shared/page-header";
 import { AdvisorsManager } from "@/components/advisors/advisors-manager";
 import { getAdvisors } from "@/app/actions/advisors";
-import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
+import { buildAdvisorPasswordFromNameAndPhone, extractPasswordAndNotes } from "@/lib/auth/advisor-password";
 
 function mapAdvisorRow(a: any) {
+	const { password } = extractPasswordAndNotes(a.notes);
 	return {
 		id: a.id,
 		name: a.name,
@@ -15,7 +16,7 @@ function mapAdvisorRow(a: any) {
 		email: a.email ?? null,
 		is_active: a.is_active ?? true,
 		parent_advisor_id: a.parent_advisor_id ?? null,
-		derived_password: buildAdvisorPasswordFromNameAndPhone(a.name ?? "", a.phone ?? ""),
+		derived_password: password || buildAdvisorPasswordFromNameAndPhone(a.name ?? "", a.phone ?? ""),
 	};
 }
 

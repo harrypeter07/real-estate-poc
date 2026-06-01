@@ -8,6 +8,10 @@ export type ReminderType =
 	| "balance_plot"
 	| "crm_followup"
 	| "calling"
+	| "welcome_customer"
+	| "welcome_advisor"
+	| "deal_closed_customer"
+	| "deal_closed_advisor"
 	| "other";
 
 export interface MessageTemplate {
@@ -166,6 +170,60 @@ export const REMINDER_TEMPLATES: ReminderTemplateGroup[] = [
 			},
 		],
 	},
+	{
+		type: "welcome_customer",
+		label: "Welcome Customer",
+		templates: [
+			{
+				id: "wc-1",
+				name: "Standard Welcome",
+				body: `Dear [name], Welcome to S-Infra! 🏠 We are thrilled to have you as a valued customer. Thank you for choosing us to help you find your dream property. We look forward to a great relationship!${COMPANY_SIGNATURE}`,
+			},
+			{
+				id: "wc-2",
+				name: "Warm Greeting",
+				body: `Hello [name]! 🎉 Welcome to the S-Infra family! We're committed to making your real estate journey smooth and memorable. Feel free to reach out to us anytime.${COMPANY_SIGNATURE}`,
+			},
+		],
+	},
+	{
+		type: "welcome_advisor",
+		label: "Welcome Advisor",
+		templates: [
+			{
+				id: "wa-1",
+				name: "Partner Onboarding",
+				body: `Dear [name], Welcome to the S-Infra Channel Partner Network! 🤝 We are excited to collaborate with you. Let's work together to achieve new heights and milestones!${COMPANY_SIGNATURE}`,
+			},
+		],
+	},
+	{
+		type: "deal_closed_customer",
+		label: "Deal Closed Customer",
+		templates: [
+			{
+				id: "dcc-1",
+				name: "Congratulations",
+				body: `Congratulations [name]! 🥳 We are happy to inform you that your deal has been successfully closed. We welcome you to S-Infra and wish you the very best with your new property!${COMPANY_SIGNATURE}`,
+			},
+			{
+				id: "dcc-2",
+				name: "Thank You",
+				body: `Dear [name], Congratulations on securing your property with S-Infra! 🎊 Thank you for placing your trust in us. We look forward to assisting you through the next phases of your purchase.${COMPANY_SIGNATURE}`,
+			},
+		],
+	},
+	{
+		type: "deal_closed_advisor",
+		label: "Deal Closed Advisor",
+		templates: [
+			{
+				id: "dca-1",
+				name: "Deal Closed Appreciation",
+				body: `Great job [name]! 🏆 Congratulations on successfully closing the deal. Your hard work and dedication as a partner are highly appreciated. Keep up the excellent work!${COMPANY_SIGNATURE}`,
+			},
+		],
+	},
 ];
 
 const TEMPLATE_STORAGE_KEY = "sinfra_reminder_templates";
@@ -223,4 +281,41 @@ export function fillTemplate(
 		const k = key.trim().toLowerCase();
 		return normalized[k] ?? DEFAULT_VALUES[k] ?? `[${key}]`;
 	});
+}
+
+export function getReminderTypeForCategory(
+	category: "birthday" | "welcome" | "deal_closed",
+	role: "customer" | "advisor" | "employee"
+): ReminderType {
+	if (category === "welcome") {
+		return role === "advisor" ? "welcome_advisor" : "welcome_customer";
+	}
+	if (category === "deal_closed") {
+		return role === "advisor" ? "deal_closed_advisor" : "deal_closed_customer";
+	}
+	return role === "advisor" ? "birthday_advisor" : "birthday_customer";
+}
+
+export function getCustomTemplateBody(templateId: string, defaultBody: string): string {
+	if (typeof window === "undefined") return defaultBody;
+	try {
+		const stored = localStorage.getItem("sinfra_custom_template_bodies");
+		if (!stored) return defaultBody;
+		const obj = JSON.parse(stored);
+		return obj[templateId] ?? defaultBody;
+	} catch {
+		return defaultBody;
+	}
+}
+
+export function setCustomTemplateBody(templateId: string, body: string): void {
+	if (typeof window === "undefined") return;
+	try {
+		const stored = localStorage.getItem("sinfra_custom_template_bodies");
+		const obj = stored ? JSON.parse(stored) : {};
+		obj[templateId] = body;
+		localStorage.setItem("sinfra_custom_template_bodies", JSON.stringify(obj));
+	} catch {
+		// ignore
+	}
 }

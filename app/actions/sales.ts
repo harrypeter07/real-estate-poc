@@ -307,32 +307,51 @@ export async function createSale(
 		}
 	}
 
-	// 3. Hierarchical Commission splits (auto-calculated up the parent advisor chain)
+	// 3. Hierarchical Commission splits (custom override or auto-calculated up the parent advisor chain)
 	if (!soldByAdmin && parsed.data.advisor_id) {
-		const mainId = parsed.data.advisor_id;
-		const hierarchicalSplits = await calculateHierarchicalCommissions(
-			supabase,
-			mainId,
-			plotRow.project_id,
-			parsed.data.sale_phase,
-			finance.sellingPrice,
-			plotRow.plot_number,
-			finance.profit,
-			parsed.data.split_with_parent ?? true
-		);
+		if (parsed.data.commission_splits && parsed.data.commission_splits.length > 0) {
+			for (const row of parsed.data.commission_splits) {
+				const { error: cErr } = await supabase.from("advisor_commissions").insert({
+					business_id: businessId,
+					advisor_id: row.advisor_id,
+					sale_id: sale.id,
+					commission_percentage: row.commission_percentage,
+					total_commission_amount: row.amount,
+					amount_paid: 0,
+					notes: row.advisor_id === parsed.data.advisor_id
+						? `Direct Seller Commission (${row.commission_percentage.toFixed(2)}% on Plot ${plotRow.plot_number})`
+						: `Hierarchical Override (parent override, ${row.commission_percentage.toFixed(2)}% on Plot ${plotRow.plot_number})`,
+				});
+				if (cErr) {
+					return { success: false, error: cErr.message };
+				}
+			}
+		} else {
+			const mainId = parsed.data.advisor_id;
+			const hierarchicalSplits = await calculateHierarchicalCommissions(
+				supabase,
+				mainId,
+				plotRow.project_id,
+				parsed.data.sale_phase,
+				finance.sellingPrice,
+				plotRow.plot_number,
+				finance.profit,
+				parsed.data.split_with_parent ?? true
+			);
 
-		for (const row of hierarchicalSplits) {
-			const { error: cErr } = await supabase.from("advisor_commissions").insert({
-				business_id: businessId,
-				advisor_id: row.advisor_id,
-				sale_id: sale.id,
-				commission_percentage: row.commission_percentage,
-				total_commission_amount: row.amount,
-				amount_paid: 0,
-				notes: row.notes,
-			});
-			if (cErr) {
-				return { success: false, error: cErr.message };
+			for (const row of hierarchicalSplits) {
+				const { error: cErr } = await supabase.from("advisor_commissions").insert({
+					business_id: businessId,
+					advisor_id: row.advisor_id,
+					sale_id: sale.id,
+					commission_percentage: row.commission_percentage,
+					total_commission_amount: row.amount,
+					amount_paid: 0,
+					notes: row.notes,
+				});
+				if (cErr) {
+					return { success: false, error: cErr.message };
+				}
 			}
 		}
 	}
@@ -403,7 +422,7 @@ export async function getSales() {
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
 			.from("advisor_commissions")
-			.select("sale_id, advisor_id, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
+			.select("sale_id, advisor_id, commission_percentage, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
 			.in("sale_id", saleIds);
 		for (const sale of rows as { id: string; advisor_id?: string | null }[]) {
 			const list = (comms ?? []).filter((c: any) => c.sale_id === sale.id);
@@ -414,6 +433,7 @@ export async function getSales() {
 				advisor_id: String(c.advisor_id ?? ""),
 				name: String(c.advisors?.name ?? "—"),
 				phone: String(c.advisors?.phone ?? "—"),
+				commission_percentage: Number(c.commission_percentage ?? 0),
 				amount: Number(c.total_commission_amount ?? 0),
 				is_main: Boolean(mainId && c.advisor_id === mainId),
 			}));
@@ -437,6 +457,7 @@ export type SaleCommissionParticipant = {
 	advisor_id: string;
 	name: string;
 	phone: string;
+	commission_percentage: number;
 	amount: number;
 	is_main: boolean;
 };
@@ -457,7 +478,7 @@ export async function getSaleCommissionParticipants(
 
 	const { data: rows, error } = await supabase
 		.from("advisor_commissions")
-		.select("advisor_id, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
+		.select("advisor_id, commission_percentage, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
 		.eq("sale_id", saleId);
 	if (error) return [];
 
@@ -465,6 +486,7 @@ export async function getSaleCommissionParticipants(
 		advisor_id: String(c.advisor_id ?? ""),
 		name: String(c.advisors?.name ?? "—"),
 		phone: String(c.advisors?.phone ?? "—"),
+		commission_percentage: Number(c.commission_percentage ?? 0),
 		amount: Number(c.total_commission_amount ?? 0),
 		is_main: Boolean(mainId && c.advisor_id === mainId),
 	}));
@@ -489,6 +511,7 @@ export async function getSaleById(id: string) {
       advisors(*),
       advisor_commissions(
         advisor_id,
+        commission_percentage,
         total_commission_amount,
         advisors:advisors!advisor_id(name, phone)
       )

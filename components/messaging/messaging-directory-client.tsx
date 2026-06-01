@@ -23,6 +23,9 @@ import {
 	setStoredTemplateId,
 	type ReminderType,
 	type MessageTemplate,
+	getReminderTypeForCategory,
+	getCustomTemplateBody,
+	setCustomTemplateBody,
 } from "@/lib/reminder-templates";
 import { BulkSendModal } from "@/components/messaging/bulk-send-modal";
 
@@ -67,9 +70,23 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [bulkOpen, setBulkOpen] = useState(false);
 	const [previewRole, setPreviewRole] = useState<MessagingPerson["role"]>("customer");
+	const [activeCategory, setActiveCategory] = useState<"birthday" | "welcome" | "deal_closed">("birthday");
 
-	const birthdayCustomerGroup = REMINDER_TEMPLATES.find((g) => g.type === "birthday_customer")!;
-	const birthdayAdvisorGroup = REMINDER_TEMPLATES.find((g) => g.type === "birthday_advisor")!;
+	const [customTemplateBodies, setCustomTemplateBodies] = useState<Record<string, string>>(() => {
+		if (typeof window === "undefined") return {};
+		try {
+			const stored = localStorage.getItem("sinfra_custom_template_bodies");
+			return stored ? JSON.parse(stored) : {};
+		} catch {
+			return {};
+		}
+	});
+
+	const customerType = getReminderTypeForCategory(activeCategory, "customer");
+	const advisorType = getReminderTypeForCategory(activeCategory, "advisor");
+
+	const customersGroup = REMINDER_TEMPLATES.find((g) => g.type === customerType)!;
+	const advisorsGroup = REMINDER_TEMPLATES.find((g) => g.type === advisorType)!;
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -105,13 +122,16 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 	const clearSelection = () => setSelected(new Set());
 
 	const handleSendOne = (p: MessagingPerson) => {
-		const type: ReminderType = p.role === "advisor" ? "birthday_advisor" : "birthday_customer";
+		const type = getReminderTypeForCategory(activeCategory, p.role);
 		const tmpl = getTemplateForType(type, getStoredTemplateId(type));
 		if (!tmpl) {
 			toast.error("No template");
 			return;
 		}
-		const msg = buildPreview(p, tmpl.body);
+		const bodyText = customTemplateBodies[tmpl.id] !== undefined
+			? customTemplateBodies[tmpl.id]
+			: tmpl.body;
+		const msg = buildPreview(p, bodyText);
 		openWhatsApp(p.phone, msg);
 	};
 
@@ -129,12 +149,19 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 		setBulkOpen(true);
 	};
 
+	const activeTemplate = useMemo(() => {
+		const type = getReminderTypeForCategory(activeCategory, previewRole === "advisor" ? "advisor" : "customer");
+		const group = previewRole === "advisor" ? advisorsGroup : customersGroup;
+		const selectedId = getStoredTemplateId(type) || group.templates[0].id;
+		return group.templates.find((t) => t.id === selectedId) || group.templates[0];
+	}, [activeCategory, previewRole, advisorsGroup, customersGroup]);
+
 	const previewTemplateBody = useMemo(() => {
-		const type =
-			previewRole === "advisor" ? "birthday_advisor" : "birthday_customer";
-		const tmpl = getTemplateForType(type, getStoredTemplateId(type));
-		return tmpl?.body ?? "";
-	}, [previewRole]);
+		if (!activeTemplate) return "";
+		return customTemplateBodies[activeTemplate.id] !== undefined
+			? customTemplateBodies[activeTemplate.id]
+			: activeTemplate.body;
+	}, [activeTemplate, customTemplateBodies]);
 
 	const samplePerson: MessagingPerson = useMemo(
 		() => ({
@@ -150,7 +177,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 
 	const pickTemplate = (type: ReminderType, t: MessageTemplate) => {
 		setStoredTemplateId(type, t.id);
-		toast.success("Template saved");
+		toast.success("Template selected");
 	};
 
 	return (
@@ -262,30 +289,60 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 				</button>
 			</div>
 
-			<Card className="border-zinc-200 shadow-sm dark:border-zinc-800 overflow-hidden">
+			<Card className="border-zinc-200 shadow-sm dark:border-zinc-800 overflow-hidden bg-gradient-to-b from-white to-zinc-50/20 dark:from-zinc-950 dark:to-zinc-950/25">
 				<CardContent className="p-4 md:p-5 space-y-4">
-					<div className="flex items-center justify-between gap-2">
-						<h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Message templates</h3>
-						<span className="text-xs text-muted-foreground">Birthday · WhatsApp</span>
+					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-150 pb-3 dark:border-zinc-800">
+						<div>
+							<h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
+								<Send className="h-4 w-4 text-blue-600" />
+								Greetings &amp; Message Templates
+							</h3>
+							<p className="text-[11px] text-zinc-500 mt-0.5">
+								Choose or customize greeting messages to send over WhatsApp
+							</p>
+						</div>
+						
+						{/* Category selector */}
+						<div className="flex gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg self-start sm:self-auto shrink-0 shadow-3xs">
+							{(
+								[
+									["birthday", "🎂 Birthday"],
+									["welcome", "👋 Welcome"],
+									["deal_closed", "🎉 Deal Closed"],
+								] as const
+							).map(([cat, label]) => (
+								<button
+									key={cat}
+									type="button"
+									onClick={() => setActiveCategory(cat)}
+									className={cn(
+										"rounded-md px-3 py-1 text-xs font-bold transition-all duration-200",
+										activeCategory === cat
+											? "bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 shadow-3xs border border-zinc-200/20"
+											: "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+									)}
+								>
+									{label}
+								</button>
+							))}
+						</div>
 					</div>
-					<p className="text-xs text-muted-foreground">
-						Choose a template per audience. Used when you tap Send or run bulk send.
-					</p>
+
 					<div className="space-y-3">
 						<div>
 							<p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
 								Customers &amp; employees
 							</p>
 							<div className="flex flex-wrap gap-2">
-								{birthdayCustomerGroup.templates.map((t) => (
+								{customersGroup.templates.map((t) => (
 									<button
 										key={t.id}
 										type="button"
-										onClick={() => pickTemplate("birthday_customer", t)}
+										onClick={() => pickTemplate(customerType, t)}
 										className={cn(
 											"rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-											getStoredTemplateId("birthday_customer") === t.id ||
-												(!getStoredTemplateId("birthday_customer") && t.id === birthdayCustomerGroup.templates[0].id)
+											getStoredTemplateId(customerType) === t.id ||
+												(!getStoredTemplateId(customerType) && t.id === customersGroup.templates[0].id)
 												? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/50"
 												: "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800"
 										)}
@@ -298,15 +355,15 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 						<div>
 							<p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-zinc-500">Advisors</p>
 							<div className="flex flex-wrap gap-2">
-								{birthdayAdvisorGroup.templates.map((t) => (
+								{advisorsGroup.templates.map((t) => (
 									<button
 										key={t.id}
 										type="button"
-										onClick={() => pickTemplate("birthday_advisor", t)}
+										onClick={() => pickTemplate(advisorType, t)}
 										className={cn(
 											"rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-											getStoredTemplateId("birthday_advisor") === t.id ||
-												(!getStoredTemplateId("birthday_advisor") && t.id === birthdayAdvisorGroup.templates[0].id)
+											getStoredTemplateId(advisorType) === t.id ||
+												(!getStoredTemplateId(advisorType) && t.id === advisorsGroup.templates[0].id)
 												? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/50"
 												: "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800"
 										)}
@@ -317,28 +374,65 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 							</div>
 						</div>
 					</div>
-					<div className="flex flex-wrap gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-						<span className="text-xs text-muted-foreground">Preview as:</span>
-						{(["customer", "advisor", "employee"] as const).map((r) => (
-							<button
-								key={r}
-								type="button"
-								onClick={() => setPreviewRole(r)}
-								className={cn(
-									"rounded-md px-2 py-1 text-xs font-medium",
-									previewRole === r ? "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800"
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+						{/* Editor */}
+						<div className="space-y-2">
+							<div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+								<span>Edit Template Message</span>
+								{activeTemplate && (
+									<span className="text-emerald-600 normal-case font-bold dark:text-emerald-400">
+										Editing: {activeTemplate.name}
+									</span>
 								)}
-							>
-								{r}
-							</button>
-						))}
+							</div>
+							<textarea
+								rows={4}
+								className="w-full text-xs font-mono p-3 rounded-xl border border-zinc-250 bg-white dark:border-zinc-700 dark:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:text-zinc-100"
+								value={previewTemplateBody}
+								onChange={(e) => {
+									if (!activeTemplate) return;
+									const newBody = e.target.value;
+									setCustomTemplateBodies((prev) => ({
+										...prev,
+										[activeTemplate.id]: newBody,
+									}));
+									setCustomTemplateBody(activeTemplate.id, newBody);
+								}}
+							/>
+							<p className="text-[10px] text-muted-foreground leading-normal">
+								Customize the template text above. Changes are auto-saved locally.
+								<br />
+								Placeholders: <code className="font-mono text-zinc-700 dark:text-zinc-350">[name]</code>, <code className="font-mono text-zinc-700 dark:text-zinc-350">[date]</code>, <code className="font-mono text-zinc-700 dark:text-zinc-350">[company]</code>, <code className="font-mono text-zinc-700 dark:text-zinc-350">[company_phone]</code>
+							</p>
+						</div>
+
+						{/* Preview */}
+						<div className="space-y-2">
+							<div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+								<span>Real-time Preview</span>
+								<div className="flex items-center gap-1">
+									<span className="text-zinc-400 normal-case font-normal mr-1">Preview as:</span>
+									{(["customer", "advisor"] as const).map((r) => (
+										<button
+											key={r}
+											type="button"
+											onClick={() => setPreviewRole(r)}
+											className={cn(
+												"rounded-md px-1.5 py-0.5 text-[9px] font-bold capitalize transition-colors",
+												previewRole === r ? "bg-blue-600 text-white" : "bg-zinc-150 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+											)}
+										>
+											{r}
+										</button>
+									))}
+								</div>
+							</div>
+							<div className="rounded-xl border border-emerald-150/40 bg-emerald-50/20 p-3.5 text-xs text-zinc-850 dark:border-emerald-950/20 dark:bg-emerald-950/5 dark:text-zinc-100 whitespace-pre-wrap min-h-[96px] shadow-inner font-sans leading-relaxed">
+								{buildPreview(samplePerson, previewTemplateBody)}
+							</div>
+						</div>
 					</div>
-					<div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-100 whitespace-pre-wrap min-h-[100px]">
-						{buildPreview(samplePerson, previewTemplateBody)}
-					</div>
-					<p className="text-[10px] text-muted-foreground">
-						Placeholders: [name], [date], [company], [company_phone]
-					</p>
 				</CardContent>
 			</Card>
 
@@ -428,7 +522,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 				)}
 			</div>
 
-			<BulkSendModal open={bulkOpen} onOpenChange={setBulkOpen} queue={queueForBulk} />
+			<BulkSendModal open={bulkOpen} onOpenChange={setBulkOpen} queue={queueForBulk} activeCategory={activeCategory} />
 		</div>
 	);
 }

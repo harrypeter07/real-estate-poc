@@ -65,6 +65,7 @@ export function SaleForm({
   const [subAdvisorIds, setSubAdvisorIds] = useState<string[]>([]);
   const [subOptions, setSubOptions] = useState<{ id: string; name: string; code: string; phone: string }[]>([]);
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
+  const [customPercentages, setCustomPercentages] = useState<Record<string, string>>({});
   const [subComboKey, setSubComboKey] = useState(0);
   const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = false;
@@ -262,6 +263,11 @@ export function SaleForm({
     setPreferredCustomerSubAdvisorId(null);
   }, [preferredCustomerSubAdvisorId, soldByAdmin, subOptions]);
 
+  // Reset custom percentages when advisor, project, or phase changes
+  useEffect(() => {
+    setCustomPercentages({});
+  }, [selectedAdvisorId, selectedProjectId, selectedPhase]);
+
   // Keep one visible date in sync when switching phase (token ↔ other phases use different form keys).
   useEffect(() => {
     const token = form.getValues("token_date");
@@ -415,16 +421,21 @@ export function SaleForm({
     const profit = finance.profit;
     const marginPercentage = totalSaleAmount > 0 ? (profit / totalSaleAmount) * 100 : 0;
     const cappedBaseRate = Math.max(0, Math.min(baseRate, marginPercentage));
-    const baseCommissionAmount = (cappedBaseRate / 100) * totalSaleAmount;
     const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
 
     while (currentId && level < 4) {
       const adv = (advisors as any[]).find((a) => a.id === currentId);
       if (!adv) break;
 
-      const multiplier = levelMultipliers[level] ?? 0.05;
-      const commPct = cappedBaseRate * multiplier;
-      const amount = baseCommissionAmount * multiplier;
+      const defaultMultiplier = levelMultipliers[level] ?? 0.05;
+      const defaultCommPct = cappedBaseRate * defaultMultiplier;
+
+      const rawCustom = customPercentages[adv.id];
+      const commPct = rawCustom !== undefined && rawCustom !== ""
+        ? Number(rawCustom)
+        : defaultCommPct;
+
+      const amount = (commPct / 100) * totalSaleAmount;
 
       splits.push({
         advisor_id: adv.id,
@@ -444,10 +455,21 @@ export function SaleForm({
     }
 
     return splits;
-  }, [selectedAdvisorId, totalSaleAmount, selectedPhase, advisors, advisorAssignments, selectedProjectId, soldByAdmin, finance.profit, splitWithParent]);
+  }, [
+    selectedAdvisorId,
+    totalSaleAmount,
+    selectedPhase,
+    advisors,
+    advisorAssignments,
+    selectedProjectId,
+    soldByAdmin,
+    finance.profit,
+    splitWithParent,
+    customPercentages,
+  ]);
 
-  const commissionSplitOverflow = false;
   const commissionSplitTotal = calculatedSplits.reduce((sum, r) => sum + r.amount, 0);
+  const commissionSplitOverflow = commissionSplitTotal > finance.profit + 0.01;
 
   useEffect(() => {
     if (!selectedPlotId || plotSize <= 0 || plotBaseRatePerSqft <= 0) {
@@ -590,15 +612,11 @@ export function SaleForm({
         ? [selectedAdvisorId, ...subAdvisorIds]
         : [];
       let commission_splits: SaleFormValues["commission_splits"] = undefined;
-      if (pid.length > 1 && finance.profit > 0.001) {
-        const sumMid = pid.slice(0, -1).reduce(
-          (s, id) => s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
-          0,
-        );
-        const lastAmt = Math.max(0, finance.profit - sumMid);
-        commission_splits = pid.map((id, i) => ({
-          advisor_id: id,
-          amount: i === pid.length - 1 ? lastAmt : Number(splitByAdvisor[id] || 0),
+      if (calculatedSplits.length > 0) {
+        commission_splits = calculatedSplits.map((row) => ({
+          advisor_id: row.advisor_id,
+          commission_percentage: row.commission_percentage,
+          amount: row.amount,
         }));
       }
 
@@ -924,30 +942,67 @@ export function SaleForm({
 
                 {!soldByAdmin && selectedAdvisorId && calculatedSplits.length > 0 ? (
                   <div className="p-3.5 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/20 dark:border-amber-900/30 dark:bg-amber-950/10 shadow-sm">
-                    <div className="text-xs font-black text-amber-900 dark:text-amber-400 flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
-                      Automatic Hierarchical Commission Splits
+                    <div className="text-xs font-black text-amber-900 dark:text-amber-400 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+                        Automatic Hierarchical Commission Splits
+                      </div>
+                      {Object.keys(customPercentages).length > 0 && (
+                        <button
+                          type="button"
+                          className="text-[9px] font-bold text-amber-700 hover:text-amber-900 dark:text-amber-500 dark:hover:text-amber-300 underline"
+                          onClick={() => setCustomPercentages({})}
+                        >
+                          Reset to default
+                        </button>
+                      )}
                     </div>
                     <p className="text-[10px] text-zinc-550 dark:text-zinc-400 font-semibold leading-relaxed">
                       Commission is split up the advisor parent chain. Rates are determined by advisor profile and project commission rates.
                     </p>
                     <div className="space-y-2 pt-1 border-t border-amber-200/40">
                       {calculatedSplits.map((row) => (
-                        <div key={row.advisor_id} className="flex justify-between items-center text-xs">
-                          <div className="flex flex-col">
+                        <div key={row.advisor_id} className="flex justify-between items-center text-xs gap-4 py-1.5 border-b border-amber-200/20 last:border-0">
+                          <div className="flex flex-col flex-1">
                             <span className="font-bold text-zinc-800 dark:text-zinc-200">
                              {row.name} {hasParentAdvisor ? (row.level === 0 ? "(Sub-advisor)" : "(Advisor)") : "(Advisor)"}
                             </span>
                             <span className="text-[9px] text-zinc-400 font-mono">
-                              Code: {row.code} &middot; {row.commission_percentage.toFixed(2)}% rate
+                              Code: {row.code}
                             </span>
                           </div>
-                          <span className="font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
-                            {formatCurrency(row.amount)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                className="w-16 h-7 text-right pr-4 text-xs font-mono rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                                value={customPercentages[row.advisor_id] !== undefined ? customPercentages[row.advisor_id] : row.commission_percentage.toFixed(2)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  // Allow only digits, single decimal point
+                                  if (/^\d*\.?\d*$/.test(val)) {
+                                    setCustomPercentages((prev) => ({
+                                      ...prev,
+                                      [row.advisor_id]: val,
+                                    }));
+                                  }
+                                }}
+                              />
+                              <span className="absolute right-1 text-[10px] text-zinc-400 pointer-events-none">%</span>
+                            </div>
+                            <span className="w-20 text-right font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
+                              {formatCurrency(row.amount)}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
+                    {commissionSplitOverflow && (
+                      <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-50 dark:bg-red-950/25 border border-red-200 dark:border-red-900/30 text-red-650 dark:text-red-400 text-[10px] font-bold mt-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                        <span>Commissions exceed profit ({formatCurrency(finance.profit)})</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-[10px] font-bold text-amber-800 dark:text-amber-500 border-t border-amber-200/40 pt-2 leading-none">
                       <span>Total Payout:</span>
                       <span className="font-mono font-black">

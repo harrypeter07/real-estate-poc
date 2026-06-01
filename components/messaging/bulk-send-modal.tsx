@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { X, SkipForward, Plane } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui";
-import { fillTemplate, getTemplateForType, type ReminderType } from "@/lib/reminder-templates";
+import {
+	fillTemplate,
+	getTemplateForType,
+	type ReminderType,
+	getReminderTypeForCategory,
+	getCustomTemplateBody,
+} from "@/lib/reminder-templates";
 import type { MessagingPerson } from "@/app/actions/messaging-directory";
-
-function reminderTypeForRole(role: MessagingPerson["role"]): ReminderType {
-	if (role === "advisor") return "birthday_advisor";
-	return "birthday_customer";
-}
 
 function buildMessage(person: MessagingPerson, templateBody: string): string {
 	return fillTemplate(templateBody, {
@@ -29,10 +30,12 @@ export function BulkSendModal({
 	open,
 	onOpenChange,
 	queue,
+	activeCategory = "birthday",
 }: {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	queue: MessagingPerson[];
+	activeCategory?: "birthday" | "welcome" | "deal_closed";
 }) {
 	const [idx, setIdx] = useState(0);
 	const [sent, setSent] = useState(0);
@@ -47,8 +50,11 @@ export function BulkSendModal({
 	}, [open]);
 
 	const current = queue[idx] ?? null;
-	const template = current ? getTemplateForType(reminderTypeForRole(current.role)) : null;
-	const message = current && template ? buildMessage(current, template.body) : "";
+	const template = current
+		? getTemplateForType(getReminderTypeForCategory(activeCategory, current.role))
+		: null;
+	const customBody = template ? getCustomTemplateBody(template.id, template.body) : "";
+	const message = current && template ? buildMessage(current, customBody) : "";
 
 	const pendingCount = current ? queue.length - idx : 0;
 	const progressPct = queue.length ? Math.min(100, (idx / queue.length) * 100) : 0;
@@ -75,7 +81,7 @@ export function BulkSendModal({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-xl">
 				<DialogHeader className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-					<DialogTitle className="text-base font-semibold">Bulk send — birthday messages</DialogTitle>
+					<DialogTitle className="text-base font-semibold">Bulk send — {activeCategory === "welcome" ? "welcome messages" : activeCategory === "deal_closed" ? "deal closed messages" : "birthday messages"}</DialogTitle>
 				</DialogHeader>
 
 				<div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800">

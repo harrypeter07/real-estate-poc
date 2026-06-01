@@ -49,6 +49,10 @@ export const saleSchema = z
       .array(
         z.object({
           advisor_id: z.string().uuid(),
+          commission_percentage: z.preprocess(
+            (val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+            z.number().min(0)
+          ),
           amount: z.preprocess(
             (val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
             z.number().min(0)

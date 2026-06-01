@@ -80,6 +80,7 @@ export function SaleForm({
       customer_id: "",
       sold_by_admin: false,
       advisor_id: "" as string | null,
+      split_with_parent: true,
       sale_phase: "token",
       token_date: new Date().toISOString().split('T')[0],
       agreement_date: "",
@@ -98,6 +99,7 @@ export function SaleForm({
   const selectedCustomerId = form.watch("customer_id");
   const soldByAdmin = form.watch("sold_by_admin");
   const selectedAdvisorId = form.watch("advisor_id");
+  const splitWithParent = form.watch("split_with_parent") ?? true;
   const advisorSellingOverride = form.watch("advisor_selling_price_per_sqft");
   const selectedPhase = form.watch("sale_phase");
   const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
@@ -109,6 +111,13 @@ export function SaleForm({
   const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
   const phaseDateLabel =
     selectedPhase === "token" ? "Token Date" : "Full Payment Date";
+
+  const selectedAdvisor = useMemo(() => {
+    if (!selectedAdvisorId) return null;
+    return (advisors as any[]).find((a) => a.id === selectedAdvisorId) ?? null;
+  }, [advisors, selectedAdvisorId]);
+
+  const hasParentAdvisor = Boolean(selectedAdvisor?.parent_advisor_id);
 
   const selectedPlot = useMemo(
     () => plots.find((p) => p.id === selectedPlotId) ?? null,
@@ -426,12 +435,16 @@ export function SaleForm({
         level
       });
 
+      if (!splitWithParent) {
+        break;
+      }
+
       currentId = adv.parent_advisor_id;
       level++;
     }
 
     return splits;
-  }, [selectedAdvisorId, totalSaleAmount, selectedPhase, advisors, advisorAssignments, selectedProjectId, soldByAdmin, finance.profit]);
+  }, [selectedAdvisorId, totalSaleAmount, selectedPhase, advisors, advisorAssignments, selectedProjectId, soldByAdmin, finance.profit, splitWithParent]);
 
   const commissionSplitOverflow = false;
   const commissionSplitTotal = calculatedSplits.reduce((sum, r) => sum + r.amount, 0);
@@ -882,6 +895,33 @@ export function SaleForm({
                   />
                 )}
 
+                {!soldByAdmin && selectedAdvisorId && hasParentAdvisor && (
+                  <FormField
+                    control={form.control}
+                    name="split_with_parent"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xs transition-all hover:shadow-sm">
+                        <div className="space-y-0.5 pr-4">
+                          <FormLabel className="text-xs font-bold text-zinc-700 dark:text-zinc-350 cursor-pointer select-none">
+                            Split commission with parent advisor?
+                          </FormLabel>
+                          <p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-semibold leading-normal">
+                            If enabled, the parent chain gets commission overrides. If disabled, sub-advisor acts as a standalone advisor.
+                          </p>
+                        </div>
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="h-4.5 w-4.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer accent-indigo-650 shrink-0"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 {!soldByAdmin && selectedAdvisorId && calculatedSplits.length > 0 ? (
                   <div className="p-3.5 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/20 dark:border-amber-900/30 dark:bg-amber-950/10 shadow-sm">
                     <div className="text-xs font-black text-amber-900 dark:text-amber-400 flex items-center gap-1.5">
@@ -896,7 +936,7 @@ export function SaleForm({
                         <div key={row.advisor_id} className="flex justify-between items-center text-xs">
                           <div className="flex flex-col">
                             <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                              {row.name} {row.level === 0 ? "(Seller)" : `(L${row.level} Parent)`}
+                             {row.name} {hasParentAdvisor ? (row.level === 0 ? "(Sub-advisor)" : "(Advisor)") : "(Advisor)"}
                             </span>
                             <span className="text-[9px] text-zinc-400 font-mono">
                               Code: {row.code} &middot; {row.commission_percentage.toFixed(2)}% rate

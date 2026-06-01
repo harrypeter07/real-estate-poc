@@ -38,7 +38,7 @@ import {
 	UserCheck,
 } from "lucide-react";
 import { getAdvisorAnalytics } from "@/app/actions/advisors";
-import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
+import { buildAdvisorPasswordFromNameAndPhone, extractPasswordAndNotes } from "@/lib/auth/advisor-password";
 import { cn } from "@/lib/utils";
 
 type AdvisorRow = {
@@ -513,10 +513,10 @@ export function AdvisorAnalyticsTable({
 											</div>
 											<div className="bg-amber-50/40 border border-amber-100/70 p-3.5 rounded-lg space-y-1">
 												<p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
-													Default password (derived)
+													{extractPasswordAndNotes(analytics.advisor.notes).password ? "Default Password" : "Default password (derived)"}
 												</p>
 												<span className="font-mono text-sm font-bold text-amber-900 block tracking-wide select-all">
-													{buildAdvisorPasswordFromNameAndPhone(
+													{extractPasswordAndNotes(analytics.advisor.notes).password || buildAdvisorPasswordFromNameAndPhone(
 														String(analytics.advisor.name ?? ""),
 														String(analytics.advisor.phone ?? ""),
 													)}

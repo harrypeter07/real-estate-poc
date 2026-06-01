@@ -70,6 +70,10 @@ export default async function CommissionsPage({
 
       <CommissionsTabs>
         <div className="space-y-6">
+          <Suspense fallback={<div className="h-12 w-full bg-zinc-100 rounded animate-pulse" />}>
+            <CommissionsFilters />
+          </Suspense>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="group bg-gradient-to-br from-white to-zinc-50/40 dark:from-zinc-950 dark:to-zinc-900/10 border border-zinc-200/60 dark:border-zinc-800/80 hover:border-zinc-300 hover:shadow-[0_12px_32px_-4px_rgba(113,113,122,0.05)] hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full">
               <CardContent className="p-6 flex flex-col justify-between h-full w-full">
@@ -143,10 +147,6 @@ export default async function CommissionsPage({
               </CardContent>
             </Card>
           </div>
-
-          <Suspense fallback={<div className="h-12 w-full bg-zinc-100 rounded animate-pulse" />}>
-            <CommissionsFilters />
-          </Suspense>
 
           <CommissionsTable commissions={filteredCommissions as any[]} />
         </div>

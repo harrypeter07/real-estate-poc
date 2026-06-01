@@ -2,7 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
+import {
+	buildAdvisorPasswordFromNameAndPhone,
+	extractPasswordAndNotes,
+	formatNotesWithPassword,
+	generateRandomAdvisorPassword,
+} from "@/lib/auth/advisor-password";
 
 export type ActionResponse<T = void> = {
 	success: boolean;
@@ -18,7 +23,7 @@ export async function getAdvisorDefaultCredential(advisorId: string): Promise<
 
 	const { data: advisor, error } = await supabase
 		.from("advisors")
-		.select("id, name, phone, email")
+		.select("id, name, phone, email, notes")
 		.eq("id", advisorId)
 		.maybeSingle();
 
@@ -26,7 +31,8 @@ export async function getAdvisorDefaultCredential(advisorId: string): Promise<
 
 	const phone = String(advisor.phone ?? "");
 	const email = String(advisor.email ?? "").trim() || toAdvisorEmail(phone);
-	const derivedPassword = buildAdvisorPasswordFromNameAndPhone(
+	const { password } = extractPasswordAndNotes(advisor.notes);
+	const derivedPassword = password || buildAdvisorPasswordFromNameAndPhone(
 		String((advisor as { name?: string }).name ?? ""),
 		phone,
 	);
@@ -46,7 +52,7 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 
 	const { data: advisor, error } = await supabase
 		.from("advisors")
-		.select("id, name, phone, email, auth_user_id, is_active, business_id, parent_advisor_id")
+		.select("id, name, phone, email, auth_user_id, is_active, business_id, parent_advisor_id, notes")
 		.eq("id", advisorId)
 		.single();
 
@@ -64,7 +70,8 @@ async function ensureAdvisorAuthUser(advisorId: string) {
 	}
 
 	const email = advisor.email?.trim() || toAdvisorEmail(advisor.phone);
-	const pw = buildAdvisorPasswordFromNameAndPhone(
+	const { password } = extractPasswordAndNotes(advisor.notes);
+	const pw = password || buildAdvisorPasswordFromNameAndPhone(
 		String((advisor as { name?: string }).name ?? ""),
 		String(advisor.phone ?? ""),
 	);
@@ -113,10 +120,12 @@ export async function resetAdvisorPassword(input: {
 			.maybeSingle();
 		advisorName = String((row as { name?: string } | null)?.name ?? "");
 	}
-	const newPassword =
-		input.mode === "phone"
-			? buildAdvisorPasswordFromNameAndPhone(advisorName, String(ensured.phone ?? ""))
-			: (input.customPassword || "").trim();
+
+	const isDefault = input.mode === "phone";
+	const rawPassword = isDefault
+		? generateRandomAdvisorPassword(advisorName)
+		: (input.customPassword || "").trim();
+	const newPassword = rawPassword.length >= 6 ? rawPassword : rawPassword.padEnd(6, "0");
 
 	if (input.mode === "custom" && newPassword.length < 6) {
 		return { success: false, error: "Password must be at least 6 characters" };
@@ -127,6 +136,22 @@ export async function resetAdvisorPassword(input: {
 	});
 
 	if (error) return { success: false, error: error.message };
+
+	// Update DB notes field to store the new password hint
+	if (supabase) {
+		const { data: row } = await supabase
+			.from("advisors")
+			.select("notes")
+			.eq("id", input.advisorId)
+			.maybeSingle();
+		const { notes: cleanNotes } = extractPasswordAndNotes(row?.notes);
+		const finalNotes = formatNotesWithPassword(cleanNotes, newPassword);
+
+		await supabase
+			.from("advisors")
+			.update({ notes: finalNotes || null, updated_at: new Date().toISOString() })
+			.eq("id", input.advisorId);
+	}
 
 	return { success: true, data: { newPassword } };
 }

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { buildAdvisorPasswordFromNameAndPhone } from "@/lib/auth/advisor-password";
+import {
+	buildAdvisorPasswordFromNameAndPhone,
+	generateRandomAdvisorPassword,
+	formatNotesWithPassword,
+} from "@/lib/auth/advisor-password";
 
 function generateAdvisorCode(): string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -87,6 +91,10 @@ export async function POST(req: Request) {
 		}
 
 		// Insert advisor record
+		const rawPassword = generateRandomAdvisorPassword(name);
+		const password = rawPassword.length >= 6 ? rawPassword : rawPassword.padEnd(6, "0");
+		const finalNotes = formatNotesWithPassword(notes, password);
+
 		const advisorEmail = email?.trim() || toAdvisorEmail(phone);
 		const { data: advisor, error: insertError } = await supabase
 			.from("advisors")
@@ -99,7 +107,7 @@ export async function POST(req: Request) {
 				email: advisorEmail,
 				address: address || null,
 				birth_date: birth_date || null,
-				notes: notes || null,
+				notes: finalNotes || null,
 				commission_token: commission_token ? Number(commission_token) : 0,
 				commission_agreement: commission_agreement ? Number(commission_agreement) : 0,
 				commission_registry: commission_registry ? Number(commission_registry) : 0,
@@ -114,10 +122,9 @@ export async function POST(req: Request) {
 		}
 
 		// Hashing and storing auth credentials
-		const password = buildAdvisorPasswordFromNameAndPhone(name, phone);
 		const admin = createAdminClient();
 		if (admin && advisor) {
-			const pw = password.length >= 6 ? password : String(password).padEnd(6, "0");
+			const pw = password;
 			const { data: authUser, error: authError } = await admin.auth.admin.createUser({
 				email: advisorEmail,
 				password: pw,

@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
 	try {
 		const { searchParams } = new URL(req.url);
 		const businessId = searchParams.get("business_id");
 		const monthParam = searchParams.get("month"); // YYYY-MM
+		const from = searchParams.get("from");
+		const to = searchParams.get("to");
+		const advisorId = searchParams.get("advisor_id");
 
 		if (!businessId) {
 			return NextResponse.json({ error: "business_id is required" }, { status: 400 });
@@ -16,11 +21,14 @@ export async function GET(req: Request) {
 			return NextResponse.json({ error: "Database connection failed" }, { status: 500 });
 		}
 
-		// Calculate start and end of the target month
+		// Calculate start and end strings based on parameters
 		let startStr: string;
 		let endStr: string;
 
-		if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+		if (from && to) {
+			startStr = from.includes("T") ? from : `${from}T00:00:00.000Z`;
+			endStr = to.includes("T") ? to : `${to}T23:59:59.999Z`;
+		} else if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
 			const [year, month] = monthParam.split("-").map(Number);
 			const startDate = new Date(Date.UTC(year, month - 1, 1));
 			const endDate = new Date(Date.UTC(year, month, 1));
@@ -34,21 +42,34 @@ export async function GET(req: Request) {
 			endStr = endDate.toISOString();
 		}
 
-		// 1. Fetch all advisors
-		const { data: advisors, error: advErr } = await supabase
+		// Parse advisor IDs (it could be a comma-separated list)
+		const advisorIds = advisorId ? advisorId.split(",").filter(Boolean) : [];
+
+		// 1. Fetch advisors
+		let advisorsQuery = supabase
 			.from("advisors")
 			.select("id, name, code")
 			.eq("business_id", businessId);
 
+		if (advisorIds.length > 0) {
+			advisorsQuery = advisorsQuery.in("id", advisorIds);
+		}
+		const { data: advisors, error: advErr } = await advisorsQuery;
+
 		if (advErr) return NextResponse.json({ error: advErr.message }, { status: 400 });
 
-		// 2. Fetch commissions in that month
-		const { data: comms, error: commsErr } = await supabase
+		// 2. Fetch commissions in date range
+		let commsQuery = supabase
 			.from("advisor_commissions")
 			.select("advisor_id, sale_id, total_commission_amount, amount_paid")
 			.eq("business_id", businessId)
 			.gte("created_at", startStr)
-			.lt("created_at", endStr);
+			.lte("created_at", endStr);
+
+		if (advisorIds.length > 0) {
+			commsQuery = commsQuery.in("advisor_id", advisorIds);
+		}
+		const { data: comms, error: commsErr } = await commsQuery;
 
 		if (commsErr) return NextResponse.json({ error: commsErr.message }, { status: 400 });
 

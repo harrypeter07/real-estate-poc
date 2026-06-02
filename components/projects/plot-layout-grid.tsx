@@ -561,7 +561,7 @@ export function PlotLayoutGrid({
 						</p>
 					) : null}
 					<div
-						className="grid min-h-0 max-h-[min(220px,32vh)] gap-2 overflow-y-auto overscroll-contain pt-3 pb-3 px-1.5 pr-2 sm:max-h-[min(360px,48vh)] lg:max-h-[70vh]"
+						className="grid min-h-0 max-h-[min(220px,32vh)] gap-2 overflow-y-auto overscroll-contain pt-3 pb-10 px-1.5 pr-2 sm:max-h-[min(360px,48vh)] lg:max-h-[70vh]"
 						style={{
 							gridTemplateColumns: `repeat(auto-fill, minmax(78px, 1fr))`,
 						}}
@@ -622,7 +622,7 @@ export function PlotLayoutGrid({
 												: "available"
 									}
 									className={[
-										"relative aspect-[4/5] rounded-xl border text-xs font-semibold sm:min-h-[88px] w-full",
+										"relative h-[100px] rounded-xl border text-xs font-semibold w-full",
 										"flex flex-col items-center justify-between p-2 transition-all duration-200 ease-in-out group overflow-hidden",
 										"focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2",
 										cfg.className,

@@ -31,11 +31,15 @@ export function BulkSendModal({
 	onOpenChange,
 	queue,
 	activeCategory = "birthday",
+	selectedTemplateIds = {},
+	customTemplateBodies = {},
 }: {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	queue: MessagingPerson[];
 	activeCategory?: "birthday" | "welcome" | "deal_closed";
+	selectedTemplateIds?: Record<string, string>;
+	customTemplateBodies?: Record<string, string>;
 }) {
 	const [idx, setIdx] = useState(0);
 	const [sent, setSent] = useState(0);
@@ -50,10 +54,13 @@ export function BulkSendModal({
 	}, [open]);
 
 	const current = queue[idx] ?? null;
-	const template = current
-		? getTemplateForType(getReminderTypeForCategory(activeCategory, current.role))
-		: null;
-	const customBody = template ? getCustomTemplateBody(template.id, template.body) : "";
+	const templateType = current ? getReminderTypeForCategory(activeCategory, current.role) : null;
+	const templateId = templateType ? selectedTemplateIds[templateType] : null;
+	const template = templateType ? getTemplateForType(templateType, templateId) : null;
+
+	const customBody = template 
+		? (customTemplateBodies[template.id] !== undefined ? customTemplateBodies[template.id] : template.body)
+		: "";
 	const message = current && template ? buildMessage(current, customBody) : "";
 
 	const pendingCount = current ? queue.length - idx : 0;

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
 	try {
 		const { searchParams } = new URL(req.url);
@@ -23,8 +25,12 @@ export async function GET(req: Request) {
 		const twelveMonthsAgo = new Date();
 		twelveMonthsAgo.setFullYear(now.getFullYear() - 1);
 
-		const startDate = from || twelveMonthsAgo.toISOString();
-		const endDate = to || now.toISOString();
+		const startDate = from 
+			? (from.includes("T") ? from : `${from}T00:00:00.000Z`) 
+			: twelveMonthsAgo.toISOString();
+		const endDate = to 
+			? (to.includes("T") ? to : `${to}T23:59:59.999Z`) 
+			: now.toISOString();
 
 		// Parse advisor IDs (it could be a comma-separated list)
 		const advisorIds = advisorId ? advisorId.split(",").filter(Boolean) : [];

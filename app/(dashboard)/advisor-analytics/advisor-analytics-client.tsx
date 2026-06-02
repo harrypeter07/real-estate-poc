@@ -81,6 +81,7 @@ export function AdvisorAnalyticsClient({
 	const [datePreset, setDatePreset] = useState("3m"); // 3m, 12m, custom
 	const [dateFrom, setDateFrom] = useState(initialDates.from);
 	const [dateTo, setDateTo] = useState(initialDates.to);
+	const activeMonth = dateTo.slice(0, 7); // YYYY-MM
 	const [selectedAdvisorIds, setSelectedAdvisorIds] = useState<string[]>([]);
 	const [selectedProjectId, setSelectedProjectId] = useState("all");
 
@@ -128,18 +129,22 @@ export function AdvisorAnalyticsClient({
 			if (!res.ok) throw new Error("Failed to load metrics");
 			return res.json();
 		},
+		staleTime: 0,
+		refetchOnWindowFocus: true,
 	});
 
 	// 2. Top Performers query (We use the leaderboard endpoint or build custom leaderboard stats)
-	// The leaderboard endpoint YYYY-MM gets monthly rank. Let's query it for current selected month
-	const activeMonth = dateTo.slice(0, 7); // YYYY-MM
 	const { data: leaderboard, isLoading: loadingLeaderboard } = useQuery({
-		queryKey: ["analytics", "leaderboard", businessId, activeMonth],
+		queryKey: ["analytics", "leaderboard", businessId, dateFrom, dateTo, advisorFilterParam],
 		queryFn: async () => {
-			const res = await fetch(`/api/advisor-analytics/leaderboard?business_id=${businessId}&month=${activeMonth}`);
+			let url = `/api/advisor-analytics/leaderboard?business_id=${businessId}&from=${dateFrom}&to=${dateTo}`;
+			if (advisorFilterParam) url += `&advisor_id=${advisorFilterParam}`;
+			const res = await fetch(url);
 			if (!res.ok) throw new Error("Failed to load leaderboard");
 			return res.json();
 		},
+		staleTime: 0,
+		refetchOnWindowFocus: true,
 	});
 
 	// 3. Sales Trend query
@@ -152,6 +157,8 @@ export function AdvisorAnalyticsClient({
 			if (!res.ok) throw new Error("Failed to load sales trend");
 			return res.json();
 		},
+		staleTime: 0,
+		refetchOnWindowFocus: true,
 	});
 
 	// 4. Commission Trend query
@@ -164,6 +171,8 @@ export function AdvisorAnalyticsClient({
 			if (!res.ok) throw new Error("Failed to load commission trend");
 			return res.json();
 		},
+		staleTime: 0,
+		refetchOnWindowFocus: true,
 	});
 
 	// 5. Collection Graph query
@@ -176,6 +185,8 @@ export function AdvisorAnalyticsClient({
 			if (!res.ok) throw new Error("Failed to load collection graph");
 			return res.json();
 		},
+		staleTime: 0,
+		refetchOnWindowFocus: true,
 	});
 
 	// ----------------------------------------------------
@@ -526,8 +537,16 @@ export function AdvisorAnalyticsClient({
 							<Trophy className="h-4 w-4 text-teal-650" />
 						</div>
 						<div>
-							<CardTitle className="text-sm font-extrabold text-zinc-800">Monthly Champions</CardTitle>
-							<CardDescription className="text-[11px] mt-0.5">Top contributors for this month ({activeMonth}).</CardDescription>
+							<CardTitle suppressHydrationWarning className="text-sm font-extrabold text-zinc-800">
+								{datePreset === "3m" 
+									? "Champions (Last 3 Months)" 
+									: datePreset === "12m" 
+										? "Champions (Last 12 Months)" 
+										: "Champions (Selected Period)"}
+							</CardTitle>
+							<CardDescription suppressHydrationWarning className="text-[11px] mt-0.5">
+								Top contributors for the active filter period.
+							</CardDescription>
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-4 pt-6">

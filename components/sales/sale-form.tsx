@@ -65,7 +65,7 @@ export function SaleForm({
   const [subAdvisorIds, setSubAdvisorIds] = useState<string[]>([]);
   const [subOptions, setSubOptions] = useState<{ id: string; name: string; code: string; phone: string }[]>([]);
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
-  const [customPercentages, setCustomPercentages] = useState<Record<string, string>>({});
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [subComboKey, setSubComboKey] = useState(0);
   const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = false;
@@ -263,9 +263,9 @@ export function SaleForm({
     setPreferredCustomerSubAdvisorId(null);
   }, [preferredCustomerSubAdvisorId, soldByAdmin, subOptions]);
 
-  // Reset custom percentages when advisor, project, or phase changes
+  // Reset custom amounts when advisor, project, or phase changes
   useEffect(() => {
-    setCustomPercentages({});
+    setCustomAmounts({});
   }, [selectedAdvisorId, selectedProjectId, selectedPhase]);
 
   // Keep one visible date in sync when switching phase (token ↔ other phases use different form keys).
@@ -417,10 +417,7 @@ export function SaleForm({
       baseRate = 5; // default 5%
     }
 
-    // Cap the baseRate by the margin percentage (profit / totalSaleAmount)
     const profit = finance.profit;
-    const marginPercentage = totalSaleAmount > 0 ? (profit / totalSaleAmount) * 100 : 0;
-    const cappedBaseRate = Math.max(0, Math.min(baseRate, marginPercentage));
     const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
 
     while (currentId && level < 4) {
@@ -428,14 +425,18 @@ export function SaleForm({
       if (!adv) break;
 
       const defaultMultiplier = levelMultipliers[level] ?? 0.05;
-      const defaultCommPct = cappedBaseRate * defaultMultiplier;
+      const defaultCommPct = baseRate * defaultMultiplier;
 
-      const rawCustom = customPercentages[adv.id];
-      const commPct = rawCustom !== undefined && rawCustom !== ""
+      // Default amount is based on profit margin
+      const defaultAmount = (defaultCommPct / 100) * profit;
+
+      const rawCustom = customAmounts[adv.id];
+      const amount = rawCustom !== undefined && rawCustom !== ""
         ? Number(rawCustom)
-        : defaultCommPct;
+        : defaultAmount;
 
-      const amount = (commPct / 100) * totalSaleAmount;
+      // commission_percentage relative to total plot sale
+      const commPct = totalSaleAmount > 0 ? (amount / totalSaleAmount) * 100 : 0;
 
       splits.push({
         advisor_id: adv.id,
@@ -465,7 +466,7 @@ export function SaleForm({
     soldByAdmin,
     finance.profit,
     splitWithParent,
-    customPercentages,
+    customAmounts,
   ]);
 
   const commissionSplitTotal = calculatedSplits.reduce((sum, r) => sum + r.amount, 0);
@@ -947,11 +948,11 @@ export function SaleForm({
                         <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
                         Automatic Hierarchical Commission Splits
                       </div>
-                      {Object.keys(customPercentages).length > 0 && (
+                      {Object.keys(customAmounts).length > 0 && (
                         <button
                           type="button"
                           className="text-[9px] font-bold text-amber-700 hover:text-amber-900 dark:text-amber-500 dark:hover:text-amber-300 underline"
-                          onClick={() => setCustomPercentages({})}
+                          onClick={() => setCustomAmounts({})}
                         >
                           Reset to default
                         </button>
@@ -973,25 +974,25 @@ export function SaleForm({
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="relative flex items-center">
+                              <span className="absolute left-1.5 text-[10px] text-zinc-450 pointer-events-none">₹</span>
                               <input
                                 type="text"
-                                className="w-16 h-7 text-right pr-4 text-xs font-mono rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                                value={customPercentages[row.advisor_id] !== undefined ? customPercentages[row.advisor_id] : row.commission_percentage.toFixed(2)}
+                                className="w-24 h-7 text-right pr-2 pl-4 text-xs font-mono rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                                value={customAmounts[row.advisor_id] !== undefined ? customAmounts[row.advisor_id] : Math.round(row.amount).toString()}
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   // Allow only digits, single decimal point
                                   if (/^\d*\.?\d*$/.test(val)) {
-                                    setCustomPercentages((prev) => ({
+                                    setCustomAmounts((prev) => ({
                                       ...prev,
                                       [row.advisor_id]: val,
                                     }));
                                   }
                                 }}
                               />
-                              <span className="absolute right-1 text-[10px] text-zinc-400 pointer-events-none">%</span>
                             </div>
                             <span className="w-20 text-right font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
-                              {formatCurrency(row.amount)}
+                              {row.commission_percentage.toFixed(1)}%
                             </span>
                           </div>
                         </div>
@@ -1303,15 +1304,7 @@ export function SaleForm({
 
                       {!soldByAdmin && (
                         <>
-                          <div className="col-span-2 grid grid-cols-2 gap-3.5 bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/60 dark:border-emerald-900/20 rounded-xl p-3 mt-1 shadow-inner">
-                            <div>
-                              <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                                Total Profit
-                              </div>
-                              <div className="text-sm font-black text-emerald-700 dark:text-emerald-300 font-mono mt-0.5">
-                                {formatCurrency(finance.profit)}
-                              </div>
-                            </div>
+                          <div className="col-span-2 grid grid-cols-1 bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/60 dark:border-emerald-900/20 rounded-xl p-3 mt-1 shadow-inner">
                             <div className="text-right">
                               <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                                 Advisor Earned (Received)

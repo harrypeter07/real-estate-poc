@@ -124,41 +124,36 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
     [teamParticipants],
   );
 
-  useEffect(() => {
-    setSplitByAdvisor({});
-  }, [currentSaleId, teamAdvisorKey]);
-
-  const commissionParticipantIds = teamParticipants.map((p) => p.advisor_id);
-  const splitSumManual =
-    commissionParticipantIds.length > 1
-      ? commissionParticipantIds.slice(0, -1).reduce(
-          (s, id) =>
-            s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
-          0,
-        )
-      : 0;
-  const splitLastAuto =
-    commissionParticipantIds.length > 1
-      ? Math.max(0, amountValue - splitSumManual)
-      : commissionParticipantIds.length === 1
-        ? amountValue
-        : 0;
-  const paymentSplitOverflow =
-    commissionParticipantIds.length > 1 &&
-    amountValue > PAYMENT_SPLIT_EPS &&
-    splitSumManual > amountValue + PAYMENT_SPLIT_EPS;
-
   function applyProportionalPaymentSplit() {
-    if (teamParticipants.length <= 1 || amountValue <= 0) return;
-    const pool = teamParticipants.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    if (pool <= 0) return;
-    const mids = teamParticipants.slice(0, -1);
+    if (teamParticipants.length === 0 || amountValue <= 0 || saleTotal <= 0) {
+      setSplitByAdvisor({});
+      return;
+    }
     const next: Record<string, string> = {};
-    for (const p of mids) {
-      next[p.advisor_id] = ((amountValue * (Number(p.amount) || 0)) / pool).toFixed(2);
+    for (const p of teamParticipants) {
+      const remaining = Math.max(0, p.amount - (p.amount_paid || 0));
+      const proportional = (p.amount * amountValue) / saleTotal;
+      const val = Math.min(proportional, remaining);
+      next[p.advisor_id] = val > 0 ? val.toFixed(2) : "0";
     }
     setSplitByAdvisor(next);
   }
+
+  useEffect(() => {
+    applyProportionalPaymentSplit();
+  }, [amountValue, teamParticipants, saleTotal]);
+
+  const totalAllocatedSum = useMemo(() => {
+    return teamParticipants.reduce(
+      (sum, p) =>
+        sum + (Number.isFinite(Number(splitByAdvisor[p.advisor_id])) ? Number(splitByAdvisor[p.advisor_id]) : 0),
+      0,
+    );
+  }, [teamParticipants, splitByAdvisor]);
+
+  const paymentSplitOverflow =
+    amountValue > PAYMENT_SPLIT_EPS &&
+    totalAllocatedSum > amountValue + PAYMENT_SPLIT_EPS;
 
   const [targetPhase, setTargetPhase] = useState<"token" | "full_payment">("token");
 
@@ -261,29 +256,32 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
       return;
     }
 
+    // Validate that no advisor's distribution exceeds their remaining commission limit
+    for (const p of teamParticipants) {
+      const allocatedVal = Number(splitByAdvisor[p.advisor_id] || 0);
+      const remaining = Math.max(0, p.amount - (p.amount_paid || 0));
+      if (allocatedVal > remaining + 0.01) {
+        toast.error(`Allocation for ${p.name} exceeds remaining commission limit.`);
+        return;
+      }
+    }
+
     let advisor_distribution: PaymentFormValues["advisor_distribution"] = undefined;
-    if (!activeSale?.sold_by_admin && teamParticipants.length === 1 && amt > 0) {
-      advisor_distribution = [
-        { advisor_id: teamParticipants[0].advisor_id, amount: amt },
-      ];
-    } else if (!activeSale?.sold_by_admin && teamParticipants.length > 1 && amt > 0) {
-      const pid = commissionParticipantIds;
-      const sumMid = pid.slice(0, -1).reduce(
-        (s, id) => s + (Number.isFinite(Number(splitByAdvisor[id])) ? Number(splitByAdvisor[id]) : 0),
-        0,
-      );
-      const lastAmt = Math.max(0, amt - sumMid);
-      advisor_distribution = pid.map((id, i) => ({
-        advisor_id: id,
-        amount: i === pid.length - 1 ? lastAmt : Number(splitByAdvisor[id] || 0),
-      }));
+    if (!activeSale?.sold_by_admin && teamParticipants.length > 0 && amt > 0) {
+      advisor_distribution = teamParticipants.map((p) => ({
+        advisor_id: p.advisor_id,
+        amount: Number(splitByAdvisor[p.advisor_id] || 0),
+      })).filter(entry => entry.amount > 0);
     }
 
     setLoading(true);
     setSubmitStatus("idle");
     setStatusText("");
     try {
-      const result = await createPayment(values);
+      const result = await createPayment({
+        ...values,
+        advisor_distribution,
+      });
       if (!result.success) {
         toast.error("Error", { description: result.error });
         setSubmitStatus("error");
@@ -491,7 +489,7 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
                     <div className="text-[11px] font-black text-amber-900 uppercase tracking-wider">
                       Receipt split by advisor (reference)
                     </div>
-                    {teamParticipants.length > 1 ? (
+                    {teamParticipants.length > 0 ? (
                       <Button
                         type="button"
                         variant="outline"
@@ -504,73 +502,71 @@ export function PaymentForm({ sales, initialSaleId }: PaymentFormProps) {
                     ) : null}
                   </div>
                   <p className="text-[10px] text-amber-900/80 font-semibold leading-relaxed">
-                    Allocate this receipt across the same advisors as on the sale. Amounts must total{" "}
-                    <span className="font-mono font-black">{formatCurrency(amountValue)}</span>.
+                    Allocate this receipt across the same advisors as on the sale. Amounts cannot exceed the receipt amount.
                   </p>
-                  {teamParticipants.length === 1 ? (
-                    <p className="text-xs font-mono font-black text-zinc-800 bg-white border border-zinc-200/60 p-2.5 rounded-lg shadow-3xs">
-                      {teamParticipants[0].name}: {formatCurrency(amountValue)}
-                    </p>
-                  ) : (
-                    <>
-                      <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                        {teamParticipants.map((p, idx) => {
-                          const isLast = idx === teamParticipants.length - 1;
-                          return (
-                            <div key={p.advisor_id} className="flex items-center justify-between gap-2 text-xs border-b border-zinc-150/40 pb-1.5 last:border-0 last:pb-0">
-                              <span className="min-w-0 flex-1 truncate text-zinc-700 font-bold">
-                                {p.name}
-                                {p.is_main ? (
-                                  <span className="text-zinc-400 font-black text-[9px] uppercase tracking-wider ml-1 bg-zinc-100 px-1 rounded shadow-3xs">main</span>
-                                ) : (
-                                  <span className="text-amber-800 font-black text-[9px] uppercase tracking-wider ml-1 bg-amber-100 px-1 rounded shadow-3xs">sub</span>
-                                )}
-                              </span>
-                              {isLast ? (
-                                <span className="font-mono tabular-nums font-black text-zinc-800 w-28 text-right pr-2">
-                                  {formatCurrency(splitLastAuto)}
-                                </span>
+                  <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                    {teamParticipants.map((p, idx) => {
+                      const remaining = Math.max(0, p.amount - (p.amount_paid || 0));
+                      return (
+                        <div key={p.advisor_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs border-b border-zinc-150/40 pb-1.5 last:border-0 last:pb-0">
+                          <span className="min-w-0 flex-1 text-zinc-700 font-bold">
+                            <span className="flex items-center gap-1.5">
+                              {p.name}
+                              {p.is_main ? (
+                                <span className="text-zinc-400 font-black text-[9px] uppercase tracking-wider bg-zinc-100 px-1 rounded shadow-3xs">main</span>
                               ) : (
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={0.01}
-                                  value={splitByAdvisor[p.advisor_id] ?? ""}
-                                  onChange={(e) =>
-                                    setSplitByAdvisor((prev) => ({
-                                      ...prev,
-                                      [p.advisor_id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="0"
-                                  className="h-8 w-28 text-right font-mono text-xs border-zinc-200 bg-white rounded-lg focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500"
-                                />
+                                <span className="text-amber-800 font-black text-[9px] uppercase tracking-wider bg-amber-100 px-1 rounded shadow-3xs">sub</span>
                               )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="text-[10px] text-amber-850 space-y-0.5 border-t border-amber-200/50 pt-2 font-semibold">
-                        <p>
-                          Total allocated:{" "}
-                          <strong className="tabular-nums font-mono font-black">
-                            {formatCurrency(splitSumManual + (paymentSplitOverflow ? 0 : splitLastAuto))}
-                          </strong>{" "}
-                          / {formatCurrency(amountValue)}
-                        </p>
-                        <p>
-                          Remainder &rarr; last advisor:{" "}
-                          <strong className="tabular-nums font-mono font-black">{formatCurrency(splitLastAuto)}</strong>
-                        </p>
-                      </div>
-                      {paymentSplitOverflow ? (
-                        <p className="text-[10px] font-black text-red-650 uppercase tracking-wider flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Entered rows exceed this receipt. Lower earlier amounts.
-                        </p>
-                      ) : null}
-                    </>
-                  )}
+                            </span>
+                            <span className="block text-[10px] text-zinc-450 font-normal font-sans mt-0.5">
+                              Remaining: {formatCurrency(remaining)} (Total: {formatCurrency(p.amount)}, Paid: {formatCurrency(p.amount_paid || 0)})
+                            </span>
+                          </span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={remaining}
+                            step={0.01}
+                            value={splitByAdvisor[p.advisor_id] ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const numVal = Number(val || 0);
+                              if (numVal > remaining) {
+                                setSplitByAdvisor((prev) => ({
+                                  ...prev,
+                                  [p.advisor_id]: remaining.toFixed(2),
+                                }));
+                                toast.error(`Cannot exceed remaining commission of ${formatCurrency(remaining)}`);
+                              } else {
+                                setSplitByAdvisor((prev) => ({
+                                  ...prev,
+                                  [p.advisor_id]: val,
+                                }));
+                              }
+                            }}
+                            disabled={remaining <= 0}
+                            placeholder="0"
+                            className="h-8 w-28 text-right font-mono text-xs border-zinc-200 bg-white rounded-lg focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[10px] text-amber-850 space-y-0.5 border-t border-amber-200/50 pt-2 font-semibold">
+                    <p>
+                      Total allocated commission:{" "}
+                      <strong className="tabular-nums font-mono font-black">
+                        {formatCurrency(totalAllocatedSum)}
+                      </strong>{" "}
+                      / {formatCurrency(amountValue)} (Max allowable)
+                    </p>
+                  </div>
+                  {paymentSplitOverflow ? (
+                    <p className="text-[10px] font-black text-red-650 uppercase tracking-wider flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Allocated commission cannot exceed customer payment.
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
 

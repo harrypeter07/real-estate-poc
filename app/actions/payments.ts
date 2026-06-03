@@ -79,10 +79,10 @@ export async function createPayment(
 	const dist = parsed.data.advisor_distribution;
 	if (dist && dist.length > 0) {
 		const sum = dist.reduce((s, r) => s + Number(r.amount ?? 0), 0);
-		if (Math.abs(sum - payAmt) > 0.05) {
+		if (sum > payAmt + 0.05) {
 			return {
 				success: false,
-				error: "Advisor distribution amounts must add up to the payment amount.",
+				error: "Advisor distribution amounts cannot exceed the payment amount.",
 			};
 		}
 		const { data: commRows, error: commErr } = await supabase
@@ -102,22 +102,50 @@ export async function createPayment(
 		}
 	}
 
-	const { error } = await supabase.from("payments").insert({
-		business_id: paymentBusinessId,
-		sale_id: parsed.data.sale_id,
-		customer_id: parsed.data.customer_id,
-		amount: parsed.data.amount,
-		payment_date: parsed.data.payment_date,
-		payment_mode: parsed.data.payment_mode,
-		slip_number: parsed.data.slip_number || null,
-		receipt_path: parsed.data.receipt_path || null,
-		is_confirmed: parsed.data.is_confirmed,
-		notes: parsed.data.notes || null,
-		advisor_distribution: dist && dist.length > 0 ? dist : null,
-	});
+	const { data: newPayment, error } = await supabase
+		.from("payments")
+		.insert({
+			business_id: paymentBusinessId,
+			sale_id: parsed.data.sale_id,
+			customer_id: parsed.data.customer_id,
+			amount: parsed.data.amount,
+			payment_date: parsed.data.payment_date,
+			payment_mode: parsed.data.payment_mode,
+			slip_number: parsed.data.slip_number || null,
+			receipt_path: parsed.data.receipt_path || null,
+			is_confirmed: parsed.data.is_confirmed,
+			notes: parsed.data.notes || null,
+			advisor_distribution: dist && dist.length > 0 ? dist : null,
+		})
+		.select()
+		.single();
 
 	if (error) {
 		return { success: false, error: error.message };
+	}
+
+	if (parsed.data.is_confirmed && dist && dist.length > 0) {
+		for (const entry of dist) {
+			const amt = Number(entry.amount || 0);
+			if (amt <= 0) continue;
+			const { data: comm } = await supabase
+				.from("advisor_commissions")
+				.select("id")
+				.eq("sale_id", parsed.data.sale_id)
+				.eq("advisor_id", entry.advisor_id)
+				.maybeSingle();
+			if (comm) {
+				await supabase.from("advisor_commission_payments").insert({
+					business_id: paymentBusinessId,
+					commission_id: comm.id,
+					amount: amt,
+					paid_date: parsed.data.payment_date,
+					payment_mode: parsed.data.payment_mode,
+					reference_number: parsed.data.slip_number || null,
+					note: `Paid from customer receipt split (Payment ID: ${newPayment.id})`,
+				});
+			}
+		}
 	}
 
 	revalidatePath("/payments");
@@ -305,7 +333,7 @@ export async function confirmPayment(id: string) {
 
 	const { data: payment, error: payErr } = await supabase
 		.from("payments")
-		.select("id, sale_id, amount, is_confirmed")
+		.select("id, sale_id, amount, is_confirmed, advisor_distribution, payment_date, payment_mode, slip_number, business_id")
 		.eq("id", id)
 		.single();
 	if (payErr || !payment) return { success: false, error: "Payment not found" };
@@ -347,6 +375,32 @@ export async function confirmPayment(id: string) {
 		.eq("id", id);
 
 	if (error) return { success: false, error: error.message };
+
+	// Sync commission payments
+	const dist = payment.advisor_distribution;
+	if (dist && Array.isArray(dist) && dist.length > 0) {
+		for (const entry of dist) {
+			const amt = Number(entry.amount || 0);
+			if (amt <= 0) continue;
+			const { data: comm } = await supabase
+				.from("advisor_commissions")
+				.select("id")
+				.eq("sale_id", payment.sale_id)
+				.eq("advisor_id", entry.advisor_id)
+				.maybeSingle();
+			if (comm) {
+				await supabase.from("advisor_commission_payments").insert({
+					business_id: payment.business_id,
+					commission_id: comm.id,
+					amount: amt,
+					paid_date: payment.payment_date,
+					payment_mode: payment.payment_mode,
+					reference_number: payment.slip_number || null,
+					note: `Paid from customer receipt split (Payment ID: ${payment.id})`,
+				});
+			}
+		}
+	}
 
 	revalidatePath("/payments");
 	revalidatePath("/sales");

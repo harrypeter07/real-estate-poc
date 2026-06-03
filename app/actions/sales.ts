@@ -73,10 +73,8 @@ export async function calculateHierarchicalCommissions(
 	// Base commission percentage for Level 0
 	const baseRate = await getAdvisorCommissionRate(supabase, sellingAdvisorId, projectId, phase);
 	
-	// Cap the baseRate by the margin percentage (profit / totalSaleAmount)
-	const marginPercentage = totalSaleAmount > 0 ? (profit / totalSaleAmount) * 100 : 0;
-	const cappedBaseRate = Math.max(0, Math.min(baseRate, marginPercentage));
-	const baseCommissionAmount = (cappedBaseRate / 100) * totalSaleAmount;
+	// Base commission amount is calculated from the profit margin
+	const baseCommissionAmount = (baseRate / 100) * profit;
 
 	// Multipliers for parent levels (L0 gets 100%, L1 gets 20% of L0's, L2 gets 10% of L0's, L3 gets 5% of L0's)
 	const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
@@ -92,8 +90,8 @@ export async function calculateHierarchicalCommissions(
 		const adv = data as { id: string; name: string | null; parent_advisor_id: string | null };
 
 		const multiplier = levelMultipliers[level] ?? 0.05;
-		const commPct = cappedBaseRate * multiplier;
 		const amount = baseCommissionAmount * multiplier;
+		const commPct = totalSaleAmount > 0 ? (amount / totalSaleAmount) * 100 : 0;
 
 		splits.push({
 			advisor_id: adv.id,
@@ -101,8 +99,8 @@ export async function calculateHierarchicalCommissions(
 			commission_percentage: commPct,
 			amount: Math.round(amount * 100) / 100,
 			notes: level === 0
-				? `Direct Seller Commission (${cappedBaseRate.toFixed(2)}% on Plot ${plotNumber})`
-				: `Hierarchical Override (L${level} parent of ${(adv as any).name || "Advisor"}, ${commPct.toFixed(2)}% on Plot ${plotNumber})`
+				? `Direct Seller Commission (${commPct.toFixed(2)}% on Plot ${plotNumber})`
+				: `Hierarchical Override (parent override, ${commPct.toFixed(2)}% on Plot ${plotNumber})`
 		});
 
 		if (!splitWithParent) {

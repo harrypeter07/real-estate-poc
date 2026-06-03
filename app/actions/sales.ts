@@ -420,7 +420,7 @@ export async function getSales() {
 	if (saleIds.length > 0) {
 		const { data: comms } = await supabase
 			.from("advisor_commissions")
-			.select("sale_id, advisor_id, commission_percentage, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
+			.select("sale_id, advisor_id, commission_percentage, total_commission_amount, amount_paid, advisors:advisors!advisor_id(name, phone)")
 			.in("sale_id", saleIds);
 		for (const sale of rows as { id: string; advisor_id?: string | null }[]) {
 			const list = (comms ?? []).filter((c: any) => c.sale_id === sale.id);
@@ -433,6 +433,7 @@ export async function getSales() {
 				phone: String(c.advisors?.phone ?? "—"),
 				commission_percentage: Number(c.commission_percentage ?? 0),
 				amount: Number(c.total_commission_amount ?? 0),
+				amount_paid: Number(c.amount_paid ?? 0),
 				is_main: Boolean(mainId && c.advisor_id === mainId),
 			}));
 			mapped.sort((a, b) => {
@@ -457,6 +458,7 @@ export type SaleCommissionParticipant = {
 	phone: string;
 	commission_percentage: number;
 	amount: number;
+	amount_paid: number;
 	is_main: boolean;
 };
 
@@ -476,7 +478,7 @@ export async function getSaleCommissionParticipants(
 
 	const { data: rows, error } = await supabase
 		.from("advisor_commissions")
-		.select("advisor_id, commission_percentage, total_commission_amount, advisors:advisors!advisor_id(name, phone)")
+		.select("advisor_id, commission_percentage, total_commission_amount, amount_paid, advisors:advisors!advisor_id(name, phone)")
 		.eq("sale_id", saleId);
 	if (error) return [];
 
@@ -486,6 +488,7 @@ export async function getSaleCommissionParticipants(
 		phone: String(c.advisors?.phone ?? "—"),
 		commission_percentage: Number(c.commission_percentage ?? 0),
 		amount: Number(c.total_commission_amount ?? 0),
+		amount_paid: Number(c.amount_paid ?? 0),
 		is_main: Boolean(mainId && c.advisor_id === mainId),
 	}));
 	mapped.sort((a, b) => {

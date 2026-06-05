@@ -67,7 +67,7 @@ export function SaleForm({
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [splitWithChild, setSplitWithChild] = useState(false);
-  const [selectedChildAdvisorId, setSelectedChildAdvisorId] = useState<string>("");
+  const [selectedChildAdvisorIds, setSelectedChildAdvisorIds] = useState<string[]>([]);
   const [subComboKey, setSubComboKey] = useState(0);
   const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = false;
@@ -237,7 +237,7 @@ export function SaleForm({
       setSubAdvisorIds([]);
       setSplitByAdvisor({});
       setSplitWithChild(false);
-      setSelectedChildAdvisorId("");
+      setSelectedChildAdvisorIds([]);
       return;
     }
     let cancelled = false;
@@ -464,19 +464,18 @@ export function SaleForm({
       }
     }
     // Check if we are splitting with child advisor
-    else if (splitWithChild && selectedChildAdvisorId) {
+    else if (splitWithChild && selectedChildAdvisorIds.length > 0) {
       // Selected advisor is the advisor (gets mainRate)
-      // Selected child advisor is the sub-advisor (gets subRate)
-      const childAdvisor = (advisors as any[]).find((a) => a.id === selectedChildAdvisorId);
+      // Selected child advisors are the sub-advisors (they split subRate equally)
+      const childAdvisors = selectedChildAdvisorIds
+        .map((id) => (advisors as any[]).find((a) => a.id === id))
+        .filter(Boolean);
 
       const mainAmount = (mainRate / 100) * profit;
       const subAmount = (subRate / 100) * profit;
 
       const customMain = customAmounts[mainAdvisor.id];
       const mainFinalAmount = customMain !== undefined && customMain !== "" ? Number(customMain) : mainAmount;
-
-      const customChild = childAdvisor ? customAmounts[childAdvisor.id] : undefined;
-      const childFinalAmount = customChild !== undefined && customChild !== "" ? Number(customChild) : subAmount;
 
       splits.push({
         advisor_id: mainAdvisor.id,
@@ -487,7 +486,13 @@ export function SaleForm({
         level: 0, // advisor
       });
 
-      if (childAdvisor) {
+      const dividedSubAmount = subAmount / childAdvisors.length;
+
+      childAdvisors.forEach((childAdvisor) => {
+        const customChild = customAmounts[childAdvisor.id];
+        const childFinalAmount =
+          customChild !== undefined && customChild !== "" ? Number(customChild) : dividedSubAmount;
+
         splits.push({
           advisor_id: childAdvisor.id,
           name: childAdvisor.name,
@@ -496,7 +501,7 @@ export function SaleForm({
           amount: Math.round(childFinalAmount * 100) / 100,
           level: 1, // sub-advisor
         });
-      }
+      });
     }
     // Standalone
     else {
@@ -526,7 +531,7 @@ export function SaleForm({
     finance.profit,
     splitWithParent,
     splitWithChild,
-    selectedChildAdvisorId,
+    selectedChildAdvisorIds,
     customAmounts,
     hasParentAdvisor,
   ]);
@@ -1019,32 +1024,75 @@ export function SaleForm({
                             checked={splitWithChild}
                             onChange={(e) => {
                               setSplitWithChild(e.target.checked);
-                              if (!e.target.checked) setSelectedChildAdvisorId("");
+                              if (!e.target.checked) setSelectedChildAdvisorIds([]);
                             }}
                             className="h-4.5 w-4.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer accent-indigo-650 shrink-0"
                           />
                         </div>
                         
                         {splitWithChild && (
-                          <div className="space-y-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-850">
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                              Select Sub-Advisor
-                            </label>
-                            <Select
-                              value={selectedChildAdvisorId}
-                              onValueChange={setSelectedChildAdvisorId}
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue placeholder="Select sub-advisor..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {subOptions.map((sub) => (
-                                  <SelectItem key={sub.id} value={sub.id}>
-                                    {sub.name} ({sub.code})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-850 animate-in fade-in duration-200">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                                Select Sub-Advisors
+                              </label>
+                              {subOptions.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                                  onClick={() => {
+                                    if (selectedChildAdvisorIds.length === subOptions.length) {
+                                      setSelectedChildAdvisorIds([]);
+                                    } else {
+                                      setSelectedChildAdvisorIds(subOptions.map((s) => s.id));
+                                    }
+                                  }}
+                                >
+                                  {selectedChildAdvisorIds.length === subOptions.length
+                                    ? "Deselect All"
+                                    : "Select All"}
+                                </button>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-2 pt-1">
+                              {subOptions.map((sub) => {
+                                const isChecked = selectedChildAdvisorIds.includes(sub.id);
+                                return (
+                                  <label
+                                    key={sub.id}
+                                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none transition-all duration-200 ${
+                                      isChecked
+                                        ? "border-indigo-200 bg-indigo-50/20 dark:border-indigo-900/40 dark:bg-indigo-950/10"
+                                        : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-850"
+                                    }`}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-zinc-700 dark:text-zinc-250">
+                                        {sub.name}
+                                      </span>
+                                      <span className="text-[9px] text-zinc-400 font-mono">
+                                        Code: {sub.code}
+                                      </span>
+                                    </div>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedChildAdvisorIds((prev) => [...prev, sub.id]);
+                                        } else {
+                                          setSelectedChildAdvisorIds((prev) =>
+                                            prev.filter((id) => id !== sub.id)
+                                          );
+                                        }
+                                      }}
+                                      className="h-4.5 w-4.5 rounded border-zinc-300 text-indigo-650 focus:ring-indigo-500/30 cursor-pointer accent-indigo-650"
+                                    />
+                                  </label>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </div>

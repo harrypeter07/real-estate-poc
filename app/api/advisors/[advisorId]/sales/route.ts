@@ -28,6 +28,7 @@ export async function GET(
 				*,
 				plot_sales!inner(
 					id,
+					is_cancelled,
 					sale_phase,
 					token_date,
 					plots(
@@ -40,7 +41,8 @@ export async function GET(
 				`,
 				{ count: "exact" }
 			)
-			.eq("advisor_id", advisorId);
+			.eq("advisor_id", advisorId)
+			.eq("plot_sales.is_cancelled", false);
 
 		// Apply date filters
 		if (dateFrom) {

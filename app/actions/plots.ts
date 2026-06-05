@@ -418,7 +418,23 @@ export async function revokePlotSale(
 		// ignore auth issues; revoked_by will remain null
 	}
 
-	// Mark the active sale as cancelled (do not delete, keep payments).
+	// Find the active sale for this plot
+	const { data: activeSale, error: activeSaleErr } = await supabase
+		.from("plot_sales")
+		.select("id")
+		.eq("plot_id", plotId)
+		.eq("is_cancelled", false)
+		.maybeSingle();
+
+	if (activeSaleErr) {
+		return { success: false, error: activeSaleErr.message };
+	}
+	if (!activeSale) {
+		return { success: false, error: "No active sale found for this plot." };
+	}
+	const saleId = activeSale.id;
+
+	// Mark the active sale as cancelled.
 	const { error: saleErr } = await supabase
 		.from("plot_sales")
 		.update({
@@ -428,14 +444,13 @@ export async function revokePlotSale(
 			revoked_by: revokedBy,
 			updated_at: new Date().toISOString(),
 		})
-		.eq("plot_id", plotId)
-		.eq("is_cancelled", false);
+		.eq("id", saleId);
 
 	if (saleErr) {
 		return { success: false, error: saleErr.message };
 	}
 
-	// Ensure the plot becomes available in the UI immediately.
+	// Ensure the plot becomes available immediately.
 	const { error: plotUpdateErr } = await supabase
 		.from("plots")
 		.update({ status: "available", updated_at: new Date().toISOString() })
@@ -445,9 +460,41 @@ export async function revokePlotSale(
 		return { success: false, error: plotUpdateErr.message };
 	}
 
+	// 1. Delete Payments
+	await supabase.from("payments").delete().eq("sale_id", saleId);
+
+	// 2. Delete EMI Schedule & Penalties & Due Payment Reminders
+	await supabase.from("due_payment_reminders").delete().eq("sale_id", saleId);
+	await supabase.from("payment_penalties").delete().eq("sale_id", saleId);
+	await supabase.from("emi_schedule").delete().eq("sale_id", saleId);
+
+	// 3. Delete Recovery Tracking
+	await supabase.from("recovery_notes").delete().eq("sale_id", saleId);
+	await supabase.from("promise_to_pay").delete().eq("sale_id", saleId);
+	await supabase.from("legal_escalations").delete().eq("sale_id", saleId);
+	await supabase.from("advisor_recovery_tracking").delete().eq("sale_id", saleId);
+
+	// 4. Delete Advisor Commissions
+	const { data: commRows } = await supabase
+		.from("advisor_commissions")
+		.select("id")
+		.eq("sale_id", saleId);
+	
+	const commIds = commRows?.map((r) => r.id) || [];
+	if (commIds.length > 0) {
+		await supabase.from("commission_ledger").delete().in("commission_id", commIds);
+		await supabase.from("commission_holds").delete().in("commission_id", commIds);
+		await supabase.from("advisor_commission_payments").delete().in("commission_id", commIds);
+	}
+	await supabase.from("advisor_commissions").delete().eq("sale_id", saleId);
+
+	// Revalidate paths
 	revalidatePath(`/projects/${projectId}/plots`);
 	revalidatePath(`/projects/${projectId}`);
 	revalidatePath(`/sales`);
+	revalidatePath(`/payments`);
+	revalidatePath(`/advisors`);
+	revalidatePath(`/commissions`);
 
 	return { success: true };
 }

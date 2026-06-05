@@ -42,10 +42,12 @@ export async function GET(req: Request) {
 				created_at,
 				sale_id,
 				total_commission_amount,
-				advisors!inner(id, name)
+				advisors!inner(id, name),
+				plot_sales!inner(is_cancelled)
 				`
 			)
 			.eq("business_id", businessId)
+			.eq("plot_sales.is_cancelled", false)
 			.gte("created_at", startDate)
 			.lte("created_at", endDate);
 

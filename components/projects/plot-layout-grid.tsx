@@ -719,7 +719,7 @@ export function PlotLayoutGrid({
 										<>
 											<div className="grid grid-cols-2 gap-3">
 												<div>
-													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 														Size (sqft)
 													</p>
 													<Input
@@ -740,7 +740,7 @@ export function PlotLayoutGrid({
 													/>
 												</div>
 												<div>
-													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 														Rate / sqft
 													</p>
 													<Input
@@ -763,7 +763,7 @@ export function PlotLayoutGrid({
 											</div>
 
 											<div>
-												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 													Property Type
 												</p>
 												<Select
@@ -791,7 +791,7 @@ export function PlotLayoutGrid({
 											</div>
 
 											<div>
-												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 													Facing
 												</p>
 												<Input
@@ -806,7 +806,7 @@ export function PlotLayoutGrid({
 											</div>
 
 											<div>
-												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 													Notes
 												</p>
 												<Textarea
@@ -1116,7 +1116,7 @@ export function PlotLayoutGrid({
 								<div className="space-y-3">
 									<div className="grid grid-cols-2 gap-3">
 										<div>
-											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 												Size (sqft)
 											</p>
 											<Input
@@ -1135,7 +1135,7 @@ export function PlotLayoutGrid({
 											/>
 										</div>
 										<div>
-											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 												Rate / sqft
 											</p>
 											<Input
@@ -1155,7 +1155,7 @@ export function PlotLayoutGrid({
 										</div>
 									</div>
 									<div>
-										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 											Property Type
 										</p>
 										<Select
@@ -1177,7 +1177,7 @@ export function PlotLayoutGrid({
 									</div>
 
 									<div>
-										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 											Facing
 										</p>
 										<Input
@@ -1188,7 +1188,7 @@ export function PlotLayoutGrid({
 										/>
 									</div>
 									<div>
-										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
 											Notes
 										</p>
 										<Textarea

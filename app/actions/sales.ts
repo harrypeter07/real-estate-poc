@@ -549,6 +549,7 @@ export async function getCustomerPlotSales(customerId: string) {
     `
 		)
 		.eq("customer_id", customerId)
+		.eq("is_cancelled", false)
 		.order("created_at", { ascending: false });
 
 	if (role === "advisor" && advisorId) {
@@ -563,9 +564,10 @@ export async function getCustomerPlotSales(customerId: string) {
 	if (saleIds.length > 0) {
 		const { data: lp } = await supabase
 			.from("payments")
-			.select("id, sale_id, amount, payment_date, slip_number, payment_mode, is_confirmed")
+			.select("id, sale_id, amount, payment_date, slip_number, payment_mode, is_confirmed, plot_sales!inner(is_cancelled)")
 			.in("sale_id", saleIds)
 			.eq("is_confirmed", true)
+			.eq("plot_sales.is_cancelled", false)
 			.order("payment_date", { ascending: false });
 		lastPayments = lp ?? [];
 	}

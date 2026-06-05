@@ -442,9 +442,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														placeholder="e.g. 50"
 														className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-60 disabled:cursor-not-allowed"
 														{...field}
+														value={field.value ?? ""}
 														onChange={(e) => {
 															const val = e.target.value;
-															field.onChange(val === "" ? 0 : parseInt(val) || 0);
+															field.onChange(val === "" ? "" : parseInt(val) || 0);
 														}}
 													/>
 												</FormControl>
@@ -469,9 +470,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														placeholder="e.g. 1"
 														className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-60 disabled:cursor-not-allowed"
 														{...field}
+														value={field.value ?? ""}
 														onChange={(e) => {
 															const val = e.target.value;
-															field.onChange(val === "" ? 1 : parseInt(val) || 1);
+															field.onChange(val === "" ? "" : parseInt(val) || 1);
 														}}
 													/>
 												</FormControl>
@@ -502,9 +504,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 2500000"
 														{...field}
+														value={field.value ?? ""}
 														onChange={(e) => {
 															const val = e.target.value;
-															field.onChange(val === "" ? 0 : parseFloat(val) || 0);
+															field.onChange(val === "" ? "" : parseFloat(val) || 0);
 														}}
 													/>
 												</FormControl>
@@ -530,9 +533,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 1800"
 														{...field}
+														value={field.value ?? ""}
 														onChange={(e) => {
 															const val = e.target.value;
-															field.onChange(val === "" ? 0 : parseFloat(val) || 0);
+															field.onChange(val === "" ? "" : parseFloat(val) || 0);
 														}}
 													/>
 												</FormControl>
@@ -558,9 +562,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 150000"
 														{...field}
+														value={field.value ?? ""}
 														onChange={(e) => {
 															const val = e.target.value;
-															field.onChange(val === "" ? 0 : parseFloat(val) || 0);
+															field.onChange(val === "" ? "" : parseFloat(val) || 0);
 														}}
 													/>
 												</FormControl>
@@ -586,9 +591,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														className="pl-12 sm:pl-12 h-10 w-full bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 														placeholder="e.g. 75000"
 														{...field}
+														value={field.value ?? ""}
 														onChange={(e) => {
 															const val = e.target.value;
-															field.onChange(val === "" ? 0 : parseFloat(val) || 0);
+															field.onChange(val === "" ? "" : parseFloat(val) || 0);
 														}}
 													/>
 												</FormControl>
@@ -615,9 +621,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 													placeholder="e.g. 150000"
 													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 													{...field}
+													value={field.value ?? ""}
 													onChange={(e) => {
 														const val = e.target.value;
-														field.onChange(val === "" ? 0 : parseFloat(val) || 0);
+														field.onChange(val === "" ? "" : parseFloat(val) || 0);
 													}}
 												/>
 											</FormControl>
@@ -638,9 +645,10 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 													placeholder="e.g. 36"
 													className="h-10 bg-white dark:bg-zinc-950/40 border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-teal-500/15 focus-visible:border-teal-500 focus-visible:ring-offset-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
 													{...field}
+													value={field.value ?? ""}
 													onChange={(e) => {
 														const val = e.target.value;
-														field.onChange(val === "" ? 0 : parseInt(val) || 0);
+														field.onChange(val === "" ? "" : parseInt(val) || 0);
 													}}
 												/>
 											</FormControl>

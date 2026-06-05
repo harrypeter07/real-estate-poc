@@ -235,8 +235,9 @@ export async function getPayments(filters?: PaymentsFilter) {
 			`
       *,
       customers(name, phone),
-      plot_sales(
+      plot_sales!inner(
         id,
+        is_cancelled,
         advisor_id,
         receipt_path,
         remaining_amount,
@@ -249,6 +250,7 @@ export async function getPayments(filters?: PaymentsFilter) {
       )
     `
 		)
+		.eq("plot_sales.is_cancelled", false)
 		.order("payment_date", { ascending: false });
 
 	const from = filters?.from?.trim();

@@ -21,10 +21,11 @@ export default async function AdvisorPaymentsPage() {
 			`
       *,
       customers(name),
-      plot_sales!inner(advisor_id, plots(plot_number, projects(name)))
+      plot_sales!inner(advisor_id, is_cancelled, plots(plot_number, projects(name)))
     `
 		)
 		.eq("plot_sales.advisor_id", advisorId)
+		.eq("plot_sales.is_cancelled", false)
 		.order("payment_date", { ascending: false });
 
 	return (

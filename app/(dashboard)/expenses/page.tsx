@@ -202,82 +202,6 @@ export default async function ExpensesPage({
 
       <ExpensesTabs>
         <div className="space-y-6">
-          {/* KPI Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            <Card className="group bg-gradient-to-br from-zinc-950 to-zinc-900 text-white border-zinc-850 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl relative">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-500/10 via-transparent to-transparent opacity-60 pointer-events-none" />
-              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
-                <div className="flex items-center gap-3.5 w-full">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-850 text-zinc-300 border border-zinc-800 shadow-inner transition-transform duration-300 group-hover:scale-105">
-                    <IndianRupee className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 truncate flex-1">
-                    Total Outflow
-                  </p>
-                </div>
-                <div className="mt-6 flex flex-col justify-end">
-                  <p className="text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate font-mono">
-                    {formatCurrency(totalExpenses)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-white to-emerald-50/[0.08] dark:from-zinc-950 dark:to-emerald-950/[0.03] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl">
-              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
-                <div className="flex items-center gap-3.5 w-full">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
-                    <TrendingUp className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
-                    Total Paid
-                  </p>
-                </div>
-                <div className="mt-6 flex flex-col justify-end">
-                  <p className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-700 dark:text-emerald-400 leading-tight truncate font-mono">
-                    {formatCurrency(totalPaid)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-white to-amber-50/[0.08] dark:from-zinc-950 dark:to-amber-950/[0.03] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-amber-200 dark:hover:border-amber-900/30 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl">
-              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
-                <div className="flex items-center gap-3.5 w-full">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-amber-600 dark:text-amber-400 border border-amber-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
-                    Pending
-                  </p>
-                </div>
-                <div className="mt-6 flex flex-col justify-end">
-                  <p className="text-2xl sm:text-3xl font-black tracking-tight text-amber-700 dark:text-amber-505 leading-tight truncate font-mono">
-                    {formatCurrency(totalPending)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-white to-blue-50/[0.08] dark:from-zinc-950 dark:to-blue-950/[0.03] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl">
-              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
-                <div className="flex items-center gap-3.5 w-full">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
-                    <Wallet className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
-                    Partial Payments
-                  </p>
-                </div>
-                <div className="mt-6 flex flex-col justify-end">
-                  <p className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400 leading-tight truncate font-mono">
-                    {partialCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Premium Filter Bar */}
           <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden transition-all duration-300">
             <CardContent className="p-4 sm:p-5 space-y-4">
@@ -419,6 +343,82 @@ export default async function ExpensesPage({
               </div>
             </CardContent>
           </Card>
+
+          {/* KPI Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <Card className="group bg-gradient-to-br from-zinc-950 to-zinc-900 text-white border-zinc-850 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl relative">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-500/10 via-transparent to-transparent opacity-60 pointer-events-none" />
+              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
+                <div className="flex items-center gap-3.5 w-full">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-850 text-zinc-300 border border-zinc-800 shadow-inner transition-transform duration-300 group-hover:scale-105">
+                    <IndianRupee className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 truncate flex-1">
+                    Total Outflow
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-col justify-end">
+                  <p className="text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate font-mono">
+                    {formatCurrency(totalExpenses)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-gradient-to-br from-white to-emerald-50/[0.08] dark:from-zinc-950 dark:to-emerald-950/[0.03] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-emerald-200 dark:hover:border-emerald-900/30 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl">
+              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
+                <div className="flex items-center gap-3.5 w-full">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+                    Total Paid
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-col justify-end">
+                  <p className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-700 dark:text-emerald-400 leading-tight truncate font-mono">
+                    {formatCurrency(totalPaid)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-gradient-to-br from-white to-amber-50/[0.08] dark:from-zinc-950 dark:to-amber-950/[0.03] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-amber-200 dark:hover:border-amber-900/30 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl">
+              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
+                <div className="flex items-center gap-3.5 w-full">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-amber-600 dark:text-amber-400 border border-amber-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+                    Pending
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-col justify-end">
+                  <p className="text-2xl sm:text-3xl font-black tracking-tight text-amber-700 dark:text-amber-505 leading-tight truncate font-mono">
+                    {formatCurrency(totalPending)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="group bg-gradient-to-br from-white to-blue-50/[0.08] dark:from-zinc-950 dark:to-blue-950/[0.03] border border-zinc-200/60 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-900/30 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-out select-none overflow-hidden flex flex-col justify-between h-full rounded-2xl">
+              <CardContent className="p-5 flex flex-col justify-between h-full w-full">
+                <div className="flex items-center gap-3.5 w-full">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate flex-1">
+                    Partial Payments
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-col justify-end">
+                  <p className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400 leading-tight truncate font-mono">
+                    {partialCount}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Upgraded Insights Card */}
           <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 shadow-sm rounded-2xl overflow-hidden transition-all duration-300">

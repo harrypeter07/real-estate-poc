@@ -579,3 +579,39 @@ export async function getCustomerPlotSales(customerId: string) {
 		};
 	});
 }
+
+export async function updateSaleRegistryAmount(
+	saleId: string,
+	registryAmount: number
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	// Fetch current sale amounts to recalculate remaining amount
+	const { data: saleData, error: fetchErr } = await supabase
+		.from("plot_sales")
+		.select("total_sale_amount, amount_paid")
+		.eq("id", saleId)
+		.single();
+
+	if (fetchErr || !saleData) {
+		return { success: false, error: "Sale not found" };
+	}
+
+	const newRemaining = Number(saleData.total_sale_amount || 0) + Number(registryAmount || 0) - Number(saleData.amount_paid || 0);
+
+	const { error } = await supabase
+		.from("plot_sales")
+		.update({ 
+			registry_amount: registryAmount,
+			remaining_amount: newRemaining
+		})
+		.eq("id", saleId);
+
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath("/sales");
+	revalidatePath(`/sales/${saleId}`);
+	revalidatePath("/due-payments");
+	return { success: true };
+}

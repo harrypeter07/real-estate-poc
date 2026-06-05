@@ -5,6 +5,16 @@ import { getAdvisorCommissions, getSubAdvisorCommissionsForParent } from "@/app/
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from "@/components/ui";
 
+function getProportionalCommission(comm: any) {
+  const saleTotal = Number(comm?.plot_sales?.total_sale_amount ?? 0);
+  const saleReceived = Number(comm?.plot_sales?.amount_paid ?? 0);
+  const profitTotal = Number(comm?.total_commission_amount ?? 0);
+  if (saleTotal <= 0 || profitTotal <= 0) return 0;
+  const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
+  return profitTotal * ratio;
+}
+
+
 export default async function AdvisorCommissionsPage() {
   const supabase = await createClient();
   if (!supabase) redirect("/login");
@@ -33,7 +43,7 @@ export default async function AdvisorCommissionsPage() {
 
   const totals = commissions.reduce(
     (acc, c: any) => {
-      const total = Number(c.total_commission_amount ?? 0);
+      const total = getProportionalCommission(c);
       const paid = Number(c.amount_paid ?? 0);
       acc.total += total;
       acc.paid += paid;
@@ -41,11 +51,11 @@ export default async function AdvisorCommissionsPage() {
     },
     { total: 0, paid: 0 }
   );
-  const pending = totals.total - totals.paid;
+  const pending = Math.max(0, totals.total - totals.paid);
 
   const subTotals = subTeamCommissions.reduce(
     (acc, c: any) => {
-      const total = Number(c.total_commission_amount ?? 0);
+      const total = getProportionalCommission(c);
       const paid = Number(c.amount_paid ?? 0);
       acc.total += total;
       acc.paid += paid;
@@ -53,7 +63,7 @@ export default async function AdvisorCommissionsPage() {
     },
     { total: 0, paid: 0 }
   );
-  const subPending = subTotals.total - subTotals.paid;
+  const subPending = Math.max(0, subTotals.total - subTotals.paid);
 
   return (
     <div className="space-y-6">
@@ -137,9 +147,9 @@ export default async function AdvisorCommissionsPage() {
                 </TableHeader>
                 <TableBody>
                   {subTeamCommissions.map((comm: any) => {
-                    const total = Number(comm.total_commission_amount ?? 0);
+                    const total = getProportionalCommission(comm);
                     const paid = Number(comm.amount_paid ?? 0);
-                    const rem = total - paid;
+                    const rem = Math.max(0, total - paid);
                     const isPaid = rem <= 0;
                     return (
                       <TableRow key={comm.id}>
@@ -201,9 +211,9 @@ export default async function AdvisorCommissionsPage() {
               </TableHeader>
               <TableBody>
                 {commissions.map((comm: any) => {
-                  const total = Number(comm.total_commission_amount ?? 0);
+                  const total = getProportionalCommission(comm);
                   const paid = Number(comm.amount_paid ?? 0);
-                  const rem = total - paid;
+                  const rem = Math.max(0, total - paid);
                   const isPaid = rem <= 0;
                   return (
                     <TableRow key={comm.id}>

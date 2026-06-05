@@ -30,6 +30,7 @@ import {
 import { Button, Input, Badge, Card, CardContent, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
+import { updateSaleRegistryAmount } from "@/app/actions/sales";
 
 type SaleDetailClientProps = {
 	initialSale: any;
@@ -269,10 +270,16 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 		currentY += propBlockHeight + 5;
 
 		// 3. Financial Settlement Summary Block
+		const registryVal = Number(sale.registry_amount || 0);
+		const totalWithRegistry = Number(sale.total_sale_amount || 0) + registryVal;
 		const finLines: string[] = [];
 		finLines.push(...doc.splitTextToSize(`Total Sale Cost: Rs. ${sale.total_sale_amount.toLocaleString("en-IN")}`, 170));
 		finLines.push(...doc.splitTextToSize(`Discount Awarded: Rs. ${sale.discount_amount.toLocaleString("en-IN")}`, 170));
 		finLines.push(...doc.splitTextToSize(`Down Payment: Rs. ${sale.down_payment.toLocaleString("en-IN")}`, 170));
+		if (registryVal > 0) {
+			finLines.push(...doc.splitTextToSize(`Registry Fee: Rs. ${registryVal.toLocaleString("en-IN")}`, 170));
+			finLines.push(...doc.splitTextToSize(`Grand Total: Rs. ${totalWithRegistry.toLocaleString("en-IN")}`, 170));
+		}
 		finLines.push(...doc.splitTextToSize(`Outstanding Balance: Rs. ${sale.remaining_amount.toLocaleString("en-IN")}`, 170));
 
 		const finBlockHeight = 8 + finLines.length * 5.5 + 4;
@@ -414,8 +421,17 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 				<Card className="rounded-2xl border-zinc-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.015)] bg-white overflow-hidden relative">
 					<div className="absolute top-0 left-0 w-1.5 h-full bg-zinc-400/50" />
 					<CardContent className="p-4 pl-5">
-						<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Agreement Price</p>
-						<p className="text-lg font-black text-zinc-800 font-mono mt-1">{formatCurrency(sale.total_sale_amount)}</p>
+						<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">
+							Agreement Price {Number(sale.registry_amount || 0) > 0 ? "(incl. Registry)" : ""}
+						</p>
+						<p className="text-lg font-black text-zinc-800 font-mono mt-1">
+							{formatCurrency(Number(sale.total_sale_amount || 0) + Number(sale.registry_amount || 0))}
+						</p>
+						{Number(sale.registry_amount || 0) > 0 && (
+							<p className="text-[9px] font-bold text-zinc-400 font-mono mt-0.5">
+								Plot: {formatCurrency(sale.total_sale_amount)} | Registry: {formatCurrency(sale.registry_amount)}
+							</p>
+						)}
 					</CardContent>
 				</Card>
 				
@@ -481,74 +497,97 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 			<div className="pt-1">
 				{/* Tab 1: Overview */}
 				{activeTab === "overview" && (
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{/* Customer info card */}
-						<Card className="rounded-2xl border-zinc-200/85 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
-							<CardContent className="p-5 space-y-4">
-								<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
-									<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
-										<User className="h-4 w-4" />
+					<div className="space-y-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							{/* Customer info card */}
+							<Card className="rounded-2xl border-zinc-200/85 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+								<CardContent className="p-5 space-y-4">
+									<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
+										<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
+											<User className="h-4 w-4" />
+										</div>
+										<h3 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Buyer Information</h3>
 									</div>
-									<h3 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Buyer Information</h3>
-								</div>
-								
-								<div className="space-y-3.5 text-xs">
-									<div className="flex items-center gap-3">
-										<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Full Name</span>
-										<span className="font-bold text-zinc-800">{sale.customers?.name ?? "—"}</span>
+									
+									<div className="space-y-3.5 text-xs">
+										<div className="flex items-center gap-3">
+											<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Full Name</span>
+											<span className="font-bold text-zinc-800">{sale.customers?.name ?? "—"}</span>
+										</div>
+										<div className="flex items-center gap-3">
+											<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Phone No</span>
+											<span className="font-bold text-zinc-800 font-mono">{sale.customers?.phone ?? "—"}</span>
+										</div>
+										<div className="flex items-center gap-3">
+											<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Email ID</span>
+											<span className="font-bold text-zinc-800 flex items-center gap-1">
+												<Mail className="h-3.5 w-3.5 text-zinc-400" />
+												{sale.customers?.email || "No email active"}
+											</span>
+										</div>
+										<div className="flex items-center gap-3">
+											<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Location</span>
+											<span className="font-bold text-zinc-850 flex items-center gap-1">
+												<MapPin className="h-3.5 w-3.5 text-zinc-400" />
+												{sale.customers?.address || "No address updated"}
+											</span>
+										</div>
 									</div>
-									<div className="flex items-center gap-3">
-										<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Phone No</span>
-										<span className="font-bold text-zinc-800 font-mono">{sale.customers?.phone ?? "—"}</span>
-									</div>
-									<div className="flex items-center gap-3">
-										<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Email ID</span>
-										<span className="font-bold text-zinc-800 flex items-center gap-1">
-											<Mail className="h-3.5 w-3.5 text-zinc-400" />
-											{sale.customers?.email || "No email active"}
-										</span>
-									</div>
-									<div className="flex items-center gap-3">
-										<span className="text-[10px] font-black uppercase text-zinc-400 w-24">Location</span>
-										<span className="font-bold text-zinc-850 flex items-center gap-1">
-											<MapPin className="h-3.5 w-3.5 text-zinc-400" />
-											{sale.customers?.address || "No address updated"}
-										</span>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
 
-						{/* Plot specs */}
-						<Card className="rounded-2xl border-zinc-200/85 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
-							<CardContent className="p-5 space-y-4">
-								<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
-									<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
-										<Compass className="h-4 w-4" />
+							{/* Plot specs */}
+							<Card className="rounded-2xl border-zinc-200/85 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+								<CardContent className="p-5 space-y-4">
+									<div className="flex items-center gap-2 pb-2.5 border-b border-zinc-100">
+										<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
+											<Compass className="h-4 w-4" />
+										</div>
+										<h3 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Unit Specifications</h3>
 									</div>
-									<h3 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Unit Specifications</h3>
-								</div>
-								
-								<div className="grid grid-cols-2 gap-5 text-xs">
-									<div className="space-y-1">
-										<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Plot Size</p>
-										<p className="font-bold text-zinc-800">{sale.plots?.size_sqft} sqft</p>
+									
+									<div className="grid grid-cols-2 gap-5 text-xs">
+										<div className="space-y-1">
+											<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Plot Size</p>
+											<p className="font-bold text-zinc-800">{sale.plots?.size_sqft} sqft</p>
+										</div>
+										<div className="space-y-1">
+											<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Rate per sqft</p>
+											<p className="font-bold text-zinc-800 font-mono">{formatCurrency(sale.plots?.rate_per_sqft)}/sqft</p>
+										</div>
+										<div className="space-y-1">
+											<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Facing Direction</p>
+											<p className="font-bold text-zinc-800 capitalize">{sale.plots?.facing || "—"}</p>
+										</div>
+										<div className="space-y-1">
+											<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Sales Advisor</p>
+											<p className="font-bold text-zinc-800">{sale.advisors?.name || "—"}</p>
+										</div>
 									</div>
-									<div className="space-y-1">
-										<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Rate per sqft</p>
-										<p className="font-bold text-zinc-800 font-mono">{formatCurrency(sale.plots?.rate_per_sqft)}/sqft</p>
+								</CardContent>
+							</Card>
+						</div>
+
+						{/* Registry Details section (only shows when all EMIs are paid / remaining is 0) */}
+						{Number(sale.remaining_amount || 0) <= 0 && (
+							<Card className="rounded-2xl border-zinc-200/85 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+								<CardContent className="p-5 space-y-4">
+									<div className="flex items-center justify-between pb-2.5 border-b border-zinc-100">
+										<div className="flex items-center gap-2">
+											<div className="h-7 w-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50">
+												<FileText className="h-4 w-4" />
+											</div>
+											<h3 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Registry Details</h3>
+										</div>
+										<Badge className="bg-emerald-50 text-emerald-700 border-emerald-150 uppercase text-[9px] font-black tracking-wider rounded-full px-2.5 py-0.5 border">
+											Unlocked (Outstanding Balance is 0)
+										</Badge>
 									</div>
-									<div className="space-y-1">
-										<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Facing Direction</p>
-										<p className="font-bold text-zinc-800 capitalize">{sale.plots?.facing || "—"}</p>
-									</div>
-									<div className="space-y-1">
-										<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Sales Advisor</p>
-										<p className="font-bold text-zinc-800">{sale.advisors?.name || "—"}</p>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
+
+									<RegistryForm saleId={sale.id} initialRegistryAmount={Number(sale.registry_amount || 0)} refetchSale={refetchSale} />
+								</CardContent>
+							</Card>
+						)}
 					</div>
 				)}
 
@@ -889,5 +928,66 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 				</div>
 			)}
 		</div>
+	);
+}
+
+function RegistryForm({ 
+	saleId, 
+	initialRegistryAmount, 
+	refetchSale 
+}: { 
+	saleId: string; 
+	initialRegistryAmount: number; 
+	refetchSale: () => void 
+}) {
+	const [amount, setAmount] = useState(initialRegistryAmount ? String(initialRegistryAmount) : "");
+	const [saving, setSaving] = useState(false);
+
+	const handleSave = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setSaving(true);
+		try {
+			const res = await updateSaleRegistryAmount(saleId, Number(amount) || 0);
+			if (res.success) {
+				toast.success("Registry amount updated successfully!");
+				refetchSale();
+			} else {
+				toast.error(res.error || "Failed to update registry amount");
+			}
+		} catch (err: any) {
+			toast.error(err.message || "An error occurred");
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<form onSubmit={handleSave} className="flex flex-col sm:flex-row items-end gap-3 max-w-md">
+			<div className="space-y-1.5 flex-1 w-full">
+				<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Registry Fee Amount (₹)</label>
+				<Input
+					type="number"
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder="Enter registry fee amount..."
+					className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
+				/>
+			</div>
+			<Button
+				size="sm"
+				type="submit"
+				disabled={saving}
+				className="h-10 px-5 text-xs font-black rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs cursor-pointer active:scale-97 transition-all duration-200 shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5"
+			>
+				{saving ? (
+					<>
+						<Loader2 className="h-3.5 w-3.5 animate-spin" />
+						Saving...
+					</>
+				) : (
+					"Update Registry"
+				)}
+			</Button>
+		</form>
 	);
 }

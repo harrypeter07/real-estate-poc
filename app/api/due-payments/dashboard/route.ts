@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessId } from "@/lib/auth/current-business";
+import fs from "fs";
 
 export async function GET(req: Request) {
 	try {
@@ -15,7 +16,11 @@ export async function GET(req: Request) {
 		}
 
 		const businessId = await getCurrentBusinessId();
+		const logFile = "c:\\Sinfra\\real-estate-poc\\debug_dues.log";
+		fs.appendFileSync(logFile, `[${new Date().toISOString()}] GET /api/due-payments/dashboard. User: ${user.email}, BusinessId: ${businessId}\n`);
+
 		if (!businessId) {
+			fs.appendFileSync(logFile, `[${new Date().toISOString()}] Error: Business ID not found\n`);
 			return NextResponse.json({ error: "Business ID not found" }, { status: 400 });
 		}
 
@@ -37,8 +42,11 @@ export async function GET(req: Request) {
 			.eq("is_cancelled", false);
 
 		if (salesErr) {
+			fs.appendFileSync(logFile, `[${new Date().toISOString()}] Sales query error: ${salesErr.message}\n`);
 			return NextResponse.json({ error: salesErr.message }, { status: 400 });
 		}
+
+		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Sales found: ${sales?.length || 0}\n`);
 
 		if (!sales || sales.length === 0) {
 			return NextResponse.json([]);
@@ -53,8 +61,11 @@ export async function GET(req: Request) {
 			.in("sale_id", saleIds);
 
 		if (emiErr) {
+			fs.appendFileSync(logFile, `[${new Date().toISOString()}] EMI query error: ${emiErr.message}\n`);
 			return NextResponse.json({ error: emiErr.message }, { status: 400 });
 		}
+
+		fs.appendFileSync(logFile, `[${new Date().toISOString()}] EMIs found: ${emis?.length || 0}\n`);
 
 		// 3. Fetch due reminders to get last follow-up dates
 		const { data: reminders } = await supabase
@@ -187,8 +198,11 @@ export async function GET(req: Request) {
 			return b.total_overdue_amount - a.total_overdue_amount;
 		});
 
+		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Dashboard data count: ${dashboardData.length}\n`);
 		return NextResponse.json(dashboardData);
 	} catch (err: any) {
+		const logFile = "c:\\Sinfra\\real-estate-poc\\debug_dues.log";
+		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Exception occurred: ${err.message}\n`);
 		return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
 	}
 }

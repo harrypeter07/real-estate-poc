@@ -66,6 +66,8 @@ export function SaleForm({
   const [subOptions, setSubOptions] = useState<{ id: string; name: string; code: string; phone: string }[]>([]);
   const [splitByAdvisor, setSplitByAdvisor] = useState<Record<string, string>>({});
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
+  const [splitWithChild, setSplitWithChild] = useState(false);
+  const [selectedChildAdvisorId, setSelectedChildAdvisorId] = useState<string>("");
   const [subComboKey, setSubComboKey] = useState(0);
   const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = false;
@@ -234,6 +236,8 @@ export function SaleForm({
       setSubOptions([]);
       setSubAdvisorIds([]);
       setSplitByAdvisor({});
+      setSplitWithChild(false);
+      setSelectedChildAdvisorId("");
       return;
     }
     let cancelled = false;
@@ -392,67 +396,122 @@ export function SaleForm({
     if (soldByAdmin || !selectedAdvisorId || !totalSaleAmount) return [];
 
     const splits = [];
-    let currentId = selectedAdvisorId;
-    let level = 0;
-    
-    const advisor = (advisors as any[]).find((a) => a.id === selectedAdvisorId);
-    if (!advisor) return [];
+    const mainAdvisor = (advisors as any[]).find((a) => a.id === selectedAdvisorId);
+    if (!mainAdvisor) return [];
 
-    // Project rate override
+    // Fetch project assignment for selected advisor
     const assignment = (advisorAssignments ?? []).find(
       (a) => a.advisor_id === selectedAdvisorId && a.project_id === selectedProjectId
     );
-    let baseRate = 0;
+
+    // Get main advisor rate from project assignment or fall back to profile default, then to 5%
+    let mainRate = 0;
     if (assignment) {
-      baseRate = Number(
+      mainRate = Number(
         selectedPhase === "token"
           ? (assignment as any).commission_token
           : (assignment as any).commission_full_payment
       );
     }
-    if (!baseRate) {
-      baseRate = Number(selectedPhase === "token" ? advisor.commission_token : advisor.commission_full_payment);
+    if (!mainRate) {
+      mainRate = Number(selectedPhase === "token" ? mainAdvisor.commission_token : mainAdvisor.commission_full_payment);
     }
-    if (!baseRate) {
-      baseRate = 5; // default 5%
+    if (!mainRate) {
+      mainRate = 5.0; // default 5%
+    }
+
+    // Get sub-advisor rate from project assignment or fall back to 1%
+    let subRate = assignment ? Number((assignment as any).sub_advisor_commission_rate ?? 0) : 0;
+    if (!subRate) {
+      subRate = 1.0; // default 1%
     }
 
     const profit = finance.profit;
-    const levelMultipliers = [1.0, 0.20, 0.10, 0.05];
 
-    while (currentId && level < 4) {
-      const adv = (advisors as any[]).find((a) => a.id === currentId);
-      if (!adv) break;
+    // Check if we are splitting with parent advisor
+    if (hasParentAdvisor && splitWithParent) {
+      // Selected advisor is the sub-advisor (gets subRate)
+      // Parent advisor is the advisor (gets mainRate)
+      const parentAdvisor = (advisors as any[]).find((a) => a.id === mainAdvisor.parent_advisor_id);
+      
+      const subAmount = (subRate / 100) * profit;
+      const mainAmount = (mainRate / 100) * profit;
 
-      const defaultMultiplier = levelMultipliers[level] ?? 0.05;
-      const defaultCommPct = baseRate * defaultMultiplier;
+      const customSub = customAmounts[mainAdvisor.id];
+      const subFinalAmount = customSub !== undefined && customSub !== "" ? Number(customSub) : subAmount;
 
-      // Default amount is based on profit margin
-      const defaultAmount = (defaultCommPct / 100) * profit;
-
-      const rawCustom = customAmounts[adv.id];
-      const amount = rawCustom !== undefined && rawCustom !== ""
-        ? Number(rawCustom)
-        : defaultAmount;
-
-      // commission_percentage relative to total plot sale
-      const commPct = totalSaleAmount > 0 ? (amount / totalSaleAmount) * 100 : 0;
+      const customParent = parentAdvisor ? customAmounts[parentAdvisor.id] : undefined;
+      const parentFinalAmount = customParent !== undefined && customParent !== "" ? Number(customParent) : mainAmount;
 
       splits.push({
-        advisor_id: adv.id,
-        name: adv.name,
-        code: adv.code,
-        commission_percentage: commPct,
-        amount: Math.round(amount * 100) / 100,
-        level
+        advisor_id: mainAdvisor.id,
+        name: mainAdvisor.name,
+        code: mainAdvisor.code,
+        commission_percentage: totalSaleAmount > 0 ? (subFinalAmount / totalSaleAmount) * 100 : 0,
+        amount: Math.round(subFinalAmount * 100) / 100,
+        level: 0, // sub-advisor
       });
 
-      if (!splitWithParent) {
-        break;
+      if (parentAdvisor) {
+        splits.push({
+          advisor_id: parentAdvisor.id,
+          name: parentAdvisor.name,
+          code: parentAdvisor.code,
+          commission_percentage: totalSaleAmount > 0 ? (parentFinalAmount / totalSaleAmount) * 100 : 0,
+          amount: Math.round(parentFinalAmount * 100) / 100,
+          level: 1, // parent advisor
+        });
       }
+    }
+    // Check if we are splitting with child advisor
+    else if (splitWithChild && selectedChildAdvisorId) {
+      // Selected advisor is the advisor (gets mainRate)
+      // Selected child advisor is the sub-advisor (gets subRate)
+      const childAdvisor = (advisors as any[]).find((a) => a.id === selectedChildAdvisorId);
 
-      currentId = adv.parent_advisor_id;
-      level++;
+      const mainAmount = (mainRate / 100) * profit;
+      const subAmount = (subRate / 100) * profit;
+
+      const customMain = customAmounts[mainAdvisor.id];
+      const mainFinalAmount = customMain !== undefined && customMain !== "" ? Number(customMain) : mainAmount;
+
+      const customChild = childAdvisor ? customAmounts[childAdvisor.id] : undefined;
+      const childFinalAmount = customChild !== undefined && customChild !== "" ? Number(customChild) : subAmount;
+
+      splits.push({
+        advisor_id: mainAdvisor.id,
+        name: mainAdvisor.name,
+        code: mainAdvisor.code,
+        commission_percentage: totalSaleAmount > 0 ? (mainFinalAmount / totalSaleAmount) * 100 : 0,
+        amount: Math.round(mainFinalAmount * 100) / 100,
+        level: 0, // advisor
+      });
+
+      if (childAdvisor) {
+        splits.push({
+          advisor_id: childAdvisor.id,
+          name: childAdvisor.name,
+          code: childAdvisor.code,
+          commission_percentage: totalSaleAmount > 0 ? (childFinalAmount / totalSaleAmount) * 100 : 0,
+          amount: Math.round(childFinalAmount * 100) / 100,
+          level: 1, // sub-advisor
+        });
+      }
+    }
+    // Standalone
+    else {
+      const mainAmount = profit;
+      const customMain = customAmounts[mainAdvisor.id];
+      const mainFinalAmount = customMain !== undefined && customMain !== "" ? Number(customMain) : mainAmount;
+
+      splits.push({
+        advisor_id: mainAdvisor.id,
+        name: mainAdvisor.name,
+        code: mainAdvisor.code,
+        commission_percentage: totalSaleAmount > 0 ? (mainFinalAmount / totalSaleAmount) * 100 : 0,
+        amount: Math.round(mainFinalAmount * 100) / 100,
+        level: 0, // standalone advisor
+      });
     }
 
     return splits;
@@ -466,7 +525,10 @@ export function SaleForm({
     soldByAdmin,
     finance.profit,
     splitWithParent,
+    splitWithChild,
+    selectedChildAdvisorId,
     customAmounts,
+    hasParentAdvisor,
   ]);
 
   const commissionSplitTotal = calculatedSplits.reduce((sum, r) => sum + r.amount, 0);
@@ -884,61 +946,110 @@ export function SaleForm({
                   />
 
                 {!soldByAdmin && (
-                  <FormField
-                    control={form.control}
-                    name="advisor_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold text-zinc-500">Select Advisor *</FormLabel>
-                        <FormControl>
-                          <SearchableCombobox
-                            options={filteredAdvisors.map((a) => ({
-                              value: a.id,
-                              label: String(a.name ?? ""),
-                              subtitle: String(a.code ?? ""),
-                              keywords: String(a.phone ?? ""),
-                            }))}
-                            value={field.value ?? ""}
-                            onChange={(id) => {
-                              field.onChange(id || null);
-                              markTouched("advisor_id");
-                            }}
-                            onBlur={() => markTouched("advisor_id")}
-                            placeholder="Search advisor by name, code, or phone…"
-                            emptyMessage="No advisor matches."
-                          />
-                        </FormControl>
-                        {touched.advisor_id && <FormMessage />}
-                      </FormItem>
-                    )}
-                  />
-                )}
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="advisor_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-zinc-500">Select Advisor *</FormLabel>
+                          <FormControl>
+                            <SearchableCombobox
+                              options={filteredAdvisors.map((a) => ({
+                                value: a.id,
+                                label: String(a.name ?? ""),
+                                subtitle: String(a.code ?? ""),
+                                keywords: String(a.phone ?? ""),
+                              }))}
+                              value={field.value ?? ""}
+                              onChange={(id) => {
+                                field.onChange(id || null);
+                                markTouched("advisor_id");
+                              }}
+                              onBlur={() => markTouched("advisor_id")}
+                              placeholder="Search advisor by name, code, or phone…"
+                              emptyMessage="No advisor matches."
+                            />
+                          </FormControl>
+                          {touched.advisor_id && <FormMessage />}
+                        </FormItem>
+                      )}
+                    />
 
-                {!soldByAdmin && selectedAdvisorId && hasParentAdvisor && (
-                  <FormField
-                    control={form.control}
-                    name="split_with_parent"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xs transition-all hover:shadow-sm">
-                        <div className="space-y-0.5 pr-4">
-                          <FormLabel className="text-xs font-bold text-zinc-700 dark:text-zinc-350 cursor-pointer select-none">
-                            Split commission with parent advisor?
-                          </FormLabel>
-                          <p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-semibold leading-normal">
-                            If enabled, the parent chain gets commission overrides. If disabled, sub-advisor acts as a standalone advisor.
-                          </p>
-                        </div>
-                        <FormControl>
+                    {selectedAdvisorId && hasParentAdvisor && (
+                      <FormField
+                        control={form.control}
+                        name="split_with_parent"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xs transition-all hover:shadow-sm">
+                            <div className="space-y-0.5 pr-4">
+                              <FormLabel className="text-xs font-bold text-zinc-700 dark:text-zinc-350 cursor-pointer select-none">
+                                Split commission with parent advisor?
+                              </FormLabel>
+                              <p className="text-[10px] text-zinc-455 dark:text-zinc-500 font-semibold leading-normal">
+                                If enabled, the parent chain gets commission overrides. If disabled, sub-advisor acts as a standalone advisor.
+                              </p>
+                            </div>
+                            <FormControl>
+                              <input
+                                type="checkbox"
+                                checked={field.value}
+                                onChange={(e) => field.onChange(e.target.checked)}
+                                className="h-4.5 w-4.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer accent-indigo-650 shrink-0"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {selectedAdvisorId && subOptions.length > 0 && (
+                      <div className="space-y-3 p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xs transition-all hover:shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5 pr-4">
+                            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-350 cursor-pointer select-none">
+                              Split commission with sub-advisor?
+                            </label>
+                            <p className="text-[10px] text-zinc-455 dark:text-zinc-500 font-semibold leading-normal">
+                              If enabled, select a sub-advisor to share commission.
+                            </p>
+                          </div>
                           <input
                             type="checkbox"
-                            checked={field.value}
-                            onChange={(e) => field.onChange(e.target.checked)}
+                            checked={splitWithChild}
+                            onChange={(e) => {
+                              setSplitWithChild(e.target.checked);
+                              if (!e.target.checked) setSelectedChildAdvisorId("");
+                            }}
                             className="h-4.5 w-4.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer accent-indigo-650 shrink-0"
                           />
-                        </FormControl>
-                      </FormItem>
+                        </div>
+                        
+                        {splitWithChild && (
+                          <div className="space-y-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-850">
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                              Select Sub-Advisor
+                            </label>
+                            <Select
+                              value={selectedChildAdvisorId}
+                              onValueChange={setSelectedChildAdvisorId}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Select sub-advisor..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subOptions.map((sub) => (
+                                  <SelectItem key={sub.id} value={sub.id}>
+                                    {sub.name} ({sub.code})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
                     )}
-                  />
+                  </>
                 )}
 
                 {!soldByAdmin && selectedAdvisorId && calculatedSplits.length > 0 ? (
@@ -966,7 +1077,7 @@ export function SaleForm({
                         <div key={row.advisor_id} className="flex justify-between items-center text-xs gap-4 py-1.5 border-b border-amber-200/20 last:border-0">
                           <div className="flex flex-col flex-1">
                             <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                             {row.name} {hasParentAdvisor ? (row.level === 0 ? "(Sub-advisor)" : "(Advisor)") : "(Advisor)"}
+                             {row.name} {row.level === 0 ? (splitWithParent && hasParentAdvisor ? "(Sub-advisor)" : "(Advisor)") : (splitWithParent && hasParentAdvisor ? "(Advisor)" : "(Sub-advisor)")}
                             </span>
                             <span className="text-[9px] text-zinc-400 font-mono">
                               Code: {row.code}

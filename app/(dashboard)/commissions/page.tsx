@@ -8,6 +8,16 @@ import { CommissionsTable } from "@/components/commissions/commissions-table";
 import { CommissionsFilters } from "@/components/commissions/commissions-filters";
 import { CommissionsTabs } from "@/components/commissions/commissions-tabs";
 
+function getProportionalCommission(comm: any) {
+  const saleTotal = Number(comm?.plot_sales?.total_sale_amount ?? 0);
+  const saleReceived = Number(comm?.plot_sales?.amount_paid ?? 0);
+  const profitTotal = Number(comm?.total_commission_amount ?? 0);
+  if (saleTotal <= 0 || profitTotal <= 0) return 0;
+  const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
+  return profitTotal * ratio;
+}
+
+
 export default async function CommissionsPage({
   searchParams,
 }: {
@@ -37,18 +47,17 @@ export default async function CommissionsPage({
 
     // Status filter
     if (status) {
-      const total = Number(commission.total_commission_amount ?? 0);
+      const eligible = getProportionalCommission(commission);
       const paid = Number(commission.amount_paid ?? 0);
       if (status === "pending" && paid > 0) return false;
-      if (status === "partial" && (paid === 0 || paid === total)) return false;
-      if (status === "paid" && paid === 0) return false;
-      if (status === "paid" && paid < total) return false;
+      if (status === "partial" && (paid === 0 || paid >= eligible)) return false;
+      if (status === "paid" && paid < eligible) return false;
     }
 
     return true;
   });
 
-  const totalCommissions = filteredCommissions.reduce((sum, c) => sum + Number(c.total_commission_amount), 0);
+  const totalCommissions = filteredCommissions.reduce((sum, c) => sum + getProportionalCommission(c), 0);
   const totalPaid = filteredCommissions.reduce((sum, c) => sum + Number(c.amount_paid), 0);
   const totalPending = Math.max(0, totalCommissions - totalPaid);
   const totalExtraPaid = filteredCommissions.reduce((sum, c: any) => {

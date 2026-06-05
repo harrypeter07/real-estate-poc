@@ -308,7 +308,7 @@ export function SaleDetailModal({
 							className="shrink-0"
 							onClick={() => {
 								onOpenChange(false);
-								router.push("/sales");
+								router.push(`/sales/${sale.id}`);
 							}}
 						>
 							<ArrowUpRight className="h-4 w-4" />

@@ -21,7 +21,7 @@ import {
 } from "@/app/actions/advisor-projects";
 import { formatCurrencyShort } from "@/lib/utils/formatters";
 
-type Advisor = { id: string; name: string; code: string; phone: string };
+type Advisor = { id: string; name: string; code: string; phone: string; parent_advisor_id?: string | null };
 
 /** Stored value is advisor selling price ₹/sqft; preview share vs lowest admin plot rate in project. */
 function advisorShareMetrics(
@@ -95,13 +95,22 @@ export function ProjectAdvisorAssignments({
 	const [saving, setSaving] = useState(false);
 	const [advisorId, setAdvisorId] = useState<string>("");
 	const [commissionRate, setCommissionRate] = useState<number>(0);
+	const [commissionPct, setCommissionPct] = useState<number>(5);
+	const [subAdvisorCommissionRate, setSubAdvisorCommissionRate] = useState<number>(1);
 	const [editAdvisorId, setEditAdvisorId] = useState<string>("");
 	const [editCommissionRate, setEditCommissionRate] = useState<number>(0);
+	const [editCommissionPct, setEditCommissionPct] = useState<number>(5);
+	const [editSubAdvisorCommissionRate, setEditSubAdvisorCommissionRate] = useState<number>(1);
 
 	const assignedAdvisorIds = useMemo(
 		() => new Set(assignments.map((a) => a.advisor_id)),
 		[assignments],
 	);
+
+	const selectedAdvisorHasSub = useMemo(() => {
+		if (!advisorId) return false;
+		return advisors.some((a) => a.parent_advisor_id === advisorId);
+	}, [advisorId, advisors]);
 
 	const availableAdvisors = useMemo(
 		() => advisors.filter((a) => !assignedAdvisorIds.has(a.id)),
@@ -192,6 +201,8 @@ export function ProjectAdvisorAssignments({
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: advisorId,
 				commission_rate: commissionRate,
+				commission_pct: commissionPct,
+				sub_advisor_commission_rate: selectedAdvisorHasSub ? subAdvisorCommissionRate : 0,
 			});
 			if (!res.success) {
 				toast.error("Failed to assign", { description: res.error });
@@ -200,6 +211,8 @@ export function ProjectAdvisorAssignments({
 			toast.success("Advisor assigned to project");
 			setAdvisorId("");
 			setCommissionRate(0);
+			setCommissionPct(5);
+			setSubAdvisorCommissionRate(1);
 		} finally {
 			setSaving(false);
 		}
@@ -222,11 +235,15 @@ export function ProjectAdvisorAssignments({
 	function onStartEdit(a: AdvisorProjectAssignment) {
 		setEditAdvisorId(a.advisor_id);
 		setEditCommissionRate(Number((a as any).commission_rate ?? 0));
+		setEditCommissionPct(Number(a.commission_token ?? 5));
+		setEditSubAdvisorCommissionRate(Number(a.sub_advisor_commission_rate ?? 1));
 	}
 
 	function onCancelEdit() {
 		setEditAdvisorId("");
 		setEditCommissionRate(0);
+		setEditCommissionPct(5);
+		setEditSubAdvisorCommissionRate(1);
 	}
 
 	async function onSaveEdit() {
@@ -259,6 +276,8 @@ export function ProjectAdvisorAssignments({
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: editAdvisorId,
 				commission_rate: editCommissionRate,
+				commission_pct: editCommissionPct,
+				sub_advisor_commission_rate: editSubAdvisorCommissionRate,
 			});
 			if (!res.success) {
 				toast.error("Failed to update", { description: res.error });
@@ -289,7 +308,11 @@ export function ProjectAdvisorAssignments({
 								keywords: `${a.phone} ${a.code}`,
 							}))}
 							value={advisorId}
-							onChange={setAdvisorId}
+							onChange={(val) => {
+								setAdvisorId(val);
+								const hasSub = advisors.some((a) => a.parent_advisor_id === val);
+								setSubAdvisorCommissionRate(hasSub ? 1 : 0);
+							}}
 							placeholder="Search advisor by name, code, phone…"
 							emptyMessage="No unassigned advisor matches."
 						/>
@@ -300,9 +323,9 @@ export function ProjectAdvisorAssignments({
 					</p>
 				</div>
 
-				<div className="lg:col-span-2 space-y-0">
+				<div className="lg:col-span-1 space-y-0">
 					<RateInput
-						label="Advisor selling price of plot (₹/sqft)"
+						label="Price (₹/sqft)"
 						value={commissionRate}
 						onChange={setCommissionRate}
 					/>
@@ -313,6 +336,39 @@ export function ProjectAdvisorAssignments({
 						/>
 					) : null}
 				</div>
+
+				<div className="lg:col-span-1">
+					<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+						Advisor Comm. %
+					</label>
+					<Input
+						className="mt-1"
+						type="number"
+						min={0}
+						max={100}
+						step={0.1}
+						value={commissionPct}
+						onChange={(e) => setCommissionPct(Number(e.target.value) || 0)}
+					/>
+				</div>
+
+				{selectedAdvisorHasSub && (
+					<div className="lg:col-span-1">
+						<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+							Sub-Advisor Comm. %
+						</label>
+						<Input
+							className="mt-1"
+							type="number"
+							min={0}
+							max={100}
+							step={0.1}
+							value={subAdvisorCommissionRate}
+							onChange={(e) => setSubAdvisorCommissionRate(Number(e.target.value) || 0)}
+						/>
+					</div>
+				)}
+
 				<div className="lg:col-span-5 flex justify-end">
 					<Button onClick={onAdd} disabled={saving || !advisorId} size="sm">
 						<Plus className="h-4 w-4 mr-2" />
@@ -332,8 +388,11 @@ export function ProjectAdvisorAssignments({
 						<TableHead className="text-right whitespace-nowrap hidden sm:table-cell">
 							Advisor share
 						</TableHead>
-						<TableHead className="text-right whitespace-nowrap hidden md:table-cell">
-							Commission %
+						<TableHead className="text-right whitespace-nowrap">
+							Advisor Comm %
+						</TableHead>
+						<TableHead className="text-right whitespace-nowrap">
+							Sub-Advisor Comm %
 						</TableHead>
 						<TableHead className="text-right">Actions</TableHead>
 					</TableRow>
@@ -341,7 +400,7 @@ export function ProjectAdvisorAssignments({
 				<TableBody>
 					{assignments.length === 0 ? (
 						<TableRow className="hover:bg-transparent">
-							<TableCell colSpan={5} className="py-10 text-center">
+							<TableCell colSpan={6} className="py-10 text-center">
 								<div className="flex flex-col items-center justify-center text-center p-5">
 									<div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-50 border border-zinc-100 text-zinc-400 mb-3 shadow-inner dark:bg-zinc-900 dark:border-zinc-800">
 										<Users className="h-5 w-5 stroke-[1.5]" />
@@ -373,19 +432,6 @@ export function ProjectAdvisorAssignments({
 											value={editCommissionRate}
 											onChange={setEditCommissionRate}
 										/>
-										{editCommissionRate > 0 ? (
-											<div className="mt-1 sm:hidden text-[10px] text-zinc-500">
-												Share {formatCurrencyShort(
-													advisorShareMetrics(editCommissionRate, minPlotRatePerSqft).share,
-												)}
-												/sqft ·{" "}
-												{advisorShareMetrics(
-													editCommissionRate,
-													minPlotRatePerSqft,
-												).pctOfSelling.toFixed(1)}
-												%
-											</div>
-										) : null}
 									</TableCell>
 									<TableCell className="text-right align-top hidden sm:table-cell py-3">
 										{formatCurrencyShort(
@@ -393,12 +439,29 @@ export function ProjectAdvisorAssignments({
 										)}
 										/sqft
 									</TableCell>
-									<TableCell className="text-right align-top hidden md:table-cell py-3">
-										{advisorShareMetrics(
-											editCommissionRate,
-											minPlotRatePerSqft,
-										).pctOfSelling.toFixed(1)}
-										%
+									<TableCell className="text-right align-top py-3">
+										<Input
+											className="h-8 w-[70px] ml-auto text-right"
+											type="number"
+											min={0}
+											max={100}
+											value={editCommissionPct}
+											onChange={(e) => setEditCommissionPct(Number(e.target.value) || 0)}
+										/>
+									</TableCell>
+									<TableCell className="text-right align-top py-3">
+										{advisors.some((adv) => adv.parent_advisor_id === editAdvisorId) ? (
+											<Input
+												className="h-8 w-[70px] ml-auto text-right"
+												type="number"
+												min={0}
+												max={100}
+												value={editSubAdvisorCommissionRate}
+												onChange={(e) => setEditSubAdvisorCommissionRate(Number(e.target.value) || 0)}
+											/>
+										) : (
+											<span className="text-xs text-zinc-400">—</span>
+										)}
 									</TableCell>
 									<TableCell className="text-right align-top py-3">
 										<div className="flex items-center justify-end gap-1.5">
@@ -452,14 +515,19 @@ export function ProjectAdvisorAssignments({
 										)}
 										/sqft
 									</TableCell>
-									<TableCell className="text-right hidden md:table-cell py-3">
+									<TableCell className="text-right py-3">
 										<span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400">
-											{advisorShareMetrics(
-												Number((a as any).commission_rate ?? 0),
-												minPlotRatePerSqft,
-											).pctOfSelling.toFixed(1)}
-											%
+											{Number(a.commission_token ?? 5).toFixed(1)}%
 										</span>
+									</TableCell>
+									<TableCell className="text-right py-3">
+										{advisors.some((adv) => adv.parent_advisor_id === a.advisor_id) ? (
+											<span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+												{Number(a.sub_advisor_commission_rate ?? 1).toFixed(1)}%
+											</span>
+										) : (
+											<span className="text-xs text-zinc-400">—</span>
+										)}
 									</TableCell>
 									<TableCell className="text-right py-3">
 										<div className="flex items-center justify-end gap-1.5">

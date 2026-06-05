@@ -95,12 +95,12 @@ export function ProjectAdvisorAssignments({
 	const [saving, setSaving] = useState(false);
 	const [advisorId, setAdvisorId] = useState<string>("");
 	const [commissionRate, setCommissionRate] = useState<number>(0);
-	const [commissionPct, setCommissionPct] = useState<number>(5);
-	const [subAdvisorCommissionRate, setSubAdvisorCommissionRate] = useState<number>(1);
+	const [commissionPct, setCommissionPct] = useState<number | "">(5);
+	const [subAdvisorCommissionRate, setSubAdvisorCommissionRate] = useState<number | "">(1);
 	const [editAdvisorId, setEditAdvisorId] = useState<string>("");
 	const [editCommissionRate, setEditCommissionRate] = useState<number>(0);
-	const [editCommissionPct, setEditCommissionPct] = useState<number>(5);
-	const [editSubAdvisorCommissionRate, setEditSubAdvisorCommissionRate] = useState<number>(1);
+	const [editCommissionPct, setEditCommissionPct] = useState<number | "">(5);
+	const [editSubAdvisorCommissionRate, setEditSubAdvisorCommissionRate] = useState<number | "">(1);
 
 	const assignedAdvisorIds = useMemo(
 		() => new Set(assignments.map((a) => a.advisor_id)),
@@ -201,8 +201,12 @@ export function ProjectAdvisorAssignments({
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: advisorId,
 				commission_rate: commissionRate,
-				commission_pct: selectedAdvisorHasSub ? commissionPct : 100,
-				sub_advisor_commission_rate: selectedAdvisorHasSub ? subAdvisorCommissionRate : 0,
+				commission_pct: selectedAdvisorHasSub 
+					? (commissionPct === "" ? 0 : commissionPct) 
+					: 100,
+				sub_advisor_commission_rate: selectedAdvisorHasSub 
+					? (subAdvisorCommissionRate === "" ? 0 : subAdvisorCommissionRate) 
+					: 0,
 			});
 			if (!res.success) {
 				toast.error("Failed to assign", { description: res.error });
@@ -278,8 +282,12 @@ export function ProjectAdvisorAssignments({
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: editAdvisorId,
 				commission_rate: editCommissionRate,
-				commission_pct: editingAdvisorHasSub ? editCommissionPct : 100,
-				sub_advisor_commission_rate: editingAdvisorHasSub ? editSubAdvisorCommissionRate : 0,
+				commission_pct: editingAdvisorHasSub 
+					? (editCommissionPct === "" ? 0 : editCommissionPct) 
+					: 100,
+				sub_advisor_commission_rate: editingAdvisorHasSub 
+					? (editSubAdvisorCommissionRate === "" ? 0 : editSubAdvisorCommissionRate) 
+					: 0,
 			});
 			if (!res.success) {
 				toast.error("Failed to update", { description: res.error });
@@ -353,7 +361,11 @@ export function ProjectAdvisorAssignments({
 								max={100}
 								step={0.1}
 								value={commissionPct}
-								onChange={(e) => setCommissionPct(Number(e.target.value) || 0)}
+								onChange={(e) => {
+									const raw = e.target.value;
+									const sanitized = raw.replace(/^0+(?=\d)/, "");
+									setCommissionPct(sanitized === "" ? "" : Number(sanitized));
+								}}
 							/>
 						</div>
 
@@ -368,7 +380,11 @@ export function ProjectAdvisorAssignments({
 								max={100}
 								step={0.1}
 								value={subAdvisorCommissionRate}
-								onChange={(e) => setSubAdvisorCommissionRate(Number(e.target.value) || 0)}
+								onChange={(e) => {
+									const raw = e.target.value;
+									const sanitized = raw.replace(/^0+(?=\d)/, "");
+									setSubAdvisorCommissionRate(sanitized === "" ? "" : Number(sanitized));
+								}}
 							/>
 						</div>
 					</>
@@ -452,7 +468,11 @@ export function ProjectAdvisorAssignments({
 												min={0}
 												max={100}
 												value={editCommissionPct}
-												onChange={(e) => setEditCommissionPct(Number(e.target.value) || 0)}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													setEditCommissionPct(sanitized === "" ? "" : Number(sanitized));
+												}}
 											/>
 										) : (
 											<span className="text-xs text-zinc-400">100.0%</span>
@@ -466,7 +486,11 @@ export function ProjectAdvisorAssignments({
 												min={0}
 												max={100}
 												value={editSubAdvisorCommissionRate}
-												onChange={(e) => setEditSubAdvisorCommissionRate(Number(e.target.value) || 0)}
+												onChange={(e) => {
+													const raw = e.target.value;
+													const sanitized = raw.replace(/^0+(?=\d)/, "");
+													setEditSubAdvisorCommissionRate(sanitized === "" ? "" : Number(sanitized));
+												}}
 											/>
 										) : (
 											<span className="text-xs text-zinc-400">—</span>

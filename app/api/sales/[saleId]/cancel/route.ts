@@ -68,16 +68,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ saleId:
 			.update({ status: "available" })
 			.eq("id", sale.plot_id);
 
-		// 3. Waive all pending/partial EMIs
+		// 3. Delete existing payments for this sale
 		await supabase
-			.from("emi_schedule")
-			.update({
-				status: "waived",
-				waiver_reason: `Booking cancelled: ${cancellation_reason}`,
-				updated_at: new Date().toISOString(),
-			})
-			.eq("sale_id", saleId)
-			.in("status", ["pending", "partial", "overdue"]);
+			.from("payments")
+			.delete()
+			.eq("sale_id", saleId);
 
 		// 4. Create refund record (negative payment)
 		let refundPayment = null;
@@ -100,14 +95,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ saleId:
 			refundPayment = payRow;
 		}
 
-		// 5. Recalculate balances
-		const { data: totalPaidResult } = await supabase
-			.from("payments")
-			.select("amount")
-			.eq("sale_id", saleId)
-			.eq("is_confirmed", true);
+		// 5. Delete all EMI / due payment entries
+		await supabase.from("due_payment_reminders").delete().eq("sale_id", saleId);
+		await supabase.from("payment_penalties").delete().eq("sale_id", saleId);
+		await supabase.from("emi_schedule").delete().eq("sale_id", saleId);
 
-		const amountPaid = (totalPaidResult || []).reduce((sum, p) => sum + Number(p.amount), 0);
+		// 6. Delete recovery records
+		await supabase.from("recovery_notes").delete().eq("sale_id", saleId);
+		await supabase.from("promise_to_pay").delete().eq("sale_id", saleId);
+		await supabase.from("legal_escalations").delete().eq("sale_id", saleId);
+		await supabase.from("advisor_recovery_tracking").delete().eq("sale_id", saleId);
+
+		// 7. Delete Commissions
+		const { data: commRows } = await supabase
+			.from("advisor_commissions")
+			.select("id")
+			.eq("sale_id", saleId);
+		const commIds = commRows?.map((r) => r.id) || [];
+		if (commIds.length > 0) {
+			await supabase.from("commission_ledger").delete().in("commission_id", commIds);
+			await supabase.from("commission_holds").delete().in("commission_id", commIds);
+			await supabase.from("advisor_commission_payments").delete().in("commission_id", commIds);
+		}
+		await supabase.from("advisor_commissions").delete().eq("sale_id", saleId);
+
+		// 8. Recalculate balances (should show only refund payment or 0)
+		const amountPaid = Number(refundPayment ? refundPayment.amount : 0);
 		const remainingAmount = Number(sale.total_sale_amount) - amountPaid;
 
 		await supabase

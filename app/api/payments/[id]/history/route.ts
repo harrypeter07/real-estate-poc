@@ -30,6 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 				created_at,
 				plot_sales!inner(
 					id,
+					is_cancelled,
 					plots!inner(
 						id,
 						plot_number,
@@ -38,6 +39,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 				)
 			`)
 			.eq("customer_id", id)
+			.eq("plot_sales.is_cancelled", false)
 			.order("payment_date", { ascending: false });
 
 		if (error) {

@@ -342,8 +342,9 @@ export async function getProjectWithStats(
 
 	const { data: payRows } = await supabase
 		.from("payments")
-		.select(`amount, plot_sales!inner(plots!inner(project_id))`)
+		.select(`amount, plot_sales!inner(is_cancelled, plots!inner(project_id))`)
 		.eq("is_confirmed", true)
+		.eq("plot_sales.is_cancelled", false)
 		.eq("plot_sales.plots.project_id", id);
 
 	totalRevenue = (payRows ?? []).reduce(
@@ -488,9 +489,10 @@ export async function getProjectsSummaryStats() {
 
 	const { data: payRows, error } = await supabase
 		.from("payments")
-		.select("amount")
+		.select("amount, plot_sales!inner(is_cancelled)")
 		.eq("business_id", businessId)
-		.eq("is_confirmed", true);
+		.eq("is_confirmed", true)
+		.eq("plot_sales.is_cancelled", false);
 
 	if (error) {
 		console.error("Error fetching summary stats:", error);

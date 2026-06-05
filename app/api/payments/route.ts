@@ -37,9 +37,10 @@ export async function GET(req: Request) {
 			.select(`
 				*,
 				customers(id, name, phone),
-				plot_sales(id, sale_phase, plots(plot_number, projects(name)))
+				plot_sales!inner(id, is_cancelled, sale_phase, plots(plot_number, projects(name)))
 			`, { count: "exact" })
-			.eq("business_id", businessId);
+			.eq("business_id", businessId)
+			.eq("plot_sales.is_cancelled", false);
 
 		if (saleId && saleId !== "all") {
 			query = query.eq("sale_id", saleId);

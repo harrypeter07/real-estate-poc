@@ -103,11 +103,11 @@ export function SaleForm({
   const splitWithParent = form.watch("split_with_parent") ?? true;
   const advisorSellingOverride = form.watch("advisor_selling_price_per_sqft");
   const selectedPhase = form.watch("sale_phase");
-  const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
-  const downPayment = form.watch("down_payment") ?? 0;
+  const totalSaleAmount = Number(form.watch("total_sale_amount") ?? 0);
+  const downPayment = Number(form.watch("down_payment") ?? 0);
   const isDownPaymentFull =
-    Number(totalSaleAmount) > 0 && Number(downPayment) >= Number(totalSaleAmount);
-  const emiMonths = form.watch("emi_months") || 0;
+    totalSaleAmount > 0 && downPayment >= totalSaleAmount;
+  const emiMonths = Number(form.watch("emi_months") || 0);
   const remaining = totalSaleAmount > 0 ? totalSaleAmount - downPayment : 0;
   const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
   const phaseDateLabel =
@@ -1031,12 +1031,7 @@ export function SaleForm({
                             onChange={(e) => {
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              if (sanitized === "") {
-                                field.onChange(undefined);
-                                return;
-                              }
-                              const n = Number(sanitized);
-                              field.onChange(Number.isFinite(n) ? n : undefined);
+                              field.onChange(sanitized === "" ? "" : Number(sanitized));
                             }}
                           />
                         </FormControl>
@@ -1175,7 +1170,7 @@ export function SaleForm({
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                field.onChange(sanitized === "" ? "" : Number(sanitized));
                               }}
                             />
                           </FormControl>
@@ -1203,7 +1198,7 @@ export function SaleForm({
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                field.onChange(sanitized === "" ? "" : Number(sanitized));
                                 markTouched("down_payment");
                               }}
                               onBlur={() => markTouched("down_payment")}
@@ -1367,7 +1362,7 @@ export function SaleForm({
                                   max={120}
                                   onChange={(e) => {
                                     const v = e.target.value;
-                                    field.onChange(v === "" ? undefined : Number(v));
+                                    field.onChange(v === "" ? "" : Number(v));
                                   }}
                                 />
                               </FormControl>
@@ -1393,7 +1388,7 @@ export function SaleForm({
                                 onChange={(e) => {
                                   const raw = e.target.value;
                                   const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                  field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                  field.onChange(sanitized === "" ? "" : Number(sanitized));
                                 }}
                               />
                             </FormControl>
@@ -1417,9 +1412,7 @@ export function SaleForm({
                                 onChange={(e) => {
                                   const raw = e.target.value;
                                   const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                  field.onChange(
-                                    sanitized === "" ? undefined : Number(sanitized)
-                                  );
+                                  field.onChange(sanitized === "" ? "" : Number(sanitized));
                                 }}
                               />
                             </FormControl>

@@ -80,9 +80,10 @@ export async function GET(req: Request) {
 				payment_mode,
 				slip_number,
 				customers(id, name, phone),
-				plot_sales(id, remaining_amount, plots(plot_number, projects(name)))
+				plot_sales!inner(id, is_cancelled, remaining_amount, plots(plot_number, projects(name)))
 			`)
 			.eq("business_id", businessId)
+			.eq("plot_sales.is_cancelled", false)
 			.order("payment_date", { ascending: false })
 			.limit(5);
 

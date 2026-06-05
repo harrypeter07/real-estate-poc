@@ -25,9 +25,10 @@ export async function GET(req: Request) {
 
 		const { data: payments, error } = await supabase
 			.from("payments")
-			.select("amount, payment_mode, payment_date")
+			.select("amount, payment_mode, payment_date, plot_sales!inner(is_cancelled)")
 			.eq("business_id", businessId)
 			.eq("is_confirmed", true)
+			.eq("plot_sales.is_cancelled", false)
 			.gte("payment_date", fromDate)
 			.lte("payment_date", toDate);
 

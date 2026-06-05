@@ -81,8 +81,9 @@ export async function GET(req: Request) {
 		// 4. Fetch commission payments
 		let commissionQuery = supabase
 			.from("advisor_commissions")
-			.select("amount_paid")
+			.select("amount_paid, plot_sales!inner(is_cancelled)")
 			.eq("business_id", businessId)
+			.eq("plot_sales.is_cancelled", false)
 			.gte("created_at", startDate)
 			.lte("created_at", endDate);
 

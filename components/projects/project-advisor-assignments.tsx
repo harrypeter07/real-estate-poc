@@ -201,7 +201,7 @@ export function ProjectAdvisorAssignments({
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: advisorId,
 				commission_rate: commissionRate,
-				commission_pct: commissionPct,
+				commission_pct: selectedAdvisorHasSub ? commissionPct : 100,
 				sub_advisor_commission_rate: selectedAdvisorHasSub ? subAdvisorCommissionRate : 0,
 			});
 			if (!res.success) {
@@ -233,10 +233,11 @@ export function ProjectAdvisorAssignments({
 	}
 
 	function onStartEdit(a: AdvisorProjectAssignment) {
+		const editingAdvisorHasSub = advisors.some((adv) => adv.parent_advisor_id === a.advisor_id);
 		setEditAdvisorId(a.advisor_id);
 		setEditCommissionRate(Number((a as any).commission_rate ?? 0));
-		setEditCommissionPct(Number(a.commission_token ?? 5));
-		setEditSubAdvisorCommissionRate(Number(a.sub_advisor_commission_rate ?? 1));
+		setEditCommissionPct(editingAdvisorHasSub ? Number(a.commission_token ?? 5) : 100);
+		setEditSubAdvisorCommissionRate(editingAdvisorHasSub ? Number(a.sub_advisor_commission_rate ?? 1) : 0);
 	}
 
 	function onCancelEdit() {
@@ -272,12 +273,13 @@ export function ProjectAdvisorAssignments({
 			return;
 		}
 		setSaving(true);
+		const editingAdvisorHasSub = advisors.some((adv) => adv.parent_advisor_id === editAdvisorId);
 		try {
 			const res = await upsertAdvisorAssignment(projectId, {
 				advisor_id: editAdvisorId,
 				commission_rate: editCommissionRate,
-				commission_pct: editCommissionPct,
-				sub_advisor_commission_rate: editSubAdvisorCommissionRate,
+				commission_pct: editingAdvisorHasSub ? editCommissionPct : 100,
+				sub_advisor_commission_rate: editingAdvisorHasSub ? editSubAdvisorCommissionRate : 0,
 			});
 			if (!res.success) {
 				toast.error("Failed to update", { description: res.error });
@@ -312,6 +314,7 @@ export function ProjectAdvisorAssignments({
 								setAdvisorId(val);
 								const hasSub = advisors.some((a) => a.parent_advisor_id === val);
 								setSubAdvisorCommissionRate(hasSub ? 1 : 0);
+								setCommissionPct(hasSub ? 5 : 100);
 							}}
 							placeholder="Search advisor by name, code, phone…"
 							emptyMessage="No unassigned advisor matches."
@@ -337,36 +340,38 @@ export function ProjectAdvisorAssignments({
 					) : null}
 				</div>
 
-				<div className="lg:col-span-1">
-					<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-						Advisor Comm. %
-					</label>
-					<Input
-						className="mt-1"
-						type="number"
-						min={0}
-						max={100}
-						step={0.1}
-						value={commissionPct}
-						onChange={(e) => setCommissionPct(Number(e.target.value) || 0)}
-					/>
-				</div>
-
 				{selectedAdvisorHasSub && (
-					<div className="lg:col-span-1">
-						<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-							Sub-Advisor Comm. %
-						</label>
-						<Input
-							className="mt-1"
-							type="number"
-							min={0}
-							max={100}
-							step={0.1}
-							value={subAdvisorCommissionRate}
-							onChange={(e) => setSubAdvisorCommissionRate(Number(e.target.value) || 0)}
-						/>
-					</div>
+					<>
+						<div className="lg:col-span-1">
+							<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+								Advisor Comm. %
+							</label>
+							<Input
+								className="mt-1"
+								type="number"
+								min={0}
+								max={100}
+								step={0.1}
+								value={commissionPct}
+								onChange={(e) => setCommissionPct(Number(e.target.value) || 0)}
+							/>
+						</div>
+
+						<div className="lg:col-span-1">
+							<label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+								Sub-Advisor Comm. %
+							</label>
+							<Input
+								className="mt-1"
+								type="number"
+								min={0}
+								max={100}
+								step={0.1}
+								value={subAdvisorCommissionRate}
+								onChange={(e) => setSubAdvisorCommissionRate(Number(e.target.value) || 0)}
+							/>
+						</div>
+					</>
 				)}
 
 				<div className="lg:col-span-5 flex justify-end">
@@ -440,14 +445,18 @@ export function ProjectAdvisorAssignments({
 										/sqft
 									</TableCell>
 									<TableCell className="text-right align-top py-3">
-										<Input
-											className="h-8 w-[70px] ml-auto text-right"
-											type="number"
-											min={0}
-											max={100}
-											value={editCommissionPct}
-											onChange={(e) => setEditCommissionPct(Number(e.target.value) || 0)}
-										/>
+										{advisors.some((adv) => adv.parent_advisor_id === editAdvisorId) ? (
+											<Input
+												className="h-8 w-[70px] ml-auto text-right"
+												type="number"
+												min={0}
+												max={100}
+												value={editCommissionPct}
+												onChange={(e) => setEditCommissionPct(Number(e.target.value) || 0)}
+											/>
+										) : (
+											<span className="text-xs text-zinc-400">100.0%</span>
+										)}
 									</TableCell>
 									<TableCell className="text-right align-top py-3">
 										{advisors.some((adv) => adv.parent_advisor_id === editAdvisorId) ? (

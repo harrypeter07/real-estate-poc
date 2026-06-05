@@ -587,10 +587,10 @@ export async function updateSaleRegistryAmount(
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	// Fetch current sale amounts to recalculate remaining amount
+	// Fetch current sale amounts
 	const { data: saleData, error: fetchErr } = await supabase
 		.from("plot_sales")
-		.select("total_sale_amount, amount_paid")
+		.select("total_sale_amount")
 		.eq("id", saleId)
 		.single();
 
@@ -598,12 +598,26 @@ export async function updateSaleRegistryAmount(
 		return { success: false, error: "Sale not found" };
 	}
 
-	const newRemaining = Number(saleData.total_sale_amount || 0) + Number(registryAmount || 0) - Number(saleData.amount_paid || 0);
+	// Fetch confirmed payments sum
+	const { data: paymentsData, error: payErr } = await supabase
+		.from("payments")
+		.select("amount")
+		.eq("sale_id", saleId)
+		.eq("is_confirmed", true);
+
+	if (payErr) {
+		return { success: false, error: "Failed to fetch payments data" };
+	}
+
+	const paymentsSum = (paymentsData || []).reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+	const newAmountPaid = paymentsSum + Number(registryAmount || 0);
+	const newRemaining = Number(saleData.total_sale_amount || 0) - paymentsSum;
 
 	const { error } = await supabase
 		.from("plot_sales")
 		.update({ 
 			registry_amount: registryAmount,
+			amount_paid: newAmountPaid,
 			remaining_amount: newRemaining
 		})
 		.eq("id", saleId);

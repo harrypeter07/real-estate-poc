@@ -25,8 +25,8 @@ BEGIN
       FROM payments
       WHERE sale_id = COALESCE(NEW.sale_id, OLD.sale_id)
         AND is_confirmed = true
-    ),
-    remaining_amount = total_sale_amount + COALESCE(registry_amount, 0) - (
+    ) + COALESCE(registry_amount, 0),
+    remaining_amount = total_sale_amount - (
       SELECT COALESCE(SUM(amount), 0)
       FROM payments
       WHERE sale_id = COALESCE(NEW.sale_id, OLD.sale_id)
@@ -34,7 +34,7 @@ BEGIN
     ),
     sale_phase = CASE
       WHEN is_cancelled IS TRUE THEN sale_phase
-      WHEN (total_sale_amount + COALESCE(registry_amount, 0) - (
+      WHEN (total_sale_amount - (
         SELECT COALESCE(SUM(amount), 0)
         FROM payments
         WHERE sale_id = COALESCE(NEW.sale_id, OLD.sale_id)
@@ -76,3 +76,29 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 5. Backfill amount_paid and remaining_amount for all existing sales
+UPDATE plot_sales ps
+SET
+  amount_paid = (
+    SELECT COALESCE(SUM(amount), 0)
+    FROM payments p
+    WHERE p.sale_id = ps.id
+      AND p.is_confirmed = true
+  ) + COALESCE(ps.registry_amount, 0),
+  remaining_amount = ps.total_sale_amount - (
+    SELECT COALESCE(SUM(amount), 0)
+    FROM payments p
+    WHERE p.sale_id = ps.id
+      AND p.is_confirmed = true
+  ),
+  sale_phase = CASE
+    WHEN ps.is_cancelled IS TRUE THEN ps.sale_phase
+    WHEN (ps.total_sale_amount - (
+      SELECT COALESCE(SUM(amount), 0)
+      FROM payments p
+      WHERE p.sale_id = ps.id
+        AND p.is_confirmed = true
+    )) <= 0 THEN 'full_payment'::sale_phase
+    ELSE 'token'::sale_phase
+  END;

@@ -940,14 +940,15 @@ function RegistryForm({
 	initialRegistryAmount: number; 
 	refetchSale: () => void 
 }) {
-	const [amount, setAmount] = useState(initialRegistryAmount ? String(initialRegistryAmount) : "");
+	const [amount, setAmount] = useState(initialRegistryAmount ? initialRegistryAmount.toLocaleString("en-IN") : "");
 	const [saving, setSaving] = useState(false);
 
 	const handleSave = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setSaving(true);
 		try {
-			const res = await updateSaleRegistryAmount(saleId, Number(amount) || 0);
+			const cleanAmount = Number(amount.replace(/,/g, "")) || 0;
+			const res = await updateSaleRegistryAmount(saleId, cleanAmount);
 			if (res.success) {
 				toast.success("Registry amount updated successfully!");
 				refetchSale();
@@ -961,14 +962,24 @@ function RegistryForm({
 		}
 	};
 
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const val = e.target.value;
+		const clean = val.replace(/\D/g, "");
+		if (!clean) {
+			setAmount("");
+			return;
+		}
+		setAmount(Number(clean).toLocaleString("en-IN"));
+	};
+
 	return (
 		<form onSubmit={handleSave} className="flex flex-col sm:flex-row items-end gap-3 max-w-md">
 			<div className="space-y-1.5 flex-1 w-full">
 				<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Registry Fee Amount (₹)</label>
 				<Input
-					type="number"
+					type="text"
 					value={amount}
-					onChange={(e) => setAmount(e.target.value)}
+					onChange={handleChange}
 					placeholder="Enter registry fee amount..."
 					className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all placeholder:text-zinc-400 focus-visible:ring-offset-0"
 				/>

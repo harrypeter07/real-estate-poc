@@ -1,0 +1,43 @@
+[2026-06-05T09:05:11.227Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:05:11.535Z] Sales found: 14
+[2026-06-05T09:05:11.771Z] EMIs found: 0
+[2026-06-05T09:06:01.911Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:06:02.540Z] Sales found: 14
+[2026-06-05T09:06:03.143Z] EMIs found: 0
+[2026-06-05T09:06:04.266Z] Dashboard data count: 0
+[2026-06-05T09:07:08.889Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:07:09.198Z] Sales found: 14
+[2026-06-05T09:07:09.499Z] EMIs found: 0
+[2026-06-05T09:07:12.878Z] Dashboard data count: 0
+[2026-06-05T09:07:19.229Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:07:19.472Z] Sales found: 14
+[2026-06-05T09:07:19.741Z] EMIs found: 0
+[2026-06-05T09:07:20.772Z] Dashboard data count: 0
+[2026-06-05T09:12:46.102Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:12:46.354Z] Sales found: 14
+[2026-06-05T09:12:46.613Z] EMIs found: 0
+[2026-06-05T09:12:47.330Z] Dashboard data count: 0
+[2026-06-05T09:18:13.488Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:18:13.946Z] Sales found: 14
+[2026-06-05T09:18:14.305Z] EMIs found: 0
+[2026-06-05T09:18:15.536Z] Dashboard data count: 0
+[2026-06-05T09:45:55.624Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:45:55.930Z] Sales found: 14
+[2026-06-05T09:45:56.241Z] EMIs found: 0
+[2026-06-05T09:45:56.494Z] Dashboard data count: 0
+[2026-06-05T09:46:14.957Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:46:15.187Z] Sales found: 14
+[2026-06-05T09:46:15.467Z] EMIs found: 0
+[2026-06-05T09:46:15.889Z] Dashboard data count: 0
+[2026-06-05T09:48:25.628Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:48:26.140Z] Sales found: 14
+[2026-06-05T09:48:26.544Z] EMIs found: 0
+[2026-06-05T09:48:27.058Z] Dashboard data count: 0
+[2026-06-05T09:48:41.108Z] DIAGNOSTIC RESULTS:
+- Supabase Admin Client:
+  * plot_sales count: 17 (Err: none)
+  * emi_schedule count: 0 (Err: none)
+- Logged-in User Client (testuser@gmail.com, Business: ):
+  * plot_sales count: 17
+  * emi_schedule count: 0
+----------------------------------------

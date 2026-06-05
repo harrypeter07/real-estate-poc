@@ -54,12 +54,23 @@ import { ReceiptViewButton } from "@/components/shared/receipt-view-button";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
+export function getProportionalCommission(comm: any) {
+	const saleTotal = Number(comm?.plot_sales?.total_sale_amount ?? 0);
+	const saleReceived = Number(comm?.plot_sales?.amount_paid ?? 0);
+	const profitTotal = Number(comm?.total_commission_amount ?? 0);
+	if (saleTotal <= 0 || profitTotal <= 0) return 0;
+	const ratio = Math.min(1, Math.max(0, saleReceived / saleTotal));
+	return profitTotal * ratio;
+}
+
 function commissionRemaining(comm: any) {
+	const eligible = getProportionalCommission(comm);
 	return Math.max(
 		0,
-		Number(comm?.total_commission_amount ?? 0) - Number(comm?.amount_paid ?? 0)
+		eligible - Number(comm?.amount_paid ?? 0)
 	);
 }
+
 
 export function CommissionsTable({ commissions }: { commissions: any[] }) {
 	const router = useRouter();
@@ -417,7 +428,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 													
 													{/* Main Commission with slight glow on hover */}
 													<TableCell className="py-4 font-black text-zinc-900 text-xs font-mono group-hover:scale-[1.01] transition-transform">
-														{formatCurrency(comm.total_commission_amount)}
+														{formatCurrency(getProportionalCommission(comm))}
 													</TableCell>
 													
 													{/* Paid main with finance glow */}
@@ -515,7 +526,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 																				<div className="space-y-0.5">
 																					<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Total</span>
 																					<span className="block font-black text-zinc-800 font-mono text-xs">
-																						{formatCurrency(sub.total_commission_amount)}
+																						{formatCurrency(getProportionalCommission(sub))}
 																					</span>
 																				</div>
 																				<div className="space-y-0.5">
@@ -618,7 +629,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 																) : null}
 															</span>
 															<span className="font-mono text-xs text-zinc-700 font-bold">
-																{formatCurrency(t.total_commission_amount)} &middot; due{" "}
+																{formatCurrency(getProportionalCommission(t))} &middot; due{" "}
 																<span className={tr > 0 ? "text-red-500" : "text-emerald-600"}>{formatCurrency(tr)}</span>
 															</span>
 														</li>

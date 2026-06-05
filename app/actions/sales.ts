@@ -581,3 +581,53 @@ export async function getCustomerPlotSales(customerId: string) {
 		};
 	});
 }
+
+export async function updateSaleRegistryAmount(
+	saleId: string,
+	registryAmount: number
+): Promise<ActionResponse> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	// Fetch current sale amounts
+	const { data: saleData, error: fetchErr } = await supabase
+		.from("plot_sales")
+		.select("total_sale_amount")
+		.eq("id", saleId)
+		.single();
+
+	if (fetchErr || !saleData) {
+		return { success: false, error: "Sale not found" };
+	}
+
+	// Fetch confirmed payments sum
+	const { data: paymentsData, error: payErr } = await supabase
+		.from("payments")
+		.select("amount")
+		.eq("sale_id", saleId)
+		.eq("is_confirmed", true);
+
+	if (payErr) {
+		return { success: false, error: "Failed to fetch payments data" };
+	}
+
+	const paymentsSum = (paymentsData || []).reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+	const newAmountPaid = paymentsSum + Number(registryAmount || 0);
+	const newRemaining = Number(saleData.total_sale_amount || 0) - paymentsSum;
+
+	const { error } = await supabase
+		.from("plot_sales")
+		.update({ 
+			registry_amount: registryAmount,
+			amount_paid: newAmountPaid,
+			remaining_amount: newRemaining
+		})
+		.eq("id", saleId);
+
+	if (error) return { success: false, error: error.message };
+
+	revalidatePath("/sales");
+	revalidatePath(`/sales/${saleId}`);
+	revalidatePath("/due-payments");
+	return { success: true };
+}

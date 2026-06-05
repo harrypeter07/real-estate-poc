@@ -18,6 +18,7 @@ export type AdvisorProjectAssignment = {
 	commission_agreement?: number;
 	commission_registry?: number;
 	commission_full_payment?: number;
+	sub_advisor_commission_rate?: number;
 	created_at: string;
 	updated_at: string;
 	advisor?: {
@@ -127,6 +128,7 @@ export async function getAdvisorAssignmentsByProject(
 			commission_agreement: Number(row.commission_agreement ?? 0),
 			commission_registry: Number(row.commission_registry ?? 0),
 			commission_full_payment: Number(row.commission_full_payment ?? 0),
+			sub_advisor_commission_rate: Number(row.sub_advisor_commission_rate ?? 0),
 			created_at: row.created_at,
 			updated_at: row.updated_at,
 			advisor: row.advisors
@@ -167,6 +169,7 @@ export async function getAdvisorAssignments(): Promise<AdvisorProjectAssignment[
 			commission_agreement: Number(row.commission_agreement ?? 0),
 			commission_registry: Number(row.commission_registry ?? 0),
 			commission_full_payment: Number(row.commission_full_payment ?? 0),
+			sub_advisor_commission_rate: Number(row.sub_advisor_commission_rate ?? 0),
 			created_at: row.created_at,
 			updated_at: row.updated_at,
 			advisor: row.advisors
@@ -186,6 +189,8 @@ export async function upsertAdvisorAssignment(
 	input: {
 		advisor_id: string;
 		commission_rate: number;
+		commission_pct?: number;
+		sub_advisor_commission_rate?: number;
 	},
 ): Promise<ActionResponse> {
 	const supabase = await createClient();
@@ -254,6 +259,11 @@ export async function upsertAdvisorAssignment(
 			project_id: projectId,
 			advisor_id: input.advisor_id,
 			commission_rate: input.commission_rate,
+			commission_token: input.commission_pct ?? 0,
+			commission_agreement: input.commission_pct ?? 0,
+			commission_registry: input.commission_pct ?? 0,
+			commission_full_payment: input.commission_pct ?? 0,
+			sub_advisor_commission_rate: input.sub_advisor_commission_rate ?? 0,
 			updated_at: new Date().toISOString(),
 		},
 		{ onConflict: "project_id,advisor_id" },

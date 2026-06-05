@@ -13,7 +13,7 @@ import { ProjectAdvisorAssignments } from "./project-advisor-assignments";
 import type { AdvisorProjectAssignment } from "@/app/actions/advisor-projects";
 import { formatCurrencyShort } from "@/lib/utils/formatters";
 
-type Advisor = { id: string; name: string; code: string; phone: string };
+type Advisor = { id: string; name: string; code: string; phone: string; parent_advisor_id?: string | null };
 
 export function ProjectAdvisorAssignmentsModal({
 	projectId,

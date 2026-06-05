@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "apply-registry-migration": "node scripts/apply-registry-migration.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

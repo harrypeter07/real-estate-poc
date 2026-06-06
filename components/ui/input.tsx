@@ -7,6 +7,33 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, placeholder, onFocus, onBlur, ...props }, ref) => {
+    const localRef = React.useRef<HTMLInputElement | null>(null);
+
+    const handleWheel = React.useCallback((e: WheelEvent) => {
+      e.preventDefault();
+    }, []);
+
+    const setRef = React.useCallback(
+      (node: HTMLInputElement | null) => {
+        if (localRef.current) {
+          localRef.current.removeEventListener("wheel", handleWheel);
+        }
+
+        localRef.current = node;
+
+        if (node && type === "number") {
+          node.addEventListener("wheel", handleWheel, { passive: false });
+        }
+
+        if (typeof ref === "function") {
+          ref(node);
+        } else if (ref) {
+          (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
+        }
+      },
+      [ref, type, handleWheel]
+    );
+
     const isDate = type === "date";
     const isTime = type === "time";
     const isDateTime = isDate || isTime;
@@ -88,7 +115,19 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         onFocus={handleFocus}
         onBlur={handleBlur}
         onClick={handleClick}
-        ref={ref}
+        onKeyDown={(e) => {
+          if (
+            type === "number" &&
+            (e.key === "ArrowUp" ||
+              e.key === "ArrowDown" ||
+              e.key === "PageUp" ||
+              e.key === "PageDown")
+          ) {
+            e.preventDefault();
+          }
+          if (props.onKeyDown) props.onKeyDown(e);
+        }}
+        ref={setRef}
         {...props}
       />
     );

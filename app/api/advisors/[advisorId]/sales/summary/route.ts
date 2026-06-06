@@ -15,8 +15,9 @@ export async function GET(
 		// 1. Fetch commission sums
 		const { data: comms, error: commsErr } = await supabase
 			.from("advisor_commissions")
-			.select("total_commission_amount, amount_paid, remaining_commission")
-			.eq("advisor_id", advisorId);
+			.select("total_commission_amount, amount_paid, remaining_commission, plot_sales!inner(is_cancelled)")
+			.eq("advisor_id", advisorId)
+			.eq("plot_sales.is_cancelled", false);
 
 		if (commsErr) {
 			return NextResponse.json({ error: commsErr.message }, { status: 400 });

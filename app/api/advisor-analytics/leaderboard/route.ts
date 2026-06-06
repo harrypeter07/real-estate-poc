@@ -61,8 +61,9 @@ export async function GET(req: Request) {
 		// 2. Fetch commissions in date range
 		let commsQuery = supabase
 			.from("advisor_commissions")
-			.select("advisor_id, sale_id, total_commission_amount, amount_paid")
+			.select("advisor_id, sale_id, total_commission_amount, amount_paid, plot_sales!inner(is_cancelled)")
 			.eq("business_id", businessId)
+			.eq("plot_sales.is_cancelled", false)
 			.gte("created_at", startStr)
 			.lte("created_at", endStr);
 

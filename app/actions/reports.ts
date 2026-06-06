@@ -87,9 +87,10 @@ export async function getReportStats(filters?: ReportFilters) {
 		// 2. Payments
 		supabase
 			.from("payments")
-			.select("amount, payment_date, is_confirmed")
+			.select("amount, payment_date, is_confirmed, plot_sales!inner(is_cancelled)")
 			.eq("business_id", businessId)
 			.eq("is_confirmed", true)
+			.eq("plot_sales.is_cancelled", false)
 			.gte("payment_date", start ?? "1970-01-01")
 			.lte("payment_date", end ?? "9999-12-31"),
 
@@ -104,14 +105,15 @@ export async function getReportStats(filters?: ReportFilters) {
 		// 4. Advisor commissions
 		supabase
 			.from("advisors")
-			.select("id, name, advisor_commissions(total_commission_amount, amount_paid)")
+			.select("id, name, advisor_commissions(total_commission_amount, amount_paid, plot_sales(is_cancelled))")
 			.eq("business_id", businessId),
 
 		// 5. Commission Payments
 		supabase
 			.from("advisor_commission_payments")
-			.select("extra_paid_amount, paid_date")
-			.eq("business_id", businessId),
+			.select("extra_paid_amount, paid_date, advisor_commissions!inner(plot_sales!inner(is_cancelled))")
+			.eq("business_id", businessId)
+			.eq("advisor_commissions.plot_sales.is_cancelled", false),
 
 		// 6. Project stats
 		supabase
@@ -189,7 +191,9 @@ export async function getReportStats(filters?: ReportFilters) {
 	);
 
 	const advisorPerformance = (advisors ?? []).map((a: any) => {
-		const comms = (a.advisor_commissions as any[]) || [];
+		const comms = ((a.advisor_commissions as any[]) || []).filter(
+			(c) => !c.plot_sales || c.plot_sales.is_cancelled !== true
+		);
 		const total = comms.reduce((s, c) => s + Number(c.total_commission_amount ?? 0), 0);
 		const paid = comms.reduce((s, c) => s + Number(c.amount_paid ?? 0), 0);
 		return {
@@ -424,7 +428,8 @@ export async function getProjectAnalytics(projectId: string) {
 	const { data: allProjectSales } = await supabase
 		.from("plot_sales")
 		.select("id")
-		.in("plot_id", plotIds);
+		.in("plot_id", plotIds)
+		.eq("is_cancelled", false);
 
 	const allSaleIds = (allProjectSales ?? []).map((r: { id: string }) => r.id);
 	let collectedPayments = 0;
@@ -536,6 +541,7 @@ export async function getProjectPaymentsTrend(
     `
 		)
 		.eq("is_confirmed", true)
+		.eq("plot_sales.is_cancelled", false)
 		.eq("plot_sales.plots.project_id", projectId);
 
 	if (start) q = q.gte("payment_date", start);

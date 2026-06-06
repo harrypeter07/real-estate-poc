@@ -43,7 +43,7 @@ export function DuePaymentsClient({ advisors }: Props) {
 	// Add Payment Modal State
 	const [payOpen, setPayOpen] = useState(false);
 	const [paySaleId, setPaySaleId] = useState("");
-	const [payAmount, setPayAmount] = useState(0);
+	const [payAmount, setPayAmount] = useState<number | "">("");
 	const [payMode, setPayMode] = useState("cash");
 	const [paySlip, setPaySlip] = useState("");
 	const [payNotes, setPayNotes] = useState("");
@@ -135,7 +135,7 @@ export function DuePaymentsClient({ advisors }: Props) {
 		onSuccess: () => {
 			toast.success("Installment payment recorded successfully!");
 			setPayOpen(false);
-			setPayAmount(0);
+			setPayAmount("");
 			setPayNotes("");
 			setPaySlip("");
 			refetchList();
@@ -150,6 +150,8 @@ export function DuePaymentsClient({ advisors }: Props) {
 			notes: fuNotes,
 			next_reminder_date: nextReminderDate || null,
 			assigned_to: assignedTo || null,
+			sale_id: paySaleId,
+			customer_id: selectedCustId,
 		});
 	};
 
@@ -176,6 +178,8 @@ export function DuePaymentsClient({ advisors }: Props) {
 		// Resolve the active reminder ID or create default
 		const rId = item.id || "resolve";
 		setTargetReminderId(rId);
+		setSelectedCustId(item.customer_id);
+		setPaySaleId(item.sale_id);
 		setFollowUpOpen(true);
 	};
 
@@ -531,7 +535,10 @@ export function DuePaymentsClient({ advisors }: Props) {
 								<Input
 									type="number"
 									value={payAmount}
-									onChange={(e) => setPayAmount(Number(e.target.value))}
+									onChange={(e) => {
+										const val = e.target.value;
+										setPayAmount(val === "" ? "" : Number(val));
+									}}
 									required
 									className="h-9 text-xs border-zinc-200"
 								/>

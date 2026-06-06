@@ -18,25 +18,42 @@ export const projectSchema = z.object({
 		message: "Please select a project type",
 	}),
 	// Retained for plot auto-generation compatibility
-	total_plots_count: z
-		.number()
-		.int("Must be a whole number")
-		.nonnegative("Must be 0 or greater")
-		.default(0),
-	starting_plot_number: z.number().int().min(1, "Must be at least 1").default(1),
+	total_plots_count: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().int("Must be a whole number").nonnegative("Must be 0 or greater").default(0)
+	),
+	starting_plot_number: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 1 : Number(val)),
+		z.number().int().min(1, "Must be at least 1").default(1)
+	),
 	
 	// Pricing
-	starting_price: z.number().nonnegative("Price must be 0 or greater").default(0),
-	rate_per_sqft: z.number().nonnegative("Rate must be 0 or greater").default(0),
-	plc_charges: z.number().nonnegative("PLC charges must be 0 or greater").default(0),
-	registration_charges: z.number().nonnegative("Registration charges must be 0 or greater").default(0),
+	starting_price: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().nonnegative("Price must be 0 or greater").default(0)
+	),
+	rate_per_sqft: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().nonnegative("Rate must be 0 or greater").default(0)
+	),
+	plc_charges: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().nonnegative("PLC charges must be 0 or greater").default(0)
+	),
+	registration_charges: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().nonnegative("Registration charges must be 0 or greater").default(0)
+	),
 
 	// Scheme
-	down_payment_amount: z
-		.number()
-		.nonnegative("Down payment must be 0 or greater")
-		.default(0),
-	emi_months: z.number().int().nonnegative("EMI months must be 0 or greater").default(0),
+	down_payment_amount: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().nonnegative("Down payment must be 0 or greater").default(0)
+	),
+	emi_months: z.preprocess(
+		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+		z.number().int().nonnegative("EMI months must be 0 or greater").default(0)
+	),
 	emi_type: z.enum(["Fixed", "Flexible", "Step-up", "Balloon"]).default("Fixed"),
 	offer_details: z.string().default(""),
 

@@ -105,11 +105,11 @@ export function SaleForm({
   const splitWithParent = form.watch("split_with_parent") ?? true;
   const advisorSellingOverride = form.watch("advisor_selling_price_per_sqft");
   const selectedPhase = form.watch("sale_phase");
-  const totalSaleAmount = form.watch("total_sale_amount") ?? 0;
-  const downPayment = form.watch("down_payment") ?? 0;
+  const totalSaleAmount = Number(form.watch("total_sale_amount") ?? 0);
+  const downPayment = Number(form.watch("down_payment") ?? 0);
   const isDownPaymentFull =
-    Number(totalSaleAmount) > 0 && Number(downPayment) >= Number(totalSaleAmount);
-  const emiMonths = form.watch("emi_months") || 0;
+    totalSaleAmount > 0 && downPayment >= totalSaleAmount;
+  const emiMonths = Number(form.watch("emi_months") || 0);
   const remaining = totalSaleAmount > 0 ? totalSaleAmount - downPayment : 0;
   const phaseDateFieldName = selectedPhase === "token" ? "token_date" : "agreement_date";
   const phaseDateLabel =
@@ -1151,7 +1151,7 @@ export function SaleForm({
                               />
                             </div>
                             <span className="w-20 text-right font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
-                              {row.commission_percentage.toFixed(1)}%
+                              {row.commission_percentage.toFixed(2)}%
                             </span>
                           </div>
                         </div>
@@ -1190,12 +1190,7 @@ export function SaleForm({
                             onChange={(e) => {
                               const raw = e.target.value;
                               const sanitized = raw.replace(/^0+(?=\d)/, "");
-                              if (sanitized === "") {
-                                field.onChange(undefined);
-                                return;
-                              }
-                              const n = Number(sanitized);
-                              field.onChange(Number.isFinite(n) ? n : undefined);
+                              field.onChange(sanitized === "" ? "" : Number(sanitized));
                             }}
                           />
                         </FormControl>
@@ -1212,7 +1207,7 @@ export function SaleForm({
                         !advisorRateInvalid ? (
                           <p className="text-[10px] text-zinc-655 mt-1 bg-zinc-100/60 dark:bg-zinc-800/40 rounded px-2 py-1 flex flex-wrap justify-between font-medium">
                             <span>Share: {formatCurrencyShort(Number(field.value ?? 0) - plotBaseRatePerSqft)}/sqft</span>
-                            <span>Commission: {((Math.max(0, Number(field.value ?? 0) - plotBaseRatePerSqft) / Number(field.value ?? 1)) * 100).toFixed(1)}%</span>
+                            <span>Commission: {((Math.max(0, Number(field.value ?? 0) - plotBaseRatePerSqft) / Number(field.value ?? 1)) * 100).toFixed(2)}%</span>
                           </p>
                         ) : null}
                         {touched.advisor_id && <FormMessage />}
@@ -1334,7 +1329,7 @@ export function SaleForm({
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                field.onChange(sanitized === "" ? "" : Number(sanitized));
                               }}
                             />
                           </FormControl>
@@ -1362,7 +1357,7 @@ export function SaleForm({
                               onChange={(e) => {
                                 const raw = e.target.value;
                                 const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                field.onChange(sanitized === "" ? "" : Number(sanitized));
                                 markTouched("down_payment");
                               }}
                               onBlur={() => markTouched("down_payment")}
@@ -1526,7 +1521,7 @@ export function SaleForm({
                                   max={120}
                                   onChange={(e) => {
                                     const v = e.target.value;
-                                    field.onChange(v === "" ? undefined : Number(v));
+                                    field.onChange(v === "" ? "" : Number(v));
                                   }}
                                 />
                               </FormControl>
@@ -1552,7 +1547,7 @@ export function SaleForm({
                                 onChange={(e) => {
                                   const raw = e.target.value;
                                   const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                  field.onChange(sanitized === "" ? undefined : Number(sanitized));
+                                  field.onChange(sanitized === "" ? "" : Number(sanitized));
                                 }}
                               />
                             </FormControl>
@@ -1576,9 +1571,7 @@ export function SaleForm({
                                 onChange={(e) => {
                                   const raw = e.target.value;
                                   const sanitized = raw.replace(/^0+(?=\d)/, "");
-                                  field.onChange(
-                                    sanitized === "" ? undefined : Number(sanitized)
-                                  );
+                                  field.onChange(sanitized === "" ? "" : Number(sanitized));
                                 }}
                               />
                             </FormControl>

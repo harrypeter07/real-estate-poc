@@ -50,7 +50,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 	const [addOpen, setAddOpen] = useState(false);
 	const [selectedCustId, setSelectedCustId] = useState("");
 	const [selectedSaleId, setSelectedSaleId] = useState("");
-	const [paymentAmount, setPaymentAmount] = useState(0);
+	const [paymentAmount, setPaymentAmount] = useState<number | "">(0);
 	const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
 	const [paymentMode, setPaymentMode] = useState("cash");
 	const [slipNumber, setSlipNumber] = useState("");
@@ -206,7 +206,7 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 		createPaymentMutation.mutate({
 			sale_id: selectedSaleId,
 			customer_id: selectedCustId,
-			amount: paymentAmount,
+			amount: paymentAmount === "" ? 0 : Number(paymentAmount),
 			payment_date: paymentDate,
 			payment_mode: paymentMode,
 			slip_number: slipNumber || null,
@@ -1060,7 +1060,10 @@ export function PaymentsDashboard({ customers, sales }: Props) {
 								<Input
 									type="number"
 									value={paymentAmount}
-									onChange={(e) => setPaymentAmount(Number(e.target.value))}
+									onChange={(e) => {
+										const val = e.target.value;
+										setPaymentAmount(val === "" ? "" : Number(val));
+									}}
 									required
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>

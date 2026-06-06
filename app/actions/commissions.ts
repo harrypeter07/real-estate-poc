@@ -60,8 +60,9 @@ export async function getCommissions() {
 	const baseSelect = `
       *,
       advisors:advisors!advisor_id(name, code),
-      plot_sales(
+      plot_sales!inner(
         id,
+        is_cancelled,
         advisor_id,
         total_sale_amount,
         amount_paid,
@@ -81,8 +82,9 @@ export async function getCommissions() {
 	const extraSelect = `
       *,
       advisors:advisors!advisor_id(name, code),
-      plot_sales(
+      plot_sales!inner(
         id,
+        is_cancelled,
         advisor_id,
         total_sale_amount,
         amount_paid,
@@ -105,6 +107,7 @@ export async function getCommissions() {
 		.from("advisor_commissions")
 		.select(extraSelect)
 		.eq("business_id", businessId)
+		.eq("plot_sales.is_cancelled", false)
 		.order("created_at", { ascending: false });
 	if (!errWithExtra) return attachSaleCommissionTeams(dataWithExtra || []);
 
@@ -115,6 +118,7 @@ export async function getCommissions() {
 		.from("advisor_commissions")
 		.select(baseSelect)
 		.eq("business_id", businessId)
+		.eq("plot_sales.is_cancelled", false)
 		.order("created_at", { ascending: false });
 	if (error) throw new Error(error.message);
 	return attachSaleCommissionTeams(
@@ -141,8 +145,9 @@ export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
 	const baseSelect = `
       *,
       advisors:advisors!advisor_id(name, code),
-      plot_sales(
+      plot_sales!inner(
         advisor_id,
+        is_cancelled,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, projects(name))
@@ -161,8 +166,9 @@ export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
 	const extraSelect = `
       *,
       advisors:advisors!advisor_id(name, code),
-      plot_sales(
+      plot_sales!inner(
         advisor_id,
+        is_cancelled,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, projects(name))
@@ -184,6 +190,7 @@ export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
 		.from("advisor_commissions")
 		.select(extraSelect)
 		.in("advisor_id", subIds)
+		.eq("plot_sales.is_cancelled", false)
 		.order("created_at", { ascending: false });
 	if (!errWithExtra) return attachSaleCommissionTeams(dataWithExtra || []);
 
@@ -194,6 +201,7 @@ export async function getSubAdvisorCommissionsForParent(mainAdvisorId: string) {
 		.from("advisor_commissions")
 		.select(baseSelect)
 		.in("advisor_id", subIds)
+		.eq("plot_sales.is_cancelled", false)
 		.order("created_at", { ascending: false });
 	if (error) return [];
 	return attachSaleCommissionTeams(
@@ -213,8 +221,9 @@ export async function getAdvisorCommissions(advisorId: string) {
 	const baseSelect = `
       *,
       advisors:advisors!advisor_id(name, code),
-      plot_sales(
+      plot_sales!inner(
         advisor_id,
+        is_cancelled,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, projects(name))
@@ -233,8 +242,9 @@ export async function getAdvisorCommissions(advisorId: string) {
 	const extraSelect = `
       *,
       advisors:advisors!advisor_id(name, code),
-      plot_sales(
+      plot_sales!inner(
         advisor_id,
+        is_cancelled,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, projects(name))
@@ -256,6 +266,7 @@ export async function getAdvisorCommissions(advisorId: string) {
 		.from("advisor_commissions")
 		.select(extraSelect)
 		.eq("advisor_id", advisorId)
+		.eq("plot_sales.is_cancelled", false)
 		.order("created_at", { ascending: false });
 	if (!errWithExtra) return dataWithExtra || [];
 
@@ -266,6 +277,7 @@ export async function getAdvisorCommissions(advisorId: string) {
 		.from("advisor_commissions")
 		.select(baseSelect)
 		.eq("advisor_id", advisorId)
+		.eq("plot_sales.is_cancelled", false)
 		.order("created_at", { ascending: false });
 	if (error) throw new Error(error.message);
 	return (data || []).map((row: any) => ({

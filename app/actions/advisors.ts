@@ -865,6 +865,7 @@ export async function getAdvisorAnalytics(
       amount_paid,
       remaining_commission,
       plot_sales(
+        is_cancelled,
         total_sale_amount,
         amount_paid,
         plots(plot_number, size_sqft, rate_per_sqft)
@@ -886,8 +887,10 @@ export async function getAdvisorAnalytics(
 		token_date: s.token_date,
 	}));
 
-	const commList = (commissions ?? []).map((c: any) => {
-		const saleTotal = Number(c.plot_sales?.total_sale_amount ?? 0);
+	const commList = (commissions ?? [])
+		.filter((c: any) => !c.plot_sales || c.plot_sales.is_cancelled !== true)
+		.map((c: any) => {
+			const saleTotal = Number(c.plot_sales?.total_sale_amount ?? 0);
 		const saleReceived = Number(c.plot_sales?.amount_paid ?? 0);
 		const plotSize = Number(c.plot_sales?.plots?.size_sqft ?? 0);
 		const baseRate = Number(c.plot_sales?.plots?.rate_per_sqft ?? 0);

@@ -41,11 +41,13 @@ export async function GET(req: Request) {
 				advisor_commissions!inner(
 					advisor_id,
 					business_id,
-					advisors:advisors!advisor_id(name)
+					advisors:advisors!advisor_id(name),
+					plot_sales!inner(is_cancelled)
 				)
 				`
 			)
 			.eq("advisor_commissions.business_id", businessId)
+			.eq("advisor_commissions.plot_sales.is_cancelled", false)
 			.gte("paid_date", startDate)
 			.lte("paid_date", endDate);
 

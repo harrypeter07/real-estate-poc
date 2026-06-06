@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	try {
@@ -19,20 +20,81 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 			return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
 		}
 
-		const { notes, next_reminder_date, assigned_to } = body;
+		const { notes, next_reminder_date, assigned_to, sale_id, customer_id } = body;
 
-		// Fetch current reminder count
-		const { data: reminder, error: fetchErr } = await supabase
-			.from("due_payment_reminders")
-			.select("reminder_count")
-			.eq("id", id)
-			.single();
+		let targetId = id;
+		let currentReminderCount = 0;
 
-		if (fetchErr || !reminder) {
-			return NextResponse.json({ error: "Reminder record not found" }, { status: 404 });
+		if (id === "resolve") {
+			if (!sale_id || !customer_id) {
+				return NextResponse.json({ error: "sale_id and customer_id are required when creating a reminder" }, { status: 400 });
+			}
+
+			// Check if unresolved reminder already exists for this sale
+			const { data: existing } = await supabase
+				.from("due_payment_reminders")
+				.select("id, reminder_count")
+				.eq("sale_id", sale_id)
+				.eq("is_resolved", false)
+				.maybeSingle();
+
+			if (existing) {
+				targetId = existing.id;
+				currentReminderCount = existing.reminder_count || 0;
+			} else {
+				const businessId = await getCurrentBusinessId();
+				if (!businessId) {
+					return NextResponse.json({ error: "Business ID not found" }, { status: 400 });
+				}
+
+				// Find oldest pending/partial/overdue EMI
+				const { data: oldestEmi } = await supabase
+					.from("emi_schedule")
+					.select("id")
+					.eq("sale_id", sale_id)
+					.in("status", ["pending", "partial", "overdue"])
+					.order("due_date", { ascending: true })
+					.limit(1)
+					.maybeSingle();
+
+				const { data: newReminder, error: insertErr } = await supabase
+					.from("due_payment_reminders")
+					.insert({
+						sale_id,
+						customer_id,
+						business_id: businessId,
+						emi_id: oldestEmi?.id || null,
+						risk_level: "upcoming",
+						reminder_count: 0,
+					})
+					.select("id, reminder_count")
+					.single();
+
+				if (insertErr || !newReminder) {
+					console.error("Insert reminder error:", insertErr?.message);
+					return NextResponse.json({ error: insertErr?.message || "Failed to create reminder record" }, { status: 400 });
+				}
+
+				targetId = newReminder.id;
+				currentReminderCount = newReminder.reminder_count || 0;
+			}
+		} else {
+			// Fetch current reminder count
+			const { data: reminder, error: fetchErr } = await supabase
+				.from("due_payment_reminders")
+				.select("reminder_count")
+				.eq("id", id)
+				.single();
+
+			if (fetchErr || !reminder) {
+				console.error("Fetch reminder error:", fetchErr?.message);
+				return NextResponse.json({ error: "Reminder record not found" }, { status: 404 });
+			}
+
+			currentReminderCount = reminder.reminder_count || 0;
 		}
 
-		const newCount = (reminder.reminder_count || 0) + 1;
+		const newCount = currentReminderCount + 1;
 
 		const { data: updated, error: updateErr } = await supabase
 			.from("due_payment_reminders")
@@ -44,16 +106,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 				resolution_notes: notes || null,
 				updated_at: new Date().toISOString(),
 			})
-			.eq("id", id)
+			.eq("id", targetId)
 			.select("*")
 			.single();
 
 		if (updateErr) {
+			console.error("Update reminder error:", updateErr.message);
 			return NextResponse.json({ error: updateErr.message }, { status: 400 });
 		}
 
 		return NextResponse.json(updated);
 	} catch (err: any) {
+		console.error("Follow-up exception:", err.message);
 		return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
 	}
 }

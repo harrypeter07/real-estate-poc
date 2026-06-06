@@ -70,3 +70,7 @@
 [2026-06-06T06:58:34.084Z] Sales found: 12
 [2026-06-06T06:58:34.225Z] EMIs found: 183
 [2026-06-06T06:58:34.376Z] Dashboard data count: 6
+[2026-06-06T07:02:57.413Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
+[2026-06-06T07:02:57.623Z] Sales found: 12
+[2026-06-06T07:02:57.850Z] EMIs found: 183
+[2026-06-06T07:02:58.058Z] Dashboard data count: 6

@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient as createSuperClient } from "@supabase/supabase-js";
 import fs from "fs";
+import path from "path";
 
 export async function GET() {
-  const logFile = "c:\\Sinfra\\real-estate-poc\\debug_dues.log";
+  const logFile = path.join(process.cwd(), "debug_dues.log");
   try {
     const serverClient = await createServerClient();
     const superClient = createSuperClient(

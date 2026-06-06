@@ -374,43 +374,49 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 									Customers &amp; Employees Templates
 								</p>
 								<div className="flex flex-wrap gap-2">
-									{customersGroup.templates.map((t) => (
-										<button
-											key={t.id}
-											type="button"
-											onClick={() => pickTemplate(customerType, t)}
-											className={cn(
-												"rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
-												getStoredTemplateId(customerType) === t.id ||
-													(!getStoredTemplateId(customerType) && t.id === customersGroup.templates[0].id)
-													? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-350 shadow-[0_0_8px_rgba(20,184,166,0.06)]"
-													: "border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
-											)}
-										>
-											{t.name}
-										</button>
-									))}
+									{customersGroup.templates.map((t) => {
+										const isSelected = selectedTemplateIds[customerType] === t.id ||
+											(!selectedTemplateIds[customerType] && t.id === customersGroup.templates[0].id);
+										return (
+											<button
+												key={t.id}
+												type="button"
+												onClick={() => pickTemplate(customerType, t)}
+												className={cn(
+													"rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
+													isSelected
+														? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-350 shadow-[0_0_8px_rgba(20,184,166,0.06)]"
+														: "border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+												)}
+											>
+												{t.name}
+											</button>
+										);
+									})}
 								</div>
 							</div>
 							<div>
 								<p className="mb-2 text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Advisors Templates</p>
 								<div className="flex flex-wrap gap-2">
-									{advisorsGroup.templates.map((t) => (
-										<button
-											key={t.id}
-											type="button"
-											onClick={() => pickTemplate(advisorType, t)}
-											className={cn(
-												"rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
-												getStoredTemplateId(advisorType) === t.id ||
-													(!getStoredTemplateId(advisorType) && t.id === advisorsGroup.templates[0].id)
-													? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-350 shadow-[0_0_8px_rgba(20,184,166,0.06)]"
-													: "border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
-											)}
-										>
-											{t.name}
-										</button>
-									))}
+									{advisorsGroup.templates.map((t) => {
+										const isSelected = selectedTemplateIds[advisorType] === t.id ||
+											(!selectedTemplateIds[advisorType] && t.id === advisorsGroup.templates[0].id);
+										return (
+											<button
+												key={t.id}
+												type="button"
+												onClick={() => pickTemplate(advisorType, t)}
+												className={cn(
+													"rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
+													isSelected
+														? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-350 shadow-[0_0_8px_rgba(20,184,166,0.06)]"
+														: "border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+												)}
+											>
+												{t.name}
+											</button>
+										);
+									})}
 								</div>
 							</div>
 						</div>

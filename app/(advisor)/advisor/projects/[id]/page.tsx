@@ -47,6 +47,18 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 
 	const { project, plotCounts, totalRevenue, recentSales } = data;
 
+	const getUnitLabels = (type?: string | null) => {
+		const t = (type || "Plot").toLowerCase().trim();
+		if (t === "flat") return { singular: "Flat", plural: "Flats" };
+		if (t === "row house" || t === "row_house") return { singular: "Row House", plural: "Row Houses" };
+		if (t === "farm house" || t === "farmhouse" || t === "farm_house") return { singular: "Farm House", plural: "Farm Houses" };
+		if (t === "commercial") return { singular: "Commercial Unit", plural: "Commercial Units" };
+		if (t === "mixed") return { singular: "Mixed Property", plural: "Mixed Properties" };
+		return { singular: "Plot", plural: "Plots" };
+	};
+
+	const { singular, plural } = getUnitLabels(project.project_type);
+
 	const plannedCount = Number(project.total_plots_count ?? 0);
 	const startPlotNumber = Number(project.starting_plot_number ?? 1);
 	const numericPlotRows = plots.filter((p) => /^\d+$/.test(String(p.plot_number ?? "").trim()));
@@ -107,7 +119,7 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 					</Card>
 				</div>
 				<StatCard
-					title="Total Plots"
+					title={`Total ${plural}`}
 					value={plotCounts.total}
 					icon={LayoutGrid}
 					color="zinc"
@@ -131,7 +143,7 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 				<Card className="mb-6">
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium text-zinc-500">
-							Plot layout
+							{singular} layout
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
@@ -141,6 +153,7 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 							projectName={project.name}
 							projectId={project.id}
 							initialPlotId={plotId}
+							projectType={project.project_type}
 						/>
 					</CardContent>
 				</Card>

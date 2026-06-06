@@ -55,8 +55,7 @@ function LoadingOverlayContent() {
         // Detect "View Plots" or "Details" buttons
         if (
           text.includes("View Plots") ||
-          text === "Details" ||
-          text.includes("Edit Details")
+          text === "Details"
         ) {
           setLoading(true);
           return;
@@ -64,12 +63,7 @@ function LoadingOverlayContent() {
 
         // Detect clicking on the ProjectCard body container
         if (
-          clickable.classList.contains("project-card-container") ||
-          (clickable.classList.contains("cursor-pointer") &&
-            clickable.classList.contains("group") &&
-            clickable.querySelector(".truncate") &&
-            !clickable.closest("table") &&
-            !clickable.closest("[role='dialog']"))
+          clickable.classList.contains("project-card-container")
         ) {
           setLoading(true);
           return;

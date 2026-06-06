@@ -110,6 +110,11 @@ export async function createProject(
 	const count = parsed.data.total_plots_count ?? 0;
 	const start = parsed.data.starting_plot_number ?? 1;
 	if (projectRow && count > 0) {
+		const rawType = parsed.data.project_type || "Plot";
+		const plotType = rawType.toLowerCase().trim() === "mixed"
+			? "plot"
+			: rawType.toLowerCase().replace(" ", "_");
+
 		const plotsToInsert = Array.from({ length: count }, (_, idx) => ({
 			business_id: businessId,
 			project_id: projectRow.id,
@@ -117,6 +122,7 @@ export async function createProject(
 			size_sqft: 0,
 			rate_per_sqft: 0,
 			facing: null,
+			type: plotType,
 		}));
 
 		const { error: plotError } = await supabase
@@ -195,6 +201,15 @@ export async function updateProject(
 			success: false,
 			error: error.message ?? "Failed to update project",
 		};
+	}
+
+	const rawType = parsed.data.project_type || "Plot";
+	if (rawType.toLowerCase().trim() !== "mixed") {
+		const plotType = rawType.toLowerCase().replace(" ", "_");
+		await supabase
+			.from("plots")
+			.update({ type: plotType })
+			.eq("project_id", id);
 	}
 
 	await recalcLayoutExpenseForProject(supabase, id);

@@ -56,6 +56,18 @@ export default async function ProjectDetailPage({
 
 	const { project, plotCounts, totalRevenue, recentSales } = data;
 
+	const getUnitLabels = (type?: string | null) => {
+		const t = (type || "Plot").toLowerCase().trim();
+		if (t === "flat") return { singular: "Flat", plural: "Flats" };
+		if (t === "row house" || t === "row_house") return { singular: "Row House", plural: "Row Houses" };
+		if (t === "farm house" || t === "farmhouse" || t === "farm_house") return { singular: "Farm House", plural: "Farm Houses" };
+		if (t === "commercial") return { singular: "Commercial Unit", plural: "Commercial Units" };
+		if (t === "mixed") return { singular: "Mixed Property", plural: "Mixed Properties" };
+		return { singular: "Plot", plural: "Plots" };
+	};
+
+	const { singular, plural } = getUnitLabels(project.project_type);
+
 	/** Lowest admin-set plot rate in this project (for advisor-share preview in assignments). */
 	const projectMinPlotRatePerSqft = plots.reduce<number>((acc, p: { rate_per_sqft?: number }) => {
 		const r = Number(p.rate_per_sqft ?? 0);
@@ -133,15 +145,15 @@ export default async function ProjectDetailPage({
 							<DialogTrigger asChild>
 								<Button size="sm">
 									<LayoutGrid className="h-4 w-4 mr-2" />
-									Add Single Plot
+									Add Single {singular}
 								</Button>
 							</DialogTrigger>
 							<DialogContent className="max-w-2xl">
 								<DialogHeader>
-									<DialogTitle>Add Single Plot</DialogTitle>
+									<DialogTitle>Add Single {singular}</DialogTitle>
 								</DialogHeader>
 								<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
-									<PlotForm mode="create" projectId={project.id} />
+									<PlotForm mode="create" projectId={project.id} projectType={project.project_type} />
 								</div>
 							</DialogContent>
 						</Dialog>
@@ -153,7 +165,7 @@ export default async function ProjectDetailPage({
 			{/* Stats Grid */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 				<StatCard
-					title="Total Plots"
+					title={`Total ${plural}`}
 					value={plotCounts.total}
 					icon={LayoutGrid}
 					color="zinc"
@@ -183,7 +195,7 @@ export default async function ProjectDetailPage({
 				<Card className="mb-6">
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium text-zinc-500">
-							Interactive Plot Layout
+							Interactive {singular} Layout
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
@@ -192,6 +204,7 @@ export default async function ProjectDetailPage({
 							projectName={project.name}
 							projectId={project.id}
 							initialPlotId={plotId}
+							projectType={project.project_type}
 						/>
 					</CardContent>
 				</Card>
@@ -268,7 +281,7 @@ export default async function ProjectDetailPage({
 									<LayoutGrid className="h-5 w-5" />
 								</div>
 								<p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
-									Plot Capacity
+									{singular} Capacity
 								</p>
 							</div>
 							
@@ -294,7 +307,7 @@ export default async function ProjectDetailPage({
 									/>
 								</div>
 								<p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5 font-medium">
-									{plotCounts.total} of {project.total_plots_count} planned plots created inside layout.
+									{plotCounts.total} of {project.total_plots_count} planned {plural.toLowerCase()} created inside layout.
 								</p>
 							</div>
 						</div>

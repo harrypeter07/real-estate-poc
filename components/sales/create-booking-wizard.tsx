@@ -21,7 +21,9 @@ import {
 	HelpCircle,
 	AlertCircle,
 	Briefcase,
-	CheckCircle2
+	CheckCircle2,
+	ChevronDown,
+	ChevronUp
 } from "lucide-react";
 import { Button, Input, Textarea } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -71,6 +73,16 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 	const [assignedAdvisors, setAssignedAdvisors] = useState<Array<{ id: string; name: string }>>([]);
 	const [loadingAssignedAdvisors, setLoadingAssignedAdvisors] = useState(false);
 
+	// Collapsible project expansion state
+	const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+
+	const toggleProject = (projectName: string) => {
+		setExpandedProjects((prev) => ({
+			...prev,
+			[projectName]: !prev[projectName],
+		}));
+	};
+
 	// Queries
 	const { data: plots, isLoading: loadingPlots } = useQuery({
 		queryKey: ["available-plots"],
@@ -114,6 +126,17 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 				c.phone.includes(custSearch)
 		);
 	}, [customers, custSearch]);
+
+	// Group plots by project name
+	const groupedPlots = useMemo(() => {
+		if (!plots) return {};
+		return plots.reduce((acc: Record<string, any[]>, p: any) => {
+			const projName = p.project_name || "Other Projects";
+			if (!acc[projName]) acc[projName] = [];
+			acc[projName].push(p);
+			return acc;
+		}, {});
+	}, [plots]);
 
 	// Set initial sale amount when plot changes
 	useEffect(() => {
@@ -461,39 +484,70 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<p className="text-[11px] text-zinc-400 mt-1">All plots in the system are currently booked or sold.</p>
 							</div>
 						) : (
-							<div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
-								{plots.map((p: any) => {
-									const isSelected = selectedPlotId === p.id;
+							<div className="space-y-3">
+								{Object.entries(groupedPlots).map(([projectName, projPlots]: [string, any]) => {
+									const isExpanded = !!expandedProjects[projectName] || selectedPlotDetails?.project_name === projectName;
 									return (
-										<div
-											key={p.id}
-											onClick={() => {
-												setSelectedPlotId(p.id);
-												setSelectedPlotDetails(p);
-											}}
-											className={cn(
-												"p-4 rounded-2xl border-2 text-center cursor-pointer transition-all duration-350 relative shadow-2xs hover:shadow-xs",
-												isSelected
-													? "border-teal-600 bg-teal-50/10 scale-98 ring-4 ring-teal-500/8"
-													: "border-zinc-150 bg-white hover:border-zinc-300"
-											)}
-										>
-											{/* Selected Glow badge icon */}
-											{isSelected && (
-												<span className="absolute top-2 right-2 text-teal-600 text-xs">
-													<CheckCircle2 className="h-4.5 w-4.5 fill-teal-50 text-white border-teal-600" />
-												</span>
-											)}
+										<div key={projectName} className="space-y-2.5 border border-zinc-150/80 rounded-2xl p-3 bg-zinc-50/20 dark:bg-zinc-950/5">
+											<button
+												type="button"
+												onClick={() => toggleProject(projectName)}
+												className="w-full flex items-center justify-between py-2 px-3.5 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-800 transition-all text-left shadow-2xs hover:shadow-xs group cursor-pointer"
+											>
+												<div className="flex items-center gap-2.5">
+													<span className="text-xs font-black text-zinc-750 dark:text-zinc-300">
+														🏗️ {projectName}
+													</span>
+													<span className="text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 px-2 py-0.5 rounded-full border border-teal-100/50">
+														{projPlots.length} Available
+													</span>
+												</div>
+												<div className="text-zinc-400 group-hover:text-zinc-650 dark:group-hover:text-zinc-300 transition-colors">
+													{isExpanded ? (
+														<ChevronUp className="h-4.5 w-4.5" />
+													) : (
+														<ChevronDown className="h-4.5 w-4.5" />
+													)}
+												</div>
+											</button>
+											{isExpanded && (
+												<div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 pt-1.5 transition-all duration-300">
+													{projPlots.map((p: any) => {
+														const isSelected = selectedPlotId === p.id;
+														return (
+															<div
+																key={p.id}
+																onClick={() => {
+																	setSelectedPlotId(p.id);
+																	setSelectedPlotDetails(p);
+																}}
+																className={cn(
+																	"p-4 rounded-2xl border-2 text-center cursor-pointer transition-all duration-350 relative shadow-2xs hover:shadow-xs bg-white",
+																	isSelected
+																		? "border-teal-600 bg-teal-50/10 scale-98 ring-4 ring-teal-500/8"
+																		: "border-zinc-150 bg-white hover:border-zinc-300"
+																)}
+															>
+																{/* Selected Glow badge icon */}
+																{isSelected && (
+																	<span className="absolute top-2 right-2 text-teal-600 text-xs">
+																		<CheckCircle2 className="h-4.5 w-4.5 fill-teal-50 text-white border-teal-600" />
+																	</span>
+																)}
 
-											<div className={cn(
-												"h-9 w-9 rounded-xl flex items-center justify-center mx-auto mb-2.5 border shadow-2xs transition-colors",
-												isSelected ? "bg-teal-50 border-teal-100 text-teal-600" : "bg-zinc-50 border-zinc-100 text-zinc-450"
-											)}>
-												<Building2 className="h-4.5 w-4.5" />
-											</div>
-											<p className="text-xs font-black text-zinc-800">{p.plot_number}</p>
-											<p className="text-[10px] text-zinc-400 font-bold tracking-tight truncate mt-0.5">{p.project_name}</p>
-											<p className="text-xs text-teal-700 font-black font-mono mt-2">{formatCurrency(p.total_amount)}</p>
+																<div className={cn(
+																	"h-9 w-9 rounded-xl flex items-center justify-center mx-auto mb-2.5 border shadow-2xs transition-colors",
+																	isSelected ? "bg-teal-50 border-teal-100 text-teal-600" : "bg-zinc-50 border-zinc-100 text-zinc-450"
+																)}>
+																	<Building2 className="h-4.5 w-4.5" />
+																</div>
+																<p className="text-xs font-black text-zinc-800">Plot {p.plot_number}</p>
+																<p className="text-xs text-teal-700 font-black font-mono mt-2">{formatCurrency(p.total_amount)}</p>
+															</div>
+														);
+													})}
+												</div>
+											)}
 										</div>
 									);
 								})}

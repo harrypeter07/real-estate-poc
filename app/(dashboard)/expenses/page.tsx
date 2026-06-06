@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { ReceiptViewButton } from "@/components/shared/receipt-view-button";
 import { ExpenseRowActions } from "@/components/expenses/expense-row-actions";
 import { ExpensesTabs } from "@/components/expenses/expenses-tabs";
+import { ResponsiveSelectFilter } from "@/components/expenses/responsive-select-filter";
 
 const CATEGORY_LIST = [
   "all",
@@ -172,6 +173,38 @@ export default async function ExpensesPage({
     {} as Record<string, number>
   );
 
+  const categoryOptions = CATEGORY_LIST.map((c) => {
+    if (c === "all") return { value: "all", label: "📁 All Categories" };
+    const config = categoryConfig[c as keyof typeof categoryConfig];
+    const emoji = categoryEmojis[c] || "📦";
+    return {
+      value: c,
+      label: `${emoji} ${config?.label || c.replace("_", " ")}`,
+    };
+  });
+
+  const projectSelectOptions = [
+    { value: "all", label: "All Projects" },
+    ...projectOptions.map((p: any) => ({
+      value: p.id,
+      label: `🏢 ${p.name}`,
+    })),
+  ];
+
+  const paymentStatusOptions = [
+    { value: "all", label: "All Payment Statuses" },
+    { value: "full", label: "✓ Full" },
+    { value: "partial", label: "⌛ Partial" },
+  ];
+
+  const paymentTypeOptions = [
+    { value: "all", label: "All Payment Types" },
+    ...["cash", "online", "upi", "bank_transfer", "cheque", "other"].map((t) => ({
+      value: t,
+      label: paymentTypeLabels[t] || t.replace("_", " "),
+    })),
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -227,116 +260,188 @@ export default async function ExpensesPage({
               <div className="grid grid-cols-1 gap-4">
                 {/* Category Filter */}
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-505 flex items-center gap-1">
-                    📁 Category
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {CATEGORY_LIST.map((c) => {
-                      const isActive = selectedCategory === c;
-                      return (
-                        <Link
-                          key={c}
-                          href={`/expenses?category=${c}&project=${selectedProject}&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${paymentType}`}
-                          className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 hover:-translate-y-0.5 ${
-                            isActive
-                              ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
-                              : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
-                          }`}
-                        >
-                          {c === "all" ? "All" : c.replace("_", " ")}
-                        </Link>
-                      );
-                    })}
+                  <div className="block md:hidden">
+                    <ResponsiveSelectFilter
+                      label="Category"
+                      emoji="📁"
+                      currentValue={selectedCategory}
+                      options={categoryOptions}
+                      baseUrl="/expenses"
+                      paramName="category"
+                      otherParams={{
+                        project: selectedProject,
+                        group: groupByProject ? "project" : "none",
+                        payment_status: paymentStatus,
+                        payment_type: paymentType,
+                      }}
+                    />
+                  </div>
+                  <div className="hidden md:flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-505 flex items-center gap-1">
+                      📁 Category
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CATEGORY_LIST.map((c) => {
+                        const isActive = selectedCategory === c;
+                        return (
+                          <Link
+                            key={c}
+                            href={`/expenses?category=${c}&project=${selectedProject}&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${paymentType}`}
+                            className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 hover:-translate-y-0.5 ${
+                              isActive
+                                ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
+                                : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
+                            }`}
+                          >
+                            {c === "all" ? "All" : c.replace("_", " ")}
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-zinc-100 dark:border-zinc-800/60 pt-4">
                   {/* Project Filter */}
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
-                      🏗️ Project
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Link
-                        href={`/expenses?category=${selectedCategory}&project=all&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${paymentType}`}
-                        className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
-                          selectedProject === "all"
-                            ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
-                            : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
-                        }`}
-                      >
-                        All
-                      </Link>
-                      {projectOptions.map((p: any) => {
-                        const isActive = selectedProject === p.id;
-                        return (
-                          <Link
-                            key={p.id}
-                            href={`/expenses?category=${selectedCategory}&project=${p.id}&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${paymentType}`}
-                            className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
-                              isActive
-                                ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
-                                : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
-                            }`}
-                          >
-                            {p.name}
-                          </Link>
-                        );
-                      })}
+                    <div className="block md:hidden">
+                      <ResponsiveSelectFilter
+                        label="Project"
+                        emoji="🏗️"
+                        currentValue={selectedProject}
+                        options={projectSelectOptions}
+                        baseUrl="/expenses"
+                        paramName="project"
+                        otherParams={{
+                          category: selectedCategory,
+                          group: groupByProject ? "project" : "none",
+                          payment_status: paymentStatus,
+                          payment_type: paymentType,
+                        }}
+                      />
+                    </div>
+                    <div className="hidden md:flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
+                        🏗️ Project
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Link
+                          href={`/expenses?category=${selectedCategory}&project=all&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${paymentType}`}
+                          className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                            selectedProject === "all"
+                              ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
+                              : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
+                          }`}
+                        >
+                          All
+                        </Link>
+                        {projectOptions.map((p: any) => {
+                          const isActive = selectedProject === p.id;
+                          return (
+                            <Link
+                              key={p.id}
+                              href={`/expenses?category=${selectedCategory}&project=${p.id}&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${paymentType}`}
+                              className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                                isActive
+                                  ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
+                                  : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
+                              }`}
+                            >
+                              {p.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
                   {/* Payment Status Filter */}
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
-                      ⏳ Payment Status
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { label: "All", value: "all" },
-                        { label: "Full", value: "full" },
-                        { label: "Partial", value: "partial" },
-                      ].map((f) => {
-                        const isActive = paymentStatus === f.value;
-                        return (
-                          <Link
-                            key={f.value}
-                            href={`/expenses?category=${selectedCategory}&project=${selectedProject}&group=${groupByProject ? "project" : "none"}&payment_status=${f.value}&payment_type=${paymentType}`}
-                            className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
-                              isActive
-                                ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
-                                : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
-                            }`}
-                          >
-                            {f.label}
-                          </Link>
-                        );
-                      })}
+                    <div className="block md:hidden">
+                      <ResponsiveSelectFilter
+                        label="Payment Status"
+                        emoji="⏳"
+                        currentValue={paymentStatus}
+                        options={paymentStatusOptions}
+                        baseUrl="/expenses"
+                        paramName="payment_status"
+                        otherParams={{
+                          category: selectedCategory,
+                          project: selectedProject,
+                          group: groupByProject ? "project" : "none",
+                          payment_type: paymentType,
+                        }}
+                      />
+                    </div>
+                    <div className="hidden md:flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
+                        ⏳ Payment Status
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: "All", value: "all" },
+                          { label: "Full", value: "full" },
+                          { label: "Partial", value: "partial" },
+                        ].map((f) => {
+                          const isActive = paymentStatus === f.value;
+                          return (
+                            <Link
+                              key={f.value}
+                              href={`/expenses?category=${selectedCategory}&project=${selectedProject}&group=${groupByProject ? "project" : "none"}&payment_status=${f.value}&payment_type=${paymentType}`}
+                              className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                                isActive
+                                  ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
+                                  : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
+                              }`}
+                            >
+                              {f.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
                   {/* Payment Type Filter */}
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
-                      💳 Payment Type
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["all", "cash", "online", "upi", "bank_transfer", "cheque", "other"].map((t) => {
-                        const isActive = paymentType === t;
-                        return (
-                          <Link
-                            key={t}
-                            href={`/expenses?category=${selectedCategory}&project=${selectedProject}&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${t}`}
-                            className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
-                              isActive
-                                ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
-                                : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
-                            }`}
-                          >
-                            {t === "all" ? "All" : t.replace("_", " ")}
-                          </Link>
-                        );
-                      })}
+                    <div className="block md:hidden">
+                      <ResponsiveSelectFilter
+                        label="Payment Type"
+                        emoji="💳"
+                        currentValue={paymentType}
+                        options={paymentTypeOptions}
+                        baseUrl="/expenses"
+                        paramName="payment_type"
+                        otherParams={{
+                          category: selectedCategory,
+                          project: selectedProject,
+                          group: groupByProject ? "project" : "none",
+                          payment_status: paymentStatus,
+                        }}
+                      />
+                    </div>
+                    <div className="hidden md:flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
+                        💳 Payment Type
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["all", "cash", "online", "upi", "bank_transfer", "cheque", "other"].map((t) => {
+                          const isActive = paymentType === t;
+                          return (
+                            <Link
+                              key={t}
+                              href={`/expenses?category=${selectedCategory}&project=${selectedProject}&group=${groupByProject ? "project" : "none"}&payment_status=${paymentStatus}&payment_type=${t}`}
+                              className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                                isActive
+                                  ? "bg-teal-600 text-white border-teal-600 shadow-[0_2px_8px_rgba(13,148,136,0.25)] font-semibold"
+                                  : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-800/80"
+                              }`}
+                            >
+                              {t === "all" ? "All" : t.replace("_", " ")}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

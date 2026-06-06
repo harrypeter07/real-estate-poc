@@ -21,10 +21,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 		}
 
 		const { notes, next_reminder_date, assigned_to, sale_id, customer_id } = body;
-		const fs = require("fs");
-		const path = require("path");
-		const logFile = path.join(process.cwd(), "debug_dues.log");
-		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Follow-up POST request body: id=${id}, sale_id=${sale_id}, customer_id=${customer_id}, notes=${notes}\n`);
 
 		let targetId = id;
 		let currentReminderCount = 0;
@@ -66,7 +62,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 					.insert({
 						sale_id,
 						customer_id,
-						business_id,
+						business_id: businessId,
 						emi_id: oldestEmi?.id || null,
 						risk_level: "upcoming",
 						reminder_count: 0,
@@ -75,7 +71,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 					.single();
 
 				if (insertErr || !newReminder) {
-					fs.appendFileSync(logFile, `[${new Date().toISOString()}] Insert reminder error: ${insertErr?.message || "no newReminder returned"}\n`);
+					console.error("Insert reminder error:", insertErr?.message);
 					return NextResponse.json({ error: insertErr?.message || "Failed to create reminder record" }, { status: 400 });
 				}
 
@@ -91,7 +87,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 				.single();
 
 			if (fetchErr || !reminder) {
-				fs.appendFileSync(logFile, `[${new Date().toISOString()}] Fetch reminder error: ${fetchErr?.message || "no reminder found"}\n`);
+				console.error("Fetch reminder error:", fetchErr?.message);
 				return NextResponse.json({ error: "Reminder record not found" }, { status: 404 });
 			}
 
@@ -115,18 +111,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 			.single();
 
 		if (updateErr) {
-			fs.appendFileSync(logFile, `[${new Date().toISOString()}] Update reminder error: ${updateErr.message}\n`);
+			console.error("Update reminder error:", updateErr.message);
 			return NextResponse.json({ error: updateErr.message }, { status: 400 });
 		}
 
-		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Follow-up successfully logged. targetId=${targetId}\n`);
 		return NextResponse.json(updated);
 	} catch (err: any) {
-		const fs = require("fs");
-		const path = require("path");
-		const logFile = path.join(process.cwd(), "debug_dues.log");
-		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Follow-up exception: ${err.message}\n`);
+		console.error("Follow-up exception:", err.message);
 		return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
 	}
 }
-

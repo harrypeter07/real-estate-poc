@@ -285,8 +285,8 @@ export function BusinessSettingsForm({
 				<div className="flex flex-col sm:flex-row items-center gap-5 relative z-10 text-center sm:text-left justify-between w-full">
 					<div className="flex flex-col sm:flex-row items-center gap-5 min-w-0 w-full sm:w-auto">
 						{logoUrl ? (
-							<div className="h-14 w-14 rounded-xl bg-white p-1 shadow-sm shrink-0 border border-zinc-700/40 flex items-center justify-center overflow-hidden">
-								<img src={logoUrl} alt="Logo" className="object-contain max-h-full max-w-full" />
+							<div className="h-14 w-14 rounded-xl bg-white shadow-sm shrink-0 border border-zinc-700/40 flex items-center justify-center overflow-hidden">
+								<img src={logoUrl} alt="Logo" className="object-cover h-full w-full" />
 							</div>
 						) : (
 							<div className="h-14 w-14 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-lg font-bold shadow-sm shrink-0 text-white uppercase border border-teal-500/20">

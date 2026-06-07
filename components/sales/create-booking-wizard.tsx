@@ -75,6 +75,8 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 
 	// Collapsible project expansion state
 	const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+	const [selectedProjectFilter, setSelectedProjectFilter] = useState("all");
+	const [plotSearchQuery, setPlotSearchQuery] = useState("");
 
 	const toggleProject = (projectName: string) => {
 		setExpandedProjects((prev) => ({
@@ -127,16 +129,37 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 		);
 	}, [customers, custSearch]);
 
-	// Group plots by project name
-	const groupedPlots = useMemo(() => {
+	// Options for project dropdown filter
+	const projectOptions = useMemo(() => {
+		if (!plots) return [];
+		const names = new Set(plots.map((p: any) => p.project_name).filter(Boolean));
+		return Array.from(names).sort() as string[];
+	}, [plots]);
+
+	// Group and filter plots by project name and search query
+	const filteredGroupedPlots = useMemo(() => {
 		if (!plots) return {};
-		return plots.reduce((acc: Record<string, any[]>, p: any) => {
+		const filteredPlots = plots.filter((p: any) => {
+			if (selectedProjectFilter !== "all" && p.project_name !== selectedProjectFilter) {
+				return false;
+			}
+			if (plotSearchQuery.trim() !== "") {
+				const q = plotSearchQuery.trim().toLowerCase();
+				const plotNum = String(p.plot_number || "").toLowerCase();
+				if (plotNum !== q) {
+					return false;
+				}
+			}
+			return true;
+		});
+
+		return filteredPlots.reduce((acc: Record<string, any[]>, p: any) => {
 			const projName = p.project_name || "Other Projects";
 			if (!acc[projName]) acc[projName] = [];
 			acc[projName].push(p);
 			return acc;
 		}, {});
-	}, [plots]);
+	}, [plots, selectedProjectFilter, plotSearchQuery]);
 
 	// Set initial sale amount when plot changes
 	useEffect(() => {
@@ -183,6 +206,11 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 	useEffect(() => {
 		calculateEmiPreview();
 	}, [totalSaleAmount, discountAmount, downPayment, monthlyEmi, emiDay, emiStartDate, emiMonths]);
+
+	// Clear plot search query when changing project selection
+	useEffect(() => {
+		setPlotSearchQuery("");
+	}, [selectedProjectFilter]);
 
 	// Fetch advisors assigned to the selected project
 	useEffect(() => {
@@ -303,7 +331,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 	return (
 		<div className="max-w-3xl w-full bg-white border border-zinc-200 shadow-xl rounded-2xl overflow-hidden flex flex-col min-h-[520px] transition-all duration-300">
 			{/* High-End Wizard Steps Indicator */}
-			<div className="bg-zinc-50 border-b border-zinc-200/80 px-6 py-4.5 flex flex-wrap justify-between items-center gap-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+			<div className="bg-zinc-50 border-b border-zinc-200/80 px-4 sm:px-6 py-4 flex justify-between items-center gap-2 text-[10px] font-black uppercase tracking-wider text-zinc-400">
 				{(
 					[
 						[1, "Customer"],
@@ -316,7 +344,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 					const isActive = step >= stepNum;
 					const isCurrent = step === stepNum;
 					return (
-						<div key={stepNum} className="flex items-center gap-2">
+						<div key={stepNum} className="flex items-center gap-1.5 sm:gap-2">
 							<div className="flex items-center gap-1.5">
 								<span className={cn(
 									"h-6 w-6 rounded-full flex items-center justify-center font-black border transition-all duration-300 shadow-2xs text-[10px]",
@@ -329,7 +357,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									{stepNum}
 								</span> 
 								<span className={cn(
-									"font-black tracking-wider transition-colors duration-250",
+									"font-black tracking-wider transition-colors duration-250 hidden sm:inline-block",
 									isCurrent 
 										? stepNum === 5 
 											? "text-emerald-700" 
@@ -341,14 +369,14 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 									{label}
 								</span>
 							</div>
-							{idx < 4 && <ArrowRight className="h-3.5 w-3.5 text-zinc-300 hidden md:block" />}
+							{idx < 4 && <ArrowRight className="h-3.5 w-3.5 text-zinc-350 block" />}
 						</div>
 					);
 				})}
 			</div>
 
 			{/* Step Content Area */}
-			<div className="flex-1 p-6 sm:p-7 overflow-y-auto">
+			<div className="flex-1 p-4 sm:p-7 overflow-y-auto">
 				{/* Step 1: Select Customer */}
 				{step === 1 && (
 					<div className="space-y-5">
@@ -484,73 +512,129 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<p className="text-[11px] text-zinc-400 mt-1">All plots in the system are currently booked or sold.</p>
 							</div>
 						) : (
-							<div className="space-y-3">
-								{Object.entries(groupedPlots).map(([projectName, projPlots]: [string, any]) => {
-									const isExpanded = !!expandedProjects[projectName] || selectedPlotDetails?.project_name === projectName;
-									return (
-										<div key={projectName} className="space-y-2.5 border border-zinc-150/80 rounded-2xl p-3 bg-zinc-50/20 dark:bg-zinc-950/5">
-											<button
-												type="button"
-												onClick={() => toggleProject(projectName)}
-												className="w-full flex items-center justify-between py-2 px-3.5 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-800 transition-all text-left shadow-2xs hover:shadow-xs group cursor-pointer"
-											>
-												<div className="flex items-center gap-2.5">
-													<span className="text-xs font-black text-zinc-750 dark:text-zinc-300">
-														🏗️ {projectName}
-													</span>
-													<span className="text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 px-2 py-0.5 rounded-full border border-teal-100/50">
-														{projPlots.length} Available
-													</span>
-												</div>
-												<div className="text-zinc-400 group-hover:text-zinc-650 dark:group-hover:text-zinc-300 transition-colors">
-													{isExpanded ? (
-														<ChevronUp className="h-4.5 w-4.5" />
-													) : (
-														<ChevronDown className="h-4.5 w-4.5" />
+							<div className="space-y-4">
+								{/* Filters Header/Toolbar */}
+								<div className={cn(
+									"grid gap-3.5 bg-zinc-50/50 dark:bg-zinc-900/10 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 transition-all duration-300",
+									selectedProjectFilter === "all" ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
+								)}>
+									{/* Project Selector */}
+									<div className="space-y-1.5">
+										<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+											🏗️ Select Project
+										</label>
+										<select
+											value={selectedProjectFilter}
+											onChange={(e) => setSelectedProjectFilter(e.target.value)}
+											className="w-full h-10 px-3 rounded-xl text-xs font-bold bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 cursor-pointer"
+										>
+											<option value="all">All Projects ({plots.length} plots)</option>
+											{projectOptions.map((name) => {
+												const count = plots.filter((p: any) => p.project_name === name).length;
+												return (
+													<option key={name} value={name}>
+														{name} ({count} available)
+													</option>
+												);
+											})}
+										</select>
+									</div>
+
+									{/* Plot Search Query (Only show when a project is selected) */}
+									{selectedProjectFilter !== "all" && (
+										<div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+											<label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+												🔍 Search Plot Number
+											</label>
+											<div className="relative">
+												<Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+												<Input
+													value={plotSearchQuery}
+													onChange={(e) => setPlotSearchQuery(e.target.value)}
+													placeholder="Search plot number (e.g. 6)"
+													className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl !pl-9 focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
+												/>
+											</div>
+										</div>
+									)}
+								</div>
+
+								{Object.keys(filteredGroupedPlots).length === 0 ? (
+									<div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center bg-white dark:bg-zinc-950/20">
+										<Building2 className="h-6 w-6 text-zinc-400 mx-auto mb-2" />
+										<p className="text-xs font-bold text-zinc-650 dark:text-zinc-400">No plots match your filters</p>
+										<p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">Try selecting a different project or search term.</p>
+									</div>
+								) : (
+									<div className="space-y-3">
+										{Object.entries(filteredGroupedPlots).map(([projectName, projPlots]: [string, any]) => {
+											const isExpanded = selectedProjectFilter !== "all" || plotSearchQuery.trim() !== "" || !!expandedProjects[projectName] || selectedPlotDetails?.project_name === projectName;
+											return (
+												<div key={projectName} className="space-y-2.5 border border-zinc-150/80 rounded-2xl p-3 bg-zinc-50/20 dark:bg-zinc-950/5">
+													<button
+														type="button"
+														onClick={() => toggleProject(projectName)}
+														className="w-full flex items-center justify-between py-2 px-3.5 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-800 transition-all text-left shadow-2xs hover:shadow-xs group cursor-pointer"
+													>
+														<div className="flex items-center gap-2.5">
+															<span className="text-xs font-black text-zinc-750 dark:text-zinc-300">
+																🏗️ {projectName}
+															</span>
+															<span className="text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400 px-2 py-0.5 rounded-full border border-teal-100/50">
+																{projPlots.length} Available
+															</span>
+														</div>
+														<div className="text-zinc-400 group-hover:text-zinc-650 dark:group-hover:text-zinc-300 transition-colors">
+															{isExpanded ? (
+																<ChevronUp className="h-4.5 w-4.5" />
+															) : (
+																<ChevronDown className="h-4.5 w-4.5" />
+															)}
+														</div>
+													</button>
+													{isExpanded && (
+														<div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 pt-1.5 transition-all duration-300">
+															{projPlots.map((p: any) => {
+																const isSelected = selectedPlotId === p.id;
+																return (
+																	<div
+																		key={p.id}
+																		onClick={() => {
+																			setSelectedPlotId(p.id);
+																			setSelectedPlotDetails(p);
+																		}}
+																		className={cn(
+																			"p-4 rounded-2xl border-2 text-center cursor-pointer transition-all duration-350 relative shadow-2xs hover:shadow-xs bg-white",
+																			isSelected
+																				? "border-teal-600 bg-teal-50/10 scale-98 ring-4 ring-teal-500/8"
+																				: "border-zinc-150 bg-white hover:border-zinc-300"
+																		)}
+																	>
+																		{/* Selected Glow badge icon */}
+																		{isSelected && (
+																			<span className="absolute top-2 right-2 text-teal-600 text-xs">
+																				<CheckCircle2 className="h-4.5 w-4.5 fill-teal-50 text-white border-teal-600" />
+																			</span>
+																		)}
+
+																		<div className={cn(
+																			"h-9 w-9 rounded-xl flex items-center justify-center mx-auto mb-2.5 border shadow-2xs transition-colors",
+																			isSelected ? "bg-teal-50 border-teal-100 text-teal-600" : "bg-zinc-50 border-zinc-100 text-zinc-450"
+																		)}>
+																			<Building2 className="h-4.5 w-4.5" />
+																		</div>
+																		<p className="text-xs font-black text-zinc-800">Plot {p.plot_number}</p>
+																		<p className="text-xs text-teal-700 font-black font-mono mt-2">{formatCurrency(p.total_amount)}</p>
+																	</div>
+																);
+															})}
+														</div>
 													)}
 												</div>
-											</button>
-											{isExpanded && (
-												<div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 pt-1.5 transition-all duration-300">
-													{projPlots.map((p: any) => {
-														const isSelected = selectedPlotId === p.id;
-														return (
-															<div
-																key={p.id}
-																onClick={() => {
-																	setSelectedPlotId(p.id);
-																	setSelectedPlotDetails(p);
-																}}
-																className={cn(
-																	"p-4 rounded-2xl border-2 text-center cursor-pointer transition-all duration-350 relative shadow-2xs hover:shadow-xs bg-white",
-																	isSelected
-																		? "border-teal-600 bg-teal-50/10 scale-98 ring-4 ring-teal-500/8"
-																		: "border-zinc-150 bg-white hover:border-zinc-300"
-																)}
-															>
-																{/* Selected Glow badge icon */}
-																{isSelected && (
-																	<span className="absolute top-2 right-2 text-teal-600 text-xs">
-																		<CheckCircle2 className="h-4.5 w-4.5 fill-teal-50 text-white border-teal-600" />
-																	</span>
-																)}
-
-																<div className={cn(
-																	"h-9 w-9 rounded-xl flex items-center justify-center mx-auto mb-2.5 border shadow-2xs transition-colors",
-																	isSelected ? "bg-teal-50 border-teal-100 text-teal-600" : "bg-zinc-50 border-zinc-100 text-zinc-450"
-																)}>
-																	<Building2 className="h-4.5 w-4.5" />
-																</div>
-																<p className="text-xs font-black text-zinc-800">Plot {p.plot_number}</p>
-																<p className="text-xs text-teal-700 font-black font-mono mt-2">{formatCurrency(p.total_amount)}</p>
-															</div>
-														);
-													})}
-												</div>
-											)}
-										</div>
-									);
-								})}
+											);
+										})}
+									</div>
+								)}
 							</div>
 						)}
 					</div>
@@ -569,8 +653,12 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Total Sale Amount (₹)</label>
 								<Input
 									type="number"
-									value={totalSaleAmount}
-									onChange={(e) => setTotalSaleAmount(Number(e.target.value))}
+									value={totalSaleAmount || ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										const sanitized = raw.replace(/^0+(?=\d)/, "");
+										setTotalSaleAmount(sanitized === "" ? 0 : Number(sanitized) || 0);
+									}}
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
@@ -579,8 +667,12 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Down Payment (Token) (₹)</label>
 								<Input
 									type="number"
-									value={downPayment}
-									onChange={(e) => setDownPayment(Number(e.target.value))}
+									value={downPayment || ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										const sanitized = raw.replace(/^0+(?=\d)/, "");
+										setDownPayment(sanitized === "" ? 0 : Number(sanitized) || 0);
+									}}
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
@@ -589,8 +681,12 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<label className="text-[9px] uppercase font-black text-zinc-400 tracking-wider">Discount Amount (₹)</label>
 								<Input
 									type="number"
-									value={discountAmount}
-									onChange={(e) => setDiscountAmount(Number(e.target.value))}
+									value={discountAmount || ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										const sanitized = raw.replace(/^0+(?=\d)/, "");
+										setDiscountAmount(sanitized === "" ? 0 : Number(sanitized) || 0);
+									}}
 									className="h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
@@ -703,8 +799,12 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<label className="text-[9px] uppercase font-black text-zinc-450 tracking-wider">Total Installments</label>
 								<Input
 									type="number"
-									value={emiMonths}
-									onChange={(e) => setEmiMonths(Number(e.target.value))}
+									value={emiMonths || ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										const sanitized = raw.replace(/^0+(?=\d)/, "");
+										setEmiMonths(sanitized === "" ? 0 : Number(sanitized) || 0);
+									}}
 									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 								/>
 							</div>
@@ -713,8 +813,12 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<label className="text-[9px] uppercase font-black text-zinc-455 tracking-wider">Monthly Amount</label>
 								<Input
 									type="number"
-									value={monthlyEmi}
-									onChange={(e) => setMonthlyEmi(Number(e.target.value))}
+									value={monthlyEmi || ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										const sanitized = raw.replace(/^0+(?=\d)/, "");
+										setMonthlyEmi(sanitized === "" ? 0 : Number(sanitized) || 0);
+									}}
 									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 									disabled={!!emiMonths}
 								/>
@@ -724,8 +828,12 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 								<label className="text-[9px] uppercase font-black text-zinc-450 tracking-wider">Collection Day</label>
 								<Input
 									type="number"
-									value={emiDay}
-									onChange={(e) => setEmiDay(Number(e.target.value))}
+									value={emiDay || ""}
+									onChange={(e) => {
+										const raw = e.target.value;
+										const sanitized = raw.replace(/^0+(?=\d)/, "");
+										setEmiDay(sanitized === "" ? 0 : Number(sanitized) || 0);
+									}}
 									className="h-9.5 text-xs font-bold border-zinc-200 bg-white rounded-xl focus-visible:ring-4 focus-visible:ring-teal-500/8 focus-visible:border-teal-500 transition-all focus-visible:ring-offset-0"
 									max={31}
 									min={1}
@@ -821,7 +929,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 			</div>
 
 			{/* Footer Navigation Panel */}
-			<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-between items-center">
+			<div className="bg-zinc-50 border-t border-zinc-200/80 px-4 sm:px-6 py-4 flex justify-between items-center">
 				<Button
 					variant="outline"
 					size="sm"
@@ -836,7 +944,7 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 					<Button
 						size="sm"
 						onClick={handleNext}
-						className="h-9 px-4.5 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer shadow-xs bg-zinc-900 hover:bg-zinc-800 text-white active:scale-[0.98] flex items-center gap-1"
+						className="h-9 px-5 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer shadow-xs bg-zinc-900 hover:bg-zinc-800 text-white active:scale-[0.98] flex items-center gap-1"
 					>
 						Next <ArrowRight className="h-4 w-4" />
 					</Button>

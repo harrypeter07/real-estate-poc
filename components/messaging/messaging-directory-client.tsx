@@ -555,7 +555,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 									checked ? "scale-y-100" : "scale-y-0 group-hover:scale-y-100"
 								)} />
 
-								<CardContent className="flex flex-col gap-3.5 p-4 sm:flex-row sm:items-center justify-between">
+								<CardContent className="flex flex-row items-center justify-between gap-3.5 p-4">
 									<div className="flex items-center gap-3.5 min-w-0 flex-1">
 										{/* Checkbox wrapper */}
 										<div className="flex items-center h-full pointer-events-none">

@@ -101,7 +101,7 @@ export function BusinessLogoUpload({
 					<img
 						src={publicUrl}
 						alt="Business logo"
-						className="h-14 w-14 rounded-md border border-zinc-200 object-contain bg-white"
+						className="h-14 w-14 rounded-md border border-zinc-200 object-cover bg-white"
 					/>
 					<div className="min-w-0">
 						<div className="text-xs font-semibold text-zinc-700">Uploaded logo</div>

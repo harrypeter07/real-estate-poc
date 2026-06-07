@@ -3,11 +3,12 @@ import { PaymentForm } from "@/components/payments/payment-form";
 import { getSales } from "@/app/actions/sales";
 
 interface Props {
-  searchParams: { saleId?: string };
+  searchParams: Promise<{ saleId?: string; sale_id?: string }>;
 }
 
 export default async function NewPaymentPage({ searchParams }: Props) {
-  const { saleId } = await searchParams;
+  const params = await searchParams;
+  const saleId = params.saleId || params.sale_id;
   const sales = await getSales();
 
   return (

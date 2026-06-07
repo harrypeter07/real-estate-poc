@@ -156,18 +156,18 @@ export default async function ProjectAnalyticsSection({
 							{projectAnalytics.topPlots.map((p: any, i: number) => (
 								<div
 									key={i}
-									className="flex justify-between items-center text-sm"
+									className="grid grid-cols-3 items-center text-sm py-1.5 border-b border-zinc-100/40 last:border-0 last:pb-0"
 								>
-									<span className="font-medium">{p.plot_number}</span>
+									<span className="font-medium text-zinc-700">{p.plot_number}</span>
 									<span
 										className={[
-											"px-2 py-0.5 rounded-full border text-xs capitalize",
+											"px-2 py-0.5 rounded-full border text-xs capitalize justify-self-center w-fit font-semibold",
 											statusBadgeClass[p.status] ?? "bg-zinc-100 text-zinc-700 border-zinc-200",
 										].join(" ")}
 									>
 										{p.status}
 									</span>
-									<span className="font-bold">
+									<span className="font-bold text-right text-zinc-800 font-mono">
 										{formatCurrency(p.value)}
 									</span>
 								</div>

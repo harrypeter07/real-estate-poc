@@ -127,9 +127,13 @@ export function ExpenseForm({
           ? await updateExpense(initialData.id, values)
           : await createExpense(values);
       if (!result.success) {
-        toast.error("Error", { description: result.error });
+        let errMsg = result.error ?? "Failed to record expense";
+        if (errMsg.toLowerCase().includes("numeric field overflow")) {
+          errMsg = "Amount is too large. Please enter a valid amount.";
+        }
+        toast.error("Error", { description: errMsg });
         setSubmitStatus("error");
-        setStatusText(result.error ?? "Failed to record expense");
+        setStatusText(errMsg);
         playSubmitTone("error");
         return;
       }

@@ -45,6 +45,7 @@ export function BusinessSettingsForm({
 	const shown = saved ?? initial;
 
 	const logoUrl = useMemo(() => {
+		if (!shown) return null;
 		if (!shown.logo_path) return null;
 		if (shown.logo_path.startsWith("http://") || shown.logo_path.startsWith("https://")) {
 			return shown.logo_path;
@@ -56,7 +57,7 @@ export function BusinessSettingsForm({
 			console.error("Error resolving logo URL:", err);
 			return null;
 		}
-	}, [shown.logo_path]);
+	}, [shown?.logo_path]);
 
 	function validateForm(currentPhone: string, currentEmail: string, currentGst: string, currentPan: string) {
 		const errors: typeof formErrors = {};
@@ -213,6 +214,8 @@ export function BusinessSettingsForm({
 			</div>
 		);
 	}
+
+	if (!shown) return null;
 
 	const getInitials = (name: string) => {
 		const parts = (name || "").trim().split(/\s+/);

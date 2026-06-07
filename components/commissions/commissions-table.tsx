@@ -324,49 +324,49 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 							<Table className="min-w-full">
 								<TableHeader className="bg-zinc-50/80 border-b border-zinc-150 sticky top-0 z-10">
 									<TableRow>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5 pl-5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2 pl-5">
 											<div className="flex items-center gap-1.5">
 												<User className="h-3.5 w-3.5 text-zinc-400" />
 												Advisor
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2">
 											<div className="flex items-center gap-1.5">
 												<Building2 className="h-3.5 w-3.5 text-zinc-400" />
 												Plot / Project
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2">
 											<div className="flex items-center gap-1.5">
 												<Coins className="h-3.5 w-3.5 text-zinc-400" />
 												Main Commission
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2">
 											<div className="flex items-center gap-1.5">
 												<CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" />
 												Paid
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2">
 											<div className="flex items-center gap-1.5">
 												<AlertCircle className="h-3.5 w-3.5 text-zinc-400" />
 												Due
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2">
 											<div className="flex items-center gap-1.5">
 												<Sparkles className="h-3.5 w-3.5 text-zinc-400" />
 												Extra
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2">
 											<div className="flex items-center gap-1.5">
 												<Shield className="h-3.5 w-3.5 text-zinc-400" />
 												Status
 											</div>
 										</TableHead>
-										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-3.5 text-right pr-5">
+										<TableHead className="font-black text-[10px] uppercase text-zinc-450 tracking-wider py-2 text-right pr-5">
 											<div className="flex items-center gap-1.5 justify-end">
 												<Settings className="h-3.5 w-3.5 text-zinc-400" />
 												Actions
@@ -391,7 +391,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 											<Fragment key={key}>
 												{/* Main Advisor Row */}
 												<TableRow className="hover:bg-teal-50/15 align-top relative transition-all duration-200 group border-b border-zinc-150/80 hover:shadow-[inset_4px_0_0_0_#0d9488]">
-													<TableCell className="py-4 pl-5 min-w-[200px]">
+													<TableCell className="py-2.5 pl-5 min-w-[200px]">
 														<div className="flex items-start gap-3">
 															{/* Premium Gradient Circle Initials */}
 															<div className="h-9 w-9 rounded-full bg-gradient-to-tr from-teal-600/10 to-teal-500/5 text-teal-700 border border-teal-550/15 flex items-center justify-center font-black text-xs shadow-3xs shrink-0 group-hover:scale-105 transition-all">
@@ -412,7 +412,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 													</TableCell>
 													
 													{/* Project/Plot column */}
-													<TableCell className="py-4">
+													<TableCell className="py-2.5">
 														<div className="flex items-start gap-2">
 															<div className="h-7 w-7 rounded-lg bg-zinc-50 border border-zinc-200/60 flex items-center justify-center text-zinc-400 group-hover:text-teal-600 transition-colors shadow-3xs shrink-0 mt-0.5">
 																<Home className="h-3.5 w-3.5" />
@@ -427,26 +427,26 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 													</TableCell>
 													
 													{/* Main Commission with slight glow on hover */}
-													<TableCell className="py-4 font-black text-zinc-900 text-xs font-mono group-hover:scale-[1.01] transition-transform">
+													<TableCell className="py-2.5 font-black text-zinc-900 text-xs font-mono group-hover:scale-[1.01] transition-transform">
 														{formatCurrency(getProportionalCommission(comm))}
 													</TableCell>
 													
 													{/* Paid main with finance glow */}
-													<TableCell className="py-4 font-black text-emerald-600 text-xs font-mono group-hover:text-emerald-700">
+													<TableCell className="py-2.5 font-black text-emerald-600 text-xs font-mono group-hover:text-emerald-700">
 														{formatCurrency(comm.amount_paid)}
 													</TableCell>
 													
 													{/* Due main with soft red accent highlighting */}
-													<TableCell className={cn("py-4 font-black text-xs font-mono", rem > 0 ? "text-red-500 bg-red-50/10" : "text-zinc-400")}>
+													<TableCell className={cn("py-2.5 font-black text-xs font-mono", rem > 0 ? "text-red-500 bg-red-50/10" : "text-zinc-400")}>
 														{formatCurrency(rem)}
 													</TableCell>
 													
-													<TableCell className="py-4 font-black text-amber-600 text-xs font-mono">
+													<TableCell className="py-2.5 font-black text-amber-600 text-xs font-mono">
 														{formatCurrency(extraCol)}
 													</TableCell>
 													
 													{/* Status Badges with Finance Glowing Circles */}
-													<TableCell className="py-4">
+													<TableCell className="py-2.5">
 														{isPaid ? (
 															<Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100/50 font-black text-[9px] uppercase tracking-wider py-0.5 px-2 rounded-md shadow-3xs flex items-center gap-1.5 w-fit">
 																<span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -460,7 +460,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 														)}
 													</TableCell>
 													
-													<TableCell className="py-4 text-right pr-5">
+													<TableCell className="py-2.5 text-right pr-5">
 														<div className="flex justify-end gap-1.5">
 															<Button
 																type="button"
@@ -494,61 +494,65 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 												{/* Sub-Advisors Connected Breakdown Component */}
 												{subs.length > 0 ? (
 													<TableRow className="bg-amber-50/5 hover:bg-amber-50/10 align-top border-b border-zinc-150/50">
-														<TableCell colSpan={8} className="py-3.5 pl-6 pr-5 border-l-2 border-amber-400">
-															<div className="text-[10px] font-black uppercase tracking-wider text-amber-850/80 mb-2 px-1 flex items-center gap-1.5">
-																<span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-																Sub-advisors Commission Payout Breakdowns
-															</div>
-															<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-																{subs.map((sub: any) => {
-																	const srem = commissionRemaining(sub);
-																	const subInitials = sub.advisors?.name ? sub.advisors.name.charAt(0).toUpperCase() : "?";
-																	return (
-																		<div
-																			key={sub.id}
-																			className="rounded-xl border border-amber-200 bg-white p-3.5 shadow-2xs hover:shadow-xs transition-shadow relative overflow-hidden"
-																		>
-																			{/* Sub-advisor ID Badge */}
-																			<div className="flex items-center gap-2 pb-2 border-b border-zinc-100/80">
-																				<div className="h-6 w-6 rounded-full bg-gradient-to-tr from-amber-500/10 to-amber-600/5 text-amber-700 border border-amber-500/10 flex items-center justify-center font-black text-[10px] shadow-3xs shrink-0">
-																					{subInitials}
+														<TableCell colSpan={8} className="py-2.5 pl-6 pr-5 border-l-2 border-amber-400">
+															<div className="w-[calc(100vw-48px)] sm:w-full sm:max-w-4xl">
+																<div className="text-[10px] font-black uppercase tracking-wider text-amber-850/80 mb-2 px-1 flex items-center gap-1.5">
+																	<span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+																	Sub-advisors Commission Payout Breakdowns
+																</div>
+																<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+																	{subs.map((sub: any) => {
+																		const srem = commissionRemaining(sub);
+																		const subInitials = sub.advisors?.name ? sub.advisors.name.charAt(0).toUpperCase() : "?";
+																		return (
+																			<div
+																				key={sub.id}
+																				className="rounded-xl border border-amber-200 bg-white p-3 shadow-2xs hover:shadow-xs transition-shadow relative overflow-hidden flex flex-col justify-between h-fit self-start"
+																			>
+																			<div>
+																				{/* Sub-advisor ID Badge */}
+																				<div className="flex items-center gap-2 pb-2 border-b border-zinc-100/80">
+																					<div className="h-6 w-6 rounded-full bg-gradient-to-tr from-amber-500/10 to-amber-600/5 text-amber-700 border border-amber-500/10 flex items-center justify-center font-black text-[10px] shadow-3xs shrink-0">
+																						{subInitials}
+																					</div>
+																					<div className="flex flex-col">
+																						<span className="font-bold text-xs text-zinc-800">{sub.advisors?.name ?? "—"}</span>
+																						<span className="text-[9px] text-zinc-400 font-bold font-mono leading-none mt-0.5">
+																							CODE: {sub.advisors?.code ?? "—"}
+																						</span>
+																					</div>
 																				</div>
-																				<div className="flex flex-col">
-																					<span className="font-bold text-xs text-zinc-800">{sub.advisors?.name ?? "—"}</span>
-																					<span className="text-[9px] text-zinc-400 font-bold font-mono leading-none mt-0.5">
-																						CODE: {sub.advisors?.code ?? "—"}
-																					</span>
-																				</div>
-																			</div>
-																			
-																			{/* Numerical payouts */}
-																			<div className="mt-2.5 grid grid-cols-3 gap-2 text-[9px] tabular-nums text-zinc-500">
-																				<div className="space-y-0.5">
-																					<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Total</span>
-																					<span className="block font-black text-zinc-800 font-mono text-xs">
-																						{formatCurrency(getProportionalCommission(sub))}
-																					</span>
-																				</div>
-																				<div className="space-y-0.5">
-																					<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Paid</span>
-																					<span className="block font-black text-emerald-600 font-mono text-xs">
-																						{formatCurrency(sub.amount_paid)}
-																					</span>
-																				</div>
-																				<div className="space-y-0.5">
-																					<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Due</span>
-																					<span className={cn("block font-black font-mono text-xs", srem > 0 ? "text-red-500" : "text-zinc-450")}>
-																						{formatCurrency(srem)}
-																					</span>
+																				
+																				{/* Numerical payouts */}
+																				<div className="mt-2.5 grid grid-cols-3 gap-2 text-[9px] tabular-nums text-zinc-500 w-full">
+																					<div className="space-y-0.5">
+																						<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Total</span>
+																						<span className="block font-black text-zinc-800 font-mono text-xs">
+																							{formatCurrency(getProportionalCommission(sub))}
+																						</span>
+																					</div>
+																					<div className="space-y-0.5">
+																						<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Paid</span>
+																						<span className="block font-black text-emerald-600 font-mono text-xs">
+																							{formatCurrency(sub.amount_paid)}
+																						</span>
+																					</div>
+																					<div className="space-y-0.5">
+																						<span className="uppercase font-black text-[8px] tracking-wider text-zinc-400">Due</span>
+																						<span className={cn("block font-black font-mono text-xs", srem > 0 ? "text-red-500" : "text-zinc-450")}>
+																							{formatCurrency(srem)}
+																						</span>
+																					</div>
 																				</div>
 																			</div>
 																			
 																			{/* Inline Control Buttons */}
-																			<div className="mt-3.5 flex justify-end gap-1.5 border-t border-zinc-100/80 pt-2.5">
+																			<div className="mt-3 flex justify-between gap-1.5 border-t border-zinc-100/80 pt-2 shrink-0">
 																				<Button
 																					type="button"
-																					size="sm"
-																					className="h-7 px-2.5 text-[9px] font-black rounded-lg bg-white border border-zinc-200 text-zinc-650 hover:text-zinc-800 hover:border-zinc-350 shadow-3xs hover:-translate-y-0.5 active:scale-97 transition-all flex items-center gap-0.5 cursor-pointer"
+																					size="xs"
+																					variant="outline"
+																					className="w-full h-7 text-[9px] font-black rounded-lg text-zinc-650 hover:text-zinc-800 hover:border-zinc-350 shadow-3xs transition-all flex items-center justify-center gap-0.5 cursor-pointer"
 																					onClick={(e) => {
 																						e.stopPropagation();
 																						openRow(sub, "manage");
@@ -559,9 +563,9 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 																				</Button>
 																				<Button
 																					type="button"
-																					size="sm"
+																					size="xs"
 																					variant="ghost"
-																					className="h-7 px-2.5 text-[9px] font-black rounded-lg text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 shadow-3xs hover:-translate-y-0.5 active:scale-97 transition-all flex items-center gap-0.5 cursor-pointer"
+																					className="w-full h-7 text-[9px] font-black rounded-lg text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 shadow-3xs transition-all flex items-center justify-center gap-0.5 cursor-pointer"
 																					onClick={(e) => {
 																						e.stopPropagation();
 																						openRow(sub, "history");
@@ -575,6 +579,7 @@ export function CommissionsTable({ commissions }: { commissions: any[] }) {
 																	);
 																})}
 															</div>
+														</div>
 														</TableCell>
 													</TableRow>
 												) : null}

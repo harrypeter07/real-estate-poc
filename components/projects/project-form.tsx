@@ -62,6 +62,8 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 	const [statusText, setStatusText] = useState("");
 	const [activeTab, setActiveTab] = useState("basic");
+	const [showErrorDialog, setShowErrorDialog] = useState(false);
+	const [errorDialogMsg, setErrorDialogMsg] = useState("");
 
 	const form = useForm<ProjectFormValues>({
 		resolver: zodResolver(projectSchema) as any,
@@ -79,7 +81,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			registration_charges: initialData?.registration_charges ? Number(initialData.registration_charges) : 0,
 			down_payment_amount: initialData?.down_payment_amount ?? initialData?.down_payment_percent ?? initialData?.down_payment_percentage ? Number(initialData.down_payment_amount ?? initialData.down_payment_percent ?? initialData.down_payment_percentage) : 0,
 			emi_months: initialData?.emi_months ? Number(initialData.emi_months) : 0,
-			emi_type: (initialData?.emi_type as any) ?? "Fixed",
+			emi_type: (initialData?.emi_type as any) ?? "Flexible",
 			offer_details: initialData?.offer_details ?? "",
 			status: (initialData?.status as any) ?? "Active",
 			description: initialData?.description ?? "",
@@ -144,7 +146,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			registration_charges: 75000,
 			down_payment_amount: 150000,
 			emi_months: 36,
-			emi_type: "Fixed",
+			emi_type: "Flexible",
 			offer_details: "20% down payment, 36 months interest-free EMI",
 			status: "Active",
 			description: `Premium land project located in the fast-growing ${randomLoc} area of Nagpur. Excellent connectivity and future appreciation potential.`,
@@ -220,6 +222,49 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 			playSubmitTone("error");
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const onInvalid = (errors: any) => {
+		const errorKeys = Object.keys(errors);
+		if (errorKeys.length > 0) {
+			const basicFields = ["project_name", "project_code", "location", "project_type", "total_plots_count", "starting_plot_number"];
+			const pricingFields = ["starting_price", "rate_per_sqft", "plc_charges", "registration_charges"];
+			const schemeFields = ["down_payment_amount", "emi_months", "emi_type", "offer_details"];
+			const statusFields = ["status"];
+			const notesFields = ["description", "amenities", "nearby_locations", "internal_notes"];
+
+			let firstErrorTab = "";
+			for (const key of errorKeys) {
+				if (basicFields.includes(key)) {
+					firstErrorTab = "basic";
+					break;
+				} else if (pricingFields.includes(key)) {
+					firstErrorTab = "pricing";
+					break;
+				} else if (schemeFields.includes(key)) {
+					firstErrorTab = "scheme";
+					break;
+				} else if (statusFields.includes(key)) {
+					firstErrorTab = "status";
+					break;
+				} else if (notesFields.includes(key)) {
+					firstErrorTab = "notes";
+					break;
+				}
+			}
+
+			if (firstErrorTab) {
+				setActiveTab(firstErrorTab);
+			}
+
+			const tabLabel = firstErrorTab === "basic"
+				? "Basic Info"
+				: firstErrorTab.charAt(0).toUpperCase() + firstErrorTab.slice(1);
+
+			setErrorDialogMsg(`Please fill in all required fields. Some required fields in the '${tabLabel}' tab have errors or are missing.`);
+			setShowErrorDialog(true);
+			playSubmitTone("error");
 		}
 	};
 
@@ -301,7 +346,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 				</div>
 
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+					<form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
 						{/* Tab 1 – Basic Info */}
 						{activeTab === "basic" && (
 							<div className="space-y-5 animate-in fade-in duration-200 slide-in-from-bottom-2">
@@ -417,6 +462,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 														<option value="Row House">Row House</option>
 														<option value="Farm House">Farm House</option>
 														<option value="Commercial">Commercial</option>
+														<option value="Mixed">Mixed Property</option>
 													</select>
 													<ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none group-hover:text-teal-500 transition-colors" />
 												</div>
@@ -657,31 +703,6 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									)}
 								/>
 
-								<FormField
-									control={form.control}
-									name="emi_type"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel className="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">EMI Type</FormLabel>
-											<FormControl>
-												<div className="relative group">
-													<select
-														value={field.value}
-														onChange={field.onChange}
-														className="w-full h-10 pl-3.5 pr-10 text-sm font-semibold rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-850 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500/15 focus:border-teal-500 transition-all duration-200 cursor-pointer appearance-none"
-													>
-														<option value="Fixed">Fixed</option>
-														<option value="Flexible">Flexible</option>
-														<option value="Step-up">Step-up</option>
-														<option value="Balloon">Balloon</option>
-													</select>
-													<ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none group-hover:text-teal-500 transition-colors" />
-												</div>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
 
 								<FormField
 									control={form.control}
@@ -925,6 +946,32 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 						>
 							{deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							Delete Project
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Simple & Premium Validation Error Dialog in the Center */}
+			<Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+				<DialogContent className="rounded-2xl border border-zinc-200/80 bg-white dark:bg-zinc-950 p-6 max-w-sm mx-auto shadow-2xl z-50 overflow-hidden text-center">
+					<DialogHeader className="flex flex-col items-center gap-3">
+						<div className="h-12 w-12 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-100 dark:border-rose-900/30 flex items-center justify-center shadow-xs shrink-0 mb-1">
+							<AlertTriangle className="h-6 w-6" />
+						</div>
+						<DialogTitle className="font-bold text-zinc-900 dark:text-zinc-50 text-base m-0">
+							Form Validation Failed
+						</DialogTitle>
+						<DialogDescription className="text-xs text-zinc-550 dark:text-zinc-400 mt-1 leading-relaxed">
+							{errorDialogMsg}
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="mt-5 flex justify-center sm:justify-center w-full">
+						<Button
+							type="button"
+							onClick={() => setShowErrorDialog(false)}
+							className="h-9 px-6 text-xs font-black rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-950 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+						>
+							Got it
 						</Button>
 					</DialogFooter>
 				</DialogContent>

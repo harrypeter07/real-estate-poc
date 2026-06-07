@@ -1,76 +1,51 @@
-[2026-06-06T06:13:47.362Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:13:47.483Z] Sales found: 12
-[2026-06-06T06:13:47.623Z] EMIs found: 183
-[2026-06-06T06:13:47.740Z] Dashboard data count: 6
-[2026-06-06T06:15:12.479Z] Follow-up POST request body: id=resolve, sale_id=ec9ce947-0361-4698-86f8-5b25db2d02b3, customer_id=1f133297-20bf-4c2d-b92c-d3049ba88744, notes=till next friday
-[2026-06-06T06:15:13.272Z] Follow-up successfully logged. targetId=da271416-f1b1-4870-8546-b967a1ecd264
-[2026-06-06T06:15:13.748Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:15:14.050Z] Sales found: 12
-[2026-06-06T06:15:14.304Z] EMIs found: 183
-[2026-06-06T06:15:14.549Z] Dashboard data count: 6
-[2026-06-06T06:16:19.123Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:16:19.257Z] Sales found: 12
-[2026-06-06T06:16:19.389Z] EMIs found: 183
-[2026-06-06T06:16:19.511Z] Dashboard data count: 6
-[2026-06-06T06:16:30.212Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:16:30.435Z] Sales found: 12
-[2026-06-06T06:16:30.643Z] EMIs found: 183
-[2026-06-06T06:16:30.822Z] Dashboard data count: 6
-[2026-06-06T06:21:08.965Z] Follow-up POST request body: id=resolve, sale_id=5304706a-de56-40e0-b052-b0f43c2e9109, customer_id=a8aa403c-f7b9-4eb7-be07-4c7ad87fca03, notes=payment not done 
-[2026-06-06T06:21:09.381Z] Follow-up successfully logged. targetId=a2967a16-477a-484c-8c56-6000c3d8e341
-[2026-06-06T06:21:09.852Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:21:10.367Z] Sales found: 12
-[2026-06-06T06:21:10.673Z] EMIs found: 183
-[2026-06-06T06:21:11.180Z] Dashboard data count: 6
-[2026-06-06T06:21:57.678Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:21:57.879Z] Sales found: 12
-[2026-06-06T06:21:58.120Z] EMIs found: 183
-[2026-06-06T06:21:58.317Z] Dashboard data count: 6
-[2026-06-06T06:22:24.740Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:22:25.049Z] Sales found: 12
-[2026-06-06T06:22:25.519Z] EMIs found: 183
-[2026-06-06T06:22:25.928Z] Dashboard data count: 0
-[2026-06-06T06:22:27.766Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:22:28.796Z] Sales found: 12
-[2026-06-06T06:22:29.314Z] EMIs found: 183
-[2026-06-06T06:22:29.564Z] Dashboard data count: 0
-[2026-06-06T06:22:30.883Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:22:31.191Z] Sales found: 12
-[2026-06-06T06:22:31.465Z] EMIs found: 183
-[2026-06-06T06:22:32.118Z] Dashboard data count: 6
-[2026-06-06T06:25:12.322Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:25:12.610Z] Sales found: 12
-[2026-06-06T06:25:12.914Z] EMIs found: 183
-[2026-06-06T06:25:13.087Z] Dashboard data count: 6
-[2026-06-06T06:31:24.453Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:31:24.754Z] Sales found: 12
-[2026-06-06T06:31:24.965Z] EMIs found: 183
-[2026-06-06T06:31:25.186Z] Dashboard data count: 6
-[2026-06-06T06:31:26.459Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:31:26.908Z] Sales found: 12
-[2026-06-06T06:31:27.126Z] EMIs found: 183
-[2026-06-06T06:31:27.414Z] Dashboard data count: 6
-[2026-06-06T06:31:50.731Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:31:50.860Z] Sales found: 12
-[2026-06-06T06:31:50.997Z] EMIs found: 183
-[2026-06-06T06:31:51.127Z] Dashboard data count: 6
-[2026-06-06T06:38:29.754Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:38:29.860Z] Sales found: 12
-[2026-06-06T06:38:29.984Z] EMIs found: 183
-[2026-06-06T06:38:30.112Z] Dashboard data count: 6
-[2026-06-06T06:43:38.573Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:43:38.589Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:43:38.792Z] Sales found: 12
-[2026-06-06T06:43:38.794Z] Sales found: 12
-[2026-06-06T06:43:39.030Z] EMIs found: 183
-[2026-06-06T06:43:39.034Z] EMIs found: 183
-[2026-06-06T06:43:39.251Z] Dashboard data count: 6
-[2026-06-06T06:43:39.255Z] Dashboard data count: 6
-[2026-06-06T06:58:33.888Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T06:58:34.084Z] Sales found: 12
-[2026-06-06T06:58:34.225Z] EMIs found: 183
-[2026-06-06T06:58:34.376Z] Dashboard data count: 6
-[2026-06-06T07:02:57.413Z] GET /api/due-payments/dashboard. User: mdanassk2007@gmail.com, BusinessId: 72debed5-d221-4644-b791-7cfc8a7632b8
-[2026-06-06T07:02:57.623Z] Sales found: 12
-[2026-06-06T07:02:57.850Z] EMIs found: 183
-[2026-06-06T07:02:58.058Z] Dashboard data count: 6
+[2026-06-05T09:05:11.227Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:05:11.535Z] Sales found: 14
+[2026-06-05T09:05:11.771Z] EMIs found: 0
+[2026-06-05T09:06:01.911Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:06:02.540Z] Sales found: 14
+[2026-06-05T09:06:03.143Z] EMIs found: 0
+[2026-06-05T09:06:04.266Z] Dashboard data count: 0
+[2026-06-05T09:07:08.889Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:07:09.198Z] Sales found: 14
+[2026-06-05T09:07:09.499Z] EMIs found: 0
+[2026-06-05T09:07:12.878Z] Dashboard data count: 0
+[2026-06-05T09:07:19.229Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:07:19.472Z] Sales found: 14
+[2026-06-05T09:07:19.741Z] EMIs found: 0
+[2026-06-05T09:07:20.772Z] Dashboard data count: 0
+[2026-06-05T09:12:46.102Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:12:46.354Z] Sales found: 14
+[2026-06-05T09:12:46.613Z] EMIs found: 0
+[2026-06-05T09:12:47.330Z] Dashboard data count: 0
+[2026-06-05T09:18:13.488Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:18:13.946Z] Sales found: 14
+[2026-06-05T09:18:14.305Z] EMIs found: 0
+[2026-06-05T09:18:15.536Z] Dashboard data count: 0
+[2026-06-05T09:45:55.624Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:45:55.930Z] Sales found: 14
+[2026-06-05T09:45:56.241Z] EMIs found: 0
+[2026-06-05T09:45:56.494Z] Dashboard data count: 0
+[2026-06-05T09:46:14.957Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:46:15.187Z] Sales found: 14
+[2026-06-05T09:46:15.467Z] EMIs found: 0
+[2026-06-05T09:46:15.889Z] Dashboard data count: 0
+[2026-06-05T09:48:25.628Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-05T09:48:26.140Z] Sales found: 14
+[2026-06-05T09:48:26.544Z] EMIs found: 0
+[2026-06-05T09:48:27.058Z] Dashboard data count: 0
+[2026-06-05T09:48:41.108Z] DIAGNOSTIC RESULTS:
+- Supabase Admin Client:
+  * plot_sales count: 17 (Err: none)
+  * emi_schedule count: 0 (Err: none)
+- Logged-in User Client (testuser@gmail.com, Business: ):
+  * plot_sales count: 17
+  * emi_schedule count: 0
+----------------------------------------
+[2026-06-06T12:06:15.691Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-06T12:06:15.991Z] Sales found: 21
+[2026-06-06T12:06:16.205Z] EMIs found: 0
+[2026-06-06T12:06:16.446Z] Dashboard data count: 0
+[2026-06-06T14:38:27.032Z] GET /api/due-payments/dashboard. User: testuser@gmail.com, BusinessId: d4a59f62-5299-43a8-8df7-e90fa3ab6f40
+[2026-06-06T14:38:27.449Z] Sales found: 21
+[2026-06-06T14:38:27.745Z] EMIs found: 0
+[2026-06-06T14:38:28.065Z] Dashboard data count: 0

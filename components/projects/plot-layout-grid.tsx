@@ -66,6 +66,7 @@ interface PlotLayoutGridProps {
 	initialPlotId?: string | null;
 	/** Hide plot CRUD, sales, bulk edit (e.g. advisor read-only project view). */
 	readOnly?: boolean;
+	projectType?: string | null;
 }
 
 type StatusKey = "available" | "token" | "sold" | "sold_without_data";
@@ -357,7 +358,20 @@ export function PlotLayoutGrid({
 	projectId,
 	initialPlotId,
 	readOnly = false,
+	projectType,
 }: PlotLayoutGridProps) {
+	const getUnitLabels = (type?: string | null) => {
+		const t = (type || "Plot").toLowerCase().trim();
+		if (t === "flat") return { singular: "Flat", plural: "Flats" };
+		if (t === "row house" || t === "row_house") return { singular: "Row House", plural: "Row Houses" };
+		if (t === "farm house" || t === "farmhouse" || t === "farm_house") return { singular: "Farm House", plural: "Farm Houses" };
+		if (t === "commercial") return { singular: "Commercial Unit", plural: "Commercial Units" };
+		if (t === "mixed") return { singular: "Mixed Property", plural: "Mixed Properties" };
+		return { singular: "Plot", plural: "Plots" };
+	};
+
+	const { singular, plural } = getUnitLabels(projectType);
+
 	const [selectedPlotId, setSelectedPlotId] = useState<string | null>(initialPlotId ?? null);
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -496,12 +510,12 @@ export function PlotLayoutGrid({
 			<div className="flex items-center justify-between">
 				<div>
 					<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-						Plot Layout
+						{singular} Layout
 					</p>
 					<p className="text-sm text-zinc-600">
 						{projectName
 							? `Interactive layout for ${projectName}`
-							: `Tap on a plot to view details`}
+							: `Tap on a ${singular.toLowerCase()} to view details`}
 					</p>
 				</div>
 
@@ -538,7 +552,7 @@ export function PlotLayoutGrid({
 				<div className="flex-1 min-h-0 flex flex-col rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4 shadow-inner">
 					<div className="relative mb-2 shrink-0">
 						<label htmlFor="plot-layout-search" className="sr-only">
-							Search by plot number
+							Search by {singular.toLowerCase()} number
 						</label>
 						<Search
 							className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400"
@@ -549,7 +563,7 @@ export function PlotLayoutGrid({
 							type="search"
 							autoComplete="off"
 							enterKeyHint="search"
-							placeholder="Search plot no, sqft or status..."
+							placeholder={`Search ${singular.toLowerCase()} no, sqft or status...`}
 							value={plotNumberSearch}
 							onChange={(e) => setPlotNumberSearch(e.target.value)}
 							className="h-8 pl-10 sm:pl-10 text-sm"
@@ -557,7 +571,7 @@ export function PlotLayoutGrid({
 					</div>
 					{plotNumberSearch.trim() ? (
 						<p className="text-[10px] text-zinc-500 mb-1.5 shrink-0">
-							{filteredPlotsForGrid.length} of {sortedPlots.length} plots
+							{filteredPlotsForGrid.length} of {sortedPlots.length} {plural.toLowerCase()}
 						</p>
 					) : null}
 					<div
@@ -568,8 +582,8 @@ export function PlotLayoutGrid({
 					>
 						{filteredPlotsForGrid.length === 0 ? (
 							<div className="col-span-full py-6 text-center text-xs text-zinc-500">
-								No plots match &quot;{plotNumberSearch.trim()}&quot;. Clear the search to see
-								all plots.
+								No {plural.toLowerCase()} match &quot;{plotNumberSearch.trim()}&quot;. Clear the search to see
+								all {plural.toLowerCase()}.
 							</div>
 						) : null}
 						{filteredPlotsForGrid.map((plot) => {
@@ -595,11 +609,11 @@ export function PlotLayoutGrid({
 									onClick={() => {
 										if (multiSelectMode) {
 											if (planned) {
-												toast.error("This plot is not created yet (planned). Create it first.");
+												toast.error(`This ${singular.toLowerCase()} is not created yet (planned). Create it first.`);
 												return;
 											}
 											if (rawStatus !== "available") {
-												toast.error("Only available plots can be edited");
+												toast.error(`Only available ${plural.toLowerCase()} can be edited`);
 												return;
 											}
 											setMultiSelectedPlotIds((prev) =>
@@ -691,10 +705,10 @@ export function PlotLayoutGrid({
 							<div className="flex items-center justify-between gap-3 mb-4 border-b border-zinc-100 dark:border-zinc-900 pb-3">
 								<div>
 									<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-0.5">
-										Plot Details
+										{singular} Details
 									</p>
 									<h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-										Plot #{selectedPlot.plot_number}
+										{singular} #{selectedPlot.plot_number}
 									</h3>
 								</div>
 								{!multiSelectMode && getPlotStatusBadge(selectedStatus)}
@@ -704,7 +718,7 @@ export function PlotLayoutGrid({
 								<div className="space-y-3 mb-3">
 									<div className="flex items-center justify-between gap-3">
 										<p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-											Bulk Edit Plots
+											Bulk Edit {plural}
 										</p>
 										<p className="text-xs font-semibold text-zinc-700">
 											{multiSelectedPlotIds.length} selected
@@ -713,7 +727,7 @@ export function PlotLayoutGrid({
 
 									{multiSelectedPlotIds.length === 0 ? (
 										<p className="text-xs text-zinc-500">
-											Select plot cells on the left to edit.
+											Select {singular.toLowerCase()} cells on the left to edit.
 										</p>
 									) : (
 										<>
@@ -762,33 +776,35 @@ export function PlotLayoutGrid({
 												</div>
 											</div>
 
-											<div>
-												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
-													Property Type
-												</p>
-												<Select
-													value={bulkFormState.type}
-													onValueChange={(val) =>
-														setBulkFormState((s) => ({
-															...s,
-															type: val,
-														}))
-													}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select type to update" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value="unchanged">Leave Unchanged</SelectItem>
-														<SelectItem value="plot">Plot</SelectItem>
-														<SelectItem value="flat">Flat</SelectItem>
-														<SelectItem value="villa">Villa</SelectItem>
-														<SelectItem value="farmhouse">Farmhouse</SelectItem>
-														<SelectItem value="commercial">Commercial</SelectItem>
-														<SelectItem value="other">Other</SelectItem>
-													</SelectContent>
-												</Select>
-											</div>
+											{projectType?.toLowerCase().trim() === "mixed" && (
+												<div>
+													<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
+														Property Type
+													</p>
+													<Select
+														value={bulkFormState.type}
+														onValueChange={(val) =>
+															setBulkFormState((s) => ({
+																...s,
+																type: val,
+															}))
+														}
+													>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Select type to update" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="unchanged">Leave Unchanged</SelectItem>
+															<SelectItem value="plot">Plot</SelectItem>
+															<SelectItem value="flat">Flat</SelectItem>
+															<SelectItem value="villa">Villa</SelectItem>
+															<SelectItem value="farmhouse">Farmhouse</SelectItem>
+															<SelectItem value="commercial">Commercial</SelectItem>
+															<SelectItem value="other">Other</SelectItem>
+														</SelectContent>
+													</Select>
+												</div>
+											)}
 
 											<div>
 												<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
@@ -831,7 +847,7 @@ export function PlotLayoutGrid({
 															if (invalid.length) {
 																toast.error("Bulk update failed", {
 																	description:
-																		"Some selected plots are not created yet (planned). Create them first.",
+																		`Some selected ${plural.toLowerCase()} are not created yet (planned). Create them first.`,
 																});
 																return;
 															}
@@ -852,7 +868,7 @@ export function PlotLayoutGrid({
 																});
 																return;
 															}
-															toast.success("Plots updated");
+															toast.success(`${plural} updated`);
 															setMultiSelectMode(false);
 															setMultiSelectedPlotIds([]);
 															router.refresh();
@@ -893,7 +909,7 @@ export function PlotLayoutGrid({
 											onClick={() => setSellOpen(true)}
 										>
 											<Tag className="h-4 w-4 shrink-0" />
-											Sell / Book Plot
+											Sell / Book {singular}
 										</Button>
 									)}
 
@@ -916,7 +932,7 @@ export function PlotLayoutGrid({
 											) : (
 												<>
 													<Pencil className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
-													Edit Plot
+													Edit {singular}
 												</>
 											)}
 										</Button>
@@ -934,12 +950,12 @@ export function PlotLayoutGrid({
 												try {
 													const res = await markPlotTemporarySold(selectedPlot.id, projectId);
 													if (!res.success) {
-														toast.error("Could not mark temporary sold", {
+														toast.error(`Could not mark temporary sold`, {
 															description: res.error,
 														});
 														return;
 													}
-													toast.success("Plot marked as sold without data");
+													toast.success(`${singular} marked as sold without data`);
 													router.refresh();
 												} finally {
 													setSaving(false);
@@ -962,12 +978,12 @@ export function PlotLayoutGrid({
 												try {
 													const res = await markPlotAvailable(selectedPlot.id, projectId);
 													if (!res.success) {
-														toast.error("Could not mark available", {
+														toast.error(`Could not mark available`, {
 															description: res.error,
 														});
 														return;
 													}
-													toast.success("Plot marked available");
+													toast.success(`${singular} marked available`);
 													router.refresh();
 												} finally {
 													setSaving(false);
@@ -988,7 +1004,7 @@ export function PlotLayoutGrid({
 											disabled={saving}
 											onClick={async () => {
 												const ok = window.confirm(
-													"Revoke this plot sale?\n\nThe sale will be marked as revoked, but existing payments will be kept."
+													`Revoke this ${singular.toLowerCase()} sale?\n\nThe sale will be marked as revoked, but existing payments will be kept.`
 												);
 												if (!ok) return;
 												setSaving(true);
@@ -1000,7 +1016,7 @@ export function PlotLayoutGrid({
 														});
 														return;
 													}
-													toast.success("Plot sale revoked");
+													toast.success(`${singular} sale revoked`);
 													router.refresh();
 												} finally {
 													setSaving(false);
@@ -1024,7 +1040,7 @@ export function PlotLayoutGrid({
 														toast.error("Delete failed", { description: res.error });
 														return;
 													}
-													toast.success("Plot deleted");
+													toast.success(`${singular} deleted`);
 													router.refresh();
 												} finally {
 													setSaving(false);
@@ -1032,7 +1048,7 @@ export function PlotLayoutGrid({
 											}}
 										>
 											<Trash2 className="h-3.5 w-3.5 shrink-0" />
-											Delete Plot
+											Delete {singular}
 										</Button>
 									)}
 								</div>
@@ -1040,9 +1056,9 @@ export function PlotLayoutGrid({
 
 							{isPlaceholder && !multiSelectMode && !readOnly ? (
 								<div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
-									<div className="font-semibold">This is a planned plot (not created yet).</div>
+									<div className="font-semibold">This is a planned {singular.toLowerCase()} (not created yet).</div>
 									<div className="text-amber-900/80 mt-0.5">
-										Create this plot first to edit size/rate or sell it.
+										Create this {singular.toLowerCase()} first to edit size/rate or sell it.
 									</div>
 									<div className="mt-2">
 										<Button
@@ -1063,9 +1079,9 @@ export function PlotLayoutGrid({
 													const sizeSeed = Number(seed?.size_sqft ?? 0);
 													const rateSeed = Number(seed?.rate_per_sqft ?? 0);
 													if (sizeSeed <= 0 || rateSeed <= 0) {
-														toast.error("Cannot auto-create plot", {
+														toast.error(`Cannot auto-create ${singular.toLowerCase()}`, {
 															description:
-																"Set size and rate for at least one existing plot first, or create this plot manually.",
+																`Set size and rate for at least one existing ${singular.toLowerCase()} first, or create this ${singular.toLowerCase()} manually.`,
 														});
 														router.push(`/projects/${projectId}/plots/new`);
 														return;
@@ -1080,12 +1096,12 @@ export function PlotLayoutGrid({
 														notes: "",
 													} as any);
 													if (!res.success) {
-														toast.error("Create plot failed", {
+														toast.error(`Create ${singular.toLowerCase()} failed`, {
 															description: res.error,
 														});
 														return;
 													}
-													toast.success(`Plot #${selectedPlot.plot_number} created`);
+													toast.success(`${singular} #${selectedPlot.plot_number} created`);
 													setMultiSelectMode(false);
 													setMultiSelectedPlotIds([]);
 													setEditing(false);
@@ -1095,7 +1111,7 @@ export function PlotLayoutGrid({
 												}
 											}}
 										>
-											{creatingPlanned ? "Creating..." : "Create plot (1-click)"}
+											{creatingPlanned ? "Creating..." : `Create ${singular.toLowerCase()} (1-click)`}
 										</Button>
 										<Button
 											type="button"
@@ -1154,27 +1170,29 @@ export function PlotLayoutGrid({
 											/>
 										</div>
 									</div>
-									<div>
-										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
-											Property Type
-										</p>
-										<Select
-											value={formState.type}
-											onValueChange={(val) => setFormState((s) => ({ ...s, type: val }))}
-										>
-											<SelectTrigger className="w-full">
-												<SelectValue placeholder="Select type" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="plot">Plot</SelectItem>
-												<SelectItem value="flat">Flat</SelectItem>
-												<SelectItem value="villa">Villa</SelectItem>
-												<SelectItem value="farmhouse">Farmhouse</SelectItem>
-												<SelectItem value="commercial">Commercial</SelectItem>
-												<SelectItem value="other">Other</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
+									{projectType?.toLowerCase().trim() === "mixed" && (
+										<div>
+											<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
+												Property Type
+											</p>
+											<Select
+												value={formState.type}
+												onValueChange={(val) => setFormState((s) => ({ ...s, type: val }))}
+											>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Select type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="plot">Plot</SelectItem>
+													<SelectItem value="flat">Flat</SelectItem>
+													<SelectItem value="villa">Villa</SelectItem>
+													<SelectItem value="farmhouse">Farmhouse</SelectItem>
+													<SelectItem value="commercial">Commercial</SelectItem>
+													<SelectItem value="other">Other</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+									)}
 
 									<div>
 										<p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-1.5">
@@ -1216,7 +1234,7 @@ export function PlotLayoutGrid({
 													toast.error("Save failed", { description: res.error });
 													return;
 												}
-												toast.success("Plot updated");
+												toast.success(`${singular} updated`);
 												setEditing(false);
 												router.refresh();
 											} finally {
@@ -1229,9 +1247,11 @@ export function PlotLayoutGrid({
 								</div>
 							) : (
 								<div className="grid grid-cols-2 gap-2 text-sm">
-									<ModalField label="Property Type" icon={Home}>
-										<span className="capitalize">{selectedPlot.type || "plot"}</span>
-									</ModalField>
+									{projectType?.toLowerCase().trim() === "mixed" && (
+										<ModalField label="Property Type" icon={Home}>
+											<span className="capitalize">{selectedPlot.type || "plot"}</span>
+										</ModalField>
+									)}
 									<ModalField label="Facing" icon={Compass}>
 										{selectedPlot.facing || "—"}
 									</ModalField>

@@ -79,6 +79,22 @@ export async function getRecoveryData(): Promise<{
 		if (!lastPayBySale[sid]) lastPayBySale[sid] = (p as any).payment_date;
 	}
 
+	// Fetch actual unpaid/partial EMIs from emi_schedule for these sales
+	const { data: dbEmis } = await supabase
+		.from("emi_schedule")
+		.select("sale_id, due_date, remaining_amount, status")
+		.in("sale_id", saleIds)
+		.in("status", ["pending", "partial", "overdue"])
+		.order("due_date", { ascending: true });
+
+	const unpaidEmisBySale: Record<string, any[]> = {};
+	for (const emi of dbEmis ?? []) {
+		if (!unpaidEmisBySale[emi.sale_id]) {
+			unpaidEmisBySale[emi.sale_id] = [];
+		}
+		unpaidEmisBySale[emi.sale_id].push(emi);
+	}
+
 	function getNextEmiDueStr(sale: any, lastPaid: string | undefined): string | null {
 		const emiDay = Number(sale.emi_day ?? 0);
 		if (!emiDay || !sale.monthly_emi) return null;
@@ -107,8 +123,17 @@ export async function getRecoveryData(): Promise<{
 	}
 
 	const rows: RecoveryRow[] = (sales ?? []).map((s: any) => {
-		const lastPaid = lastPayBySale[s.id];
-		const nextEmi = getNextEmiDueStr(s, lastPaid);
+		const saleUnpaidEmis = unpaidEmisBySale[s.id] || [];
+		const oldestUnpaidEmi = saleUnpaidEmis[0]; // ordered by due_date ascending
+		
+		let nextEmi: string | null = null;
+		if (oldestUnpaidEmi) {
+			nextEmi = oldestUnpaidEmi.due_date;
+		} else {
+			const lastPaid = lastPayBySale[s.id];
+			nextEmi = getNextEmiDueStr(s, lastPaid);
+		}
+
 		const overdueDays = daysOverdue(nextEmi ?? s.followup_date);
 		const phone = s.customers?.phone ?? null;
 
@@ -123,7 +148,7 @@ export async function getRecoveryData(): Promise<{
 			total_sale_amount: Number(s.total_sale_amount ?? 0),
 			amount_paid: Number(s.amount_paid ?? 0),
 			remaining_amount: Number(s.remaining_amount ?? 0),
-			monthly_emi: s.monthly_emi ? Number(s.monthly_emi) : null,
+			monthly_emi: oldestUnpaidEmi ? Number(oldestUnpaidEmi.remaining_amount) : (s.monthly_emi ? Number(s.monthly_emi) : null),
 			next_emi_due: nextEmi,
 			days_overdue: overdueDays,
 			followup_date: s.followup_date ?? null,

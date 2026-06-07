@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button, Input, Textarea, Card, CardContent } from "@/components/ui";
 import { updateBusinessProfile, type BusinessProfile } from "@/app/actions/business-settings";
 import { useRouter } from "next/navigation";
 import { BusinessLogoUpload } from "@/components/settings/business-logo-upload";
+import { createClient } from "@/lib/supabase/client";
 
 export function BusinessSettingsForm({
 	initial,
@@ -34,6 +35,68 @@ export function BusinessSettingsForm({
 		initial?.receipt_footer ?? "Thank you for your payment."
 	);
 
+	const [formErrors, setFormErrors] = useState<{
+		phone?: string;
+		email?: string;
+		gst?: string;
+		pan?: string;
+	}>({});
+
+	const shown = saved ?? initial;
+
+	const logoUrl = useMemo(() => {
+		if (!shown) return null;
+		if (!shown.logo_path) return null;
+		if (shown.logo_path.startsWith("http://") || shown.logo_path.startsWith("https://")) {
+			return shown.logo_path;
+		}
+		try {
+			const supabase = createClient();
+			return supabase.storage.from("receipts").getPublicUrl(shown.logo_path).data.publicUrl;
+		} catch (err) {
+			console.error("Error resolving logo URL:", err);
+			return null;
+		}
+	}, [shown?.logo_path]);
+
+	function validateForm(currentPhone: string, currentEmail: string, currentGst: string, currentPan: string) {
+		const errors: typeof formErrors = {};
+
+		if (currentPhone && currentPhone.trim() !== "") {
+			const cleanPhone = currentPhone.trim();
+			if (!/^\d{10}$/.test(cleanPhone)) {
+				errors.phone = "Phone number must be exactly 10 digits (e.g., 9876543210)";
+			}
+		}
+
+		if (currentEmail && currentEmail.trim() !== "") {
+			const cleanEmail = currentEmail.trim();
+			const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+			if (!emailRegex.test(cleanEmail)) {
+				errors.email = "Please enter a valid email address (e.g., info@company.com)";
+			}
+		}
+
+		if (currentGst && currentGst.trim() !== "") {
+			const cleanGst = currentGst.trim().toUpperCase();
+			const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+			if (!gstRegex.test(cleanGst)) {
+				errors.gst = "GST must be a 15-digit code (e.g., 27ABCDE1234F1Z5)";
+			}
+		}
+
+		if (currentPan && currentPan.trim() !== "") {
+			const cleanPan = currentPan.trim().toUpperCase();
+			const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+			if (!panRegex.test(cleanPan)) {
+				errors.pan = "PAN must be a 10-character alphanumeric code (e.g., ABCDE1234F)";
+			}
+		}
+
+		setFormErrors(errors);
+		return errors;
+	}
+
 	useEffect(() => {
 		setSaved(initial);
 		setLogoPath(initial?.logo_path ?? null);
@@ -45,11 +108,33 @@ export function BusinessSettingsForm({
 		setGst(initial?.gst_number ?? "");
 		setPan(initial?.pan_number ?? "");
 		setFooter(initial?.receipt_footer ?? "Thank you for your payment.");
+		setFormErrors({});
 	}, [initial?.id]);
 
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setLoading(true);
+
+		const errors = validateForm(phone, email, gst, pan);
+		if (Object.keys(errors).length > 0) {
+			const errorsList = Object.entries(errors).map(([field, msg]) => {
+				const fieldLabel = {
+					phone: "Phone Number",
+					email: "Email Address",
+					gst: "GST Number",
+					pan: "PAN Number"
+				}[field] || field;
+				return `${fieldLabel}: ${msg}`;
+			}).join(", ");
+
+			toast.error("Form Validation Failed", {
+				description: `Please correct the following fields: ${errorsList}`,
+				duration: 6000,
+			});
+			setLoading(false);
+			return;
+		}
+
 		const legalName = String(initial?.name ?? "").trim();
 		const dn = String(displayName ?? "").trim();
 		const displayNameToSave = dn ? (legalName && dn === legalName ? null : dn) : null;
@@ -61,16 +146,10 @@ export function BusinessSettingsForm({
 			address: address ? address.trim() : null,
 			phone: phone ? phone.trim() : null,
 			email: email ? email.trim() : null,
-			gst_number: gst ? gst.trim() : null,
-			pan_number: pan ? pan.trim() : null,
+			gst_number: gst ? gst.trim().toUpperCase() : null,
+			pan_number: pan ? pan.trim().toUpperCase() : null,
 			receipt_footer: footer ? footer.trim() : null,
 		} as const;
-
-		if (payload.phone && payload.phone.length !== 10) {
-			toast.error("Phone number must be exactly 10 digits");
-			setLoading(false);
-			return;
-		}
 
 		try {
 			if (process.env.NODE_ENV !== "production") {
@@ -136,14 +215,14 @@ export function BusinessSettingsForm({
 		);
 	}
 
+	if (!shown) return null;
+
 	const getInitials = (name: string) => {
 		const parts = (name || "").trim().split(/\s+/);
 		if (parts.length === 0 || !parts[0]) return "🏢";
 		if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
 		return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 	};
-
-	const shown = saved ?? initial;
 
 	const fieldsConfig = [
 		{
@@ -205,9 +284,9 @@ export function BusinessSettingsForm({
 				<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-500/10 via-transparent to-transparent opacity-60 pointer-events-none" />
 				<div className="flex flex-col sm:flex-row items-center gap-5 relative z-10 text-center sm:text-left justify-between w-full">
 					<div className="flex flex-col sm:flex-row items-center gap-5 min-w-0 w-full sm:w-auto">
-						{shown.logo_path ? (
+						{logoUrl ? (
 							<div className="h-14 w-14 rounded-xl bg-white p-1 shadow-sm shrink-0 border border-zinc-700/40 flex items-center justify-center overflow-hidden">
-								<img src={shown.logo_path} alt="Logo" className="object-contain max-h-full max-w-full" />
+								<img src={logoUrl} alt="Logo" className="object-contain max-h-full max-w-full" />
 							</div>
 						) : (
 							<div className="h-14 w-14 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-lg font-bold shadow-sm shrink-0 text-white uppercase border border-teal-500/20">
@@ -347,7 +426,7 @@ export function BusinessSettingsForm({
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 									<div className="space-y-2">
 										<label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-											📞 Phone Number
+											📞 Phone Number {formErrors.phone && <span className="text-red-500 text-[10px] lowercase font-normal">({formErrors.phone})</span>}
 										</label>
 										<Input
 											name="phone"
@@ -359,22 +438,44 @@ export function BusinessSettingsForm({
 													val = val.substring(1);
 												}
 												setPhone(val.slice(0, 10));
+												if (formErrors.phone) {
+													setFormErrors(prev => ({ ...prev, phone: undefined }));
+												}
 											}}
 											placeholder="10-digit mobile number"
-											className="h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold"
+											className={`h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold ${
+												formErrors.phone ? "border-red-500 focus-visible:ring-red-500/20 focus-visible:border-red-500" : ""
+											}`}
 										/>
+										{formErrors.phone && (
+											<p className="text-xs font-semibold text-red-500 mt-1 flex items-center gap-1">
+												⚠️ {formErrors.phone}
+											</p>
+										)}
 									</div>
 									<div className="space-y-2">
 										<label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-											📧 Email Address
+											📧 Email Address {formErrors.email && <span className="text-red-500 text-[10px] lowercase font-normal">({formErrors.email})</span>}
 										</label>
 										<Input
 											name="email"
 											type="email"
 											value={email}
-											onChange={(e) => setEmail(e.target.value)}
-											className="h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-bold"
+											onChange={(e) => {
+												setEmail(e.target.value);
+												if (formErrors.email) {
+													setFormErrors(prev => ({ ...prev, email: undefined }));
+												}
+											}}
+											className={`h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-bold ${
+												formErrors.email ? "border-red-500 focus-visible:ring-red-500/20 focus-visible:border-red-500" : ""
+											}`}
 										/>
+										{formErrors.email && (
+											<p className="text-xs font-semibold text-red-500 mt-1 flex items-center gap-1">
+												⚠️ {formErrors.email}
+											</p>
+										)}
 									</div>
 								</div>
 							</div>
@@ -391,25 +492,55 @@ export function BusinessSettingsForm({
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 									<div className="space-y-2">
 										<label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-											🧾 GST Number (Optional)
+											🧾 GST Number (Optional) {formErrors.gst && <span className="text-red-500 text-[10px] lowercase font-normal">({formErrors.gst})</span>}
 										</label>
 										<Input
 											name="gst_number"
 											value={gst}
-											onChange={(e) => setGst(e.target.value)}
-											className="h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold"
+											maxLength={15}
+											onChange={(e) => {
+												const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+												setGst(val);
+												if (formErrors.gst) {
+													setFormErrors(prev => ({ ...prev, gst: undefined }));
+												}
+											}}
+											placeholder="e.g. 27ABCDE1234F1Z5"
+											className={`h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold ${
+												formErrors.gst ? "border-red-500 focus-visible:ring-red-500/20 focus-visible:border-red-500" : ""
+											}`}
 										/>
+										{formErrors.gst && (
+											<p className="text-xs font-semibold text-red-500 mt-1 flex items-center gap-1">
+												⚠️ {formErrors.gst}
+											</p>
+										)}
 									</div>
 									<div className="space-y-2">
 										<label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-											🪪 PAN Number (Optional)
+											🪪 PAN Number (Optional) {formErrors.pan && <span className="text-red-500 text-[10px] lowercase font-normal">({formErrors.pan})</span>}
 										</label>
 										<Input
 											name="pan_number"
 											value={pan}
-											onChange={(e) => setPan(e.target.value)}
-											className="h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold"
+											maxLength={10}
+											onChange={(e) => {
+												const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+												setPan(val);
+												if (formErrors.pan) {
+													setFormErrors(prev => ({ ...prev, pan: undefined }));
+												}
+											}}
+											placeholder="e.g. ABCDE1234F"
+											className={`h-11 sm:h-12 px-4 rounded-xl text-sm bg-white dark:bg-zinc-950 border-zinc-200/80 dark:border-zinc-800 transition-all duration-350 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 font-mono font-bold ${
+												formErrors.pan ? "border-red-500 focus-visible:ring-red-500/20 focus-visible:border-red-500" : ""
+											}`}
 										/>
+										{formErrors.pan && (
+											<p className="text-xs font-semibold text-red-500 mt-1 flex items-center gap-1">
+												⚠️ {formErrors.pan}
+											</p>
+										)}
 									</div>
 								</div>
 

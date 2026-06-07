@@ -14,7 +14,7 @@ export const projectSchema = z.object({
 		.or(z.literal(""))
 		.optional()
 		.default(""),
-	project_type: z.enum(["Plot", "Flat", "Row House", "Farm House", "Commercial"], {
+	project_type: z.enum(["Plot", "Flat", "Row House", "Farm House", "Commercial", "Mixed"], {
 		message: "Please select a project type",
 	}),
 	// Retained for plot auto-generation compatibility
@@ -54,7 +54,7 @@ export const projectSchema = z.object({
 		(val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
 		z.number().int().nonnegative("EMI months must be 0 or greater").default(0)
 	),
-	emi_type: z.enum(["Fixed", "Flexible", "Step-up", "Balloon"]).default("Fixed"),
+	emi_type: z.enum(["Fixed", "Flexible", "Step-up", "Balloon"]).default("Flexible"),
 	offer_details: z.string().default(""),
 
 	// Status

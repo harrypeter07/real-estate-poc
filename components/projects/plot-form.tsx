@@ -46,6 +46,7 @@ function initialPlotNumeric(n: number | undefined | null) {
 interface PlotFormProps {
 	mode: "create" | "edit";
 	projectId: string;
+	projectType?: string | null;
 	initialData?: {
 		id: string;
 		plot_number: string;
@@ -57,11 +58,32 @@ interface PlotFormProps {
 	};
 }
 
-export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
+export function PlotForm({ mode, projectId, projectType, initialData }: PlotFormProps) {
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
 	const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 	const [statusText, setStatusText] = useState("");
+
+	const getUnitLabels = (type?: string | null) => {
+		const t = (type || "Plot").toLowerCase().trim();
+		if (t === "flat") return { singular: "Flat", plural: "Flats" };
+		if (t === "row house" || t === "row_house") return { singular: "Row House", plural: "Row Houses" };
+		if (t === "farm house" || t === "farmhouse" || t === "farm_house") return { singular: "Farm House", plural: "Farm Houses" };
+		if (t === "commercial") return { singular: "Commercial Unit", plural: "Commercial Units" };
+		if (t === "mixed") return { singular: "Mixed Property", plural: "Mixed Properties" };
+		return { singular: "Plot", plural: "Plots" };
+	};
+
+	const { singular, plural } = getUnitLabels(projectType);
+
+	const getPlotTypeFromProject = (pType?: string | null) => {
+		const t = (pType || "Plot").toLowerCase().trim();
+		if (t === "flat") return "flat";
+		if (t === "row house" || t === "row_house") return "villa";
+		if (t === "farm house" || t === "farmhouse" || t === "farm_house") return "farmhouse";
+		if (t === "commercial") return "commercial";
+		return "plot";
+	};
 
 	const form = useForm<PlotFormValues | PlotUpdateFormValues>({
 		resolver: zodResolver(mode === "edit" ? plotUpdateSchema : plotSchema) as any,
@@ -70,7 +92,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 			size_sqft: initialPlotNumeric(initialData?.size_sqft) as any,
 			rate_per_sqft: initialPlotNumeric(initialData?.rate_per_sqft) as any,
 			facing: initialData?.facing ?? "",
-			type: (initialData?.type || "plot") as any,
+			type: (initialData?.type || getPlotTypeFromProject(projectType)) as any,
 			notes: initialData?.notes ?? "",
 		},
 	});
@@ -153,18 +175,18 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 			if (!result.success) {
 				toast.error("Error", { description: result.error });
 				setSubmitStatus("error");
-				setStatusText(result.error ?? "Failed to save plot");
+				setStatusText(result.error ?? `Failed to save ${singular.toLowerCase()}`);
 				playSubmitTone("error");
 				return;
 			}
 
 			toast.success(
 				mode === "edit"
-					? "Plot updated successfully"
-					: "Plot created successfully"
+					? `${singular} updated successfully`
+					: `${singular} created successfully`
 			);
 			setSubmitStatus("success");
-			setStatusText(mode === "edit" ? "Plot updated successfully." : "Plot created successfully.");
+			setStatusText(mode === "edit" ? `${singular} updated successfully.` : `${singular} created successfully.`);
 			playSubmitTone("success");
 			router.push(`/projects/${projectId}`);
 			router.refresh();
@@ -184,11 +206,11 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 		<Card className="max-w-2xl">
 			<CardHeader className="flex flex-row items-center justify-between space-y-0">
 				<div>
-					<CardTitle>{mode === "edit" ? "Edit Plot" : "New Plot"}</CardTitle>
+					<CardTitle>{mode === "edit" ? `Edit ${singular}` : `New ${singular}`}</CardTitle>
 					<CardDescription>
 						{mode === "edit"
-							? "Update the plot details below"
-							: "Fill in the details to add a new plot to this project"}
+							? `Update the ${singular.toLowerCase()} details below`
+							: `Fill in the details to add a new ${singular.toLowerCase()} to this project`}
 					</CardDescription>
 				</div>
 				{isDev ? (
@@ -212,7 +234,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>
-										Plot Number <span className="text-red-500">*</span>
+										{singular} Number <span className="text-red-500">*</span>
 									</FormLabel>
 									<FormControl>
 										<Input placeholder="e.g. LT NO-01" {...field} />
@@ -296,7 +318,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 							<div className="rounded-lg bg-zinc-50 p-4 border border-zinc-200">
 								<div className="flex justify-between items-center">
 									<span className="text-sm text-zinc-500 font-medium">
-										Total Plot Amount
+										Total {singular} Amount
 									</span>
 									<span className="text-lg font-bold text-zinc-900">
 										{formatCurrency(totalAmount)}
@@ -305,35 +327,37 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 							</div>
 						)}
 
-						<FormField
-							control={form.control}
-							name="type"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Property Type</FormLabel>
-									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
-										value={field.value}
-									>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Select property type" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											<SelectItem value="plot">Plot</SelectItem>
-											<SelectItem value="flat">Flat</SelectItem>
-											<SelectItem value="villa">Villa</SelectItem>
-											<SelectItem value="farmhouse">Farmhouse</SelectItem>
-											<SelectItem value="commercial">Commercial</SelectItem>
-											<SelectItem value="other">Other</SelectItem>
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{projectType?.toLowerCase().trim() === "mixed" && (
+							<FormField
+								control={form.control}
+								name="type"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Property Type</FormLabel>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select property type" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												<SelectItem value="plot">Plot</SelectItem>
+												<SelectItem value="flat">Flat</SelectItem>
+												<SelectItem value="villa">Villa</SelectItem>
+												<SelectItem value="farmhouse">Farmhouse</SelectItem>
+												<SelectItem value="commercial">Commercial</SelectItem>
+												<SelectItem value="other">Other</SelectItem>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						<FormField
 							control={form.control}
@@ -357,7 +381,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 									<FormLabel>Notes</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Add any additional details about this plot"
+											placeholder={`Add any additional details about this ${singular.toLowerCase()}`}
 											className="resize-none"
 											rows={4}
 											{...field}
@@ -385,7 +409,7 @@ export function PlotForm({ mode, projectId, initialData }: PlotFormProps) {
 								className={`transition-all duration-300 ${loading ? "scale-[1.02] shadow-md" : ""}`}
 							>
 								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								{loading ? "Submitting..." : mode === "edit" ? "Update Plot" : "Create Plot"}
+								{loading ? "Submitting..." : mode === "edit" ? `Update ${singular}` : `Create ${singular}`}
 							</Button>
 						</div>
 						{submitStatus !== "idle" && (

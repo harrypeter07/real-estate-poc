@@ -28,6 +28,11 @@ import {
 	CardContent,
 	Input,
 	Checkbox,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { MessagingPerson } from "@/app/actions/messaging-directory";
@@ -216,7 +221,25 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 				subtitle="Send WhatsApp messages — customers, advisors, and employees"
 			/>
 
-			<div className="flex flex-wrap gap-1.5 rounded-2xl border border-zinc-200/80 bg-white/80 p-1.5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/20">
+			{/* Mobile View - Dropdown */}
+			<div className="flex md:hidden w-full">
+				<Select 
+					value={statusTab} 
+					onValueChange={(v) => setStatusTab(v as any)}
+				>
+					<SelectTrigger className="w-full h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-350 transition-all dark:border-zinc-800 dark:bg-zinc-950">
+						<SelectValue placeholder="Select status" />
+					</SelectTrigger>
+					<SelectContent className="rounded-xl border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950">
+						<SelectItem value="all" className="text-xs font-semibold">All Members</SelectItem>
+						<SelectItem value="active" className="text-xs font-semibold">Active Members</SelectItem>
+						<SelectItem value="inactive" className="text-xs font-semibold">Inactive Members</SelectItem>
+					</SelectContent>
+				</Select>
+			</div>
+
+			{/* Desktop View - Tabs */}
+			<div className="hidden md:flex flex-wrap gap-1.5 rounded-2xl border border-zinc-200/80 bg-white/80 p-1.5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/20">
 				{(
 					[
 						["all", "All Members", Users],
@@ -245,62 +268,100 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 					<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
 						<Filter className="h-4 w-4 text-teal-600 dark:text-teal-500" />
 						Filter by Role &amp; Events
-					</div>
-					<div className="flex flex-col gap-3">
-						<div className="flex flex-wrap gap-2 items-center">
-							<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mr-1.5">Roles:</span>
-							{(
-								[
-									["all", "All Roles", LayoutGrid],
-									["customer", "Customers", UserCheck],
-									["advisor", "Advisors", Award],
-									["employee", "Employees", Briefcase],
-								] as const
-							).map(([v, label, Icon]) => (
+					</div>					<div className="flex flex-col gap-3">
+						{/* Desktop View */}
+						<div className="hidden md:flex flex-col gap-3">
+							<div className="flex flex-wrap gap-2 items-center">
+								<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mr-1.5">Roles:</span>
+								{(
+									[
+										["all", "All Roles", LayoutGrid],
+										["customer", "Customers", UserCheck],
+										["advisor", "Advisors", Award],
+										["employee", "Employees", Briefcase],
+									] as const
+								).map(([v, label, Icon]) => (
+									<button
+										key={v}
+										type="button"
+										onClick={() => setRoleTab(v)}
+										className={cn(
+											"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer select-none",
+											roleTab === v
+												? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/30 dark:text-teal-350"
+												: "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+										)}
+									>
+										<Icon className={cn("h-3.5 w-3.5", roleTab === v ? "text-teal-600" : "text-zinc-400")} />
+										{label}
+									</button>
+								))}
+							</div>
+							<div className="flex flex-wrap gap-2 items-center pt-2.5 border-t border-zinc-100 dark:border-zinc-900/60">
+								<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mr-1.5">Events:</span>
 								<button
-									key={v}
 									type="button"
-									onClick={() => setRoleTab(v)}
+									onClick={() => setBirthdayOnly(false)}
 									className={cn(
-										"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer select-none",
-										roleTab === v
-											? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/30 dark:text-teal-350"
-											: "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+										"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer",
+										!birthdayOnly
+											? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950"
+											: "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950"
 									)}
 								>
-									<Icon className={cn("h-3.5 w-3.5", roleTab === v ? "text-teal-600" : "text-zinc-400")} />
-									{label}
+									<CalendarDays className="h-3.5 w-3.5" />
+									All Dates
 								</button>
-							))}
+								<button
+									type="button"
+									onClick={() => setBirthdayOnly(true)}
+									className={cn(
+										"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer",
+										birthdayOnly
+											? "border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-350"
+											: "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950"
+									)}
+								>
+									<Cake className="h-3.5 w-3.5 text-rose-500" />
+									Birthday Today
+								</button>
+							</div>
 						</div>
-						<div className="flex flex-wrap gap-2 items-center pt-2.5 border-t border-zinc-100 dark:border-zinc-900/60">
-							<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mr-1.5">Events:</span>
-							<button
-								type="button"
-								onClick={() => setBirthdayOnly(false)}
-								className={cn(
-									"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer",
-									!birthdayOnly
-										? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950"
-										: "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950"
-								)}
-							>
-								<CalendarDays className="h-3.5 w-3.5" />
-								All Dates
-							</button>
-							<button
-								type="button"
-								onClick={() => setBirthdayOnly(true)}
-								className={cn(
-									"flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer",
-									birthdayOnly
-										? "border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-350"
-										: "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950"
-								)}
-							>
-								<Cake className="h-3.5 w-3.5 text-rose-500" />
-								Birthday Today
-							</button>
+
+						{/* Mobile View */}
+						<div className="flex md:hidden flex-col gap-3">
+							<div className="flex flex-col gap-1.5">
+								<span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Roles:</span>
+								<Select 
+									value={roleTab} 
+									onValueChange={(v) => setRoleTab(v as any)}
+								>
+									<SelectTrigger className="w-full h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-350 transition-all dark:border-zinc-800 dark:bg-zinc-950">
+										<SelectValue placeholder="Select role" />
+									</SelectTrigger>
+									<SelectContent className="rounded-xl border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950">
+										<SelectItem value="all" className="text-xs font-semibold">All Roles</SelectItem>
+										<SelectItem value="customer" className="text-xs font-semibold">Customers</SelectItem>
+										<SelectItem value="advisor" className="text-xs font-semibold">Advisors</SelectItem>
+										<SelectItem value="employee" className="text-xs font-semibold">Employees</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+							<div className="flex flex-col gap-1.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-900/60">
+								<span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Events:</span>
+								<Select 
+									value={birthdayOnly ? "birthday" : "all"} 
+									onValueChange={(v) => setBirthdayOnly(v === "birthday")}
+								>
+									<SelectTrigger className="w-full h-10 text-xs font-bold border-zinc-200 bg-white rounded-xl focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 hover:border-zinc-350 transition-all dark:border-zinc-800 dark:bg-zinc-950">
+										<SelectValue placeholder="Select event" />
+									</SelectTrigger>
+									<SelectContent className="rounded-xl border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950">
+										<SelectItem value="all" className="text-xs font-semibold">All Dates</SelectItem>
+										<SelectItem value="birthday" className="text-xs font-semibold">Birthday Today</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
 						</div>
 					</div>
 				</CardContent>
@@ -342,7 +403,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 						</div>
 						
 						{/* Category selector */}
-						<div className="flex gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl self-start sm:self-auto shrink-0 shadow-inner">
+						<div className="grid grid-cols-3 sm:flex gap-1 sm:gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl w-full sm:w-auto self-start sm:self-auto shrink-0 shadow-inner">
 							{(
 								[
 									["birthday", "🎂 Birthday"],
@@ -355,7 +416,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 									type="button"
 									onClick={() => setActiveCategory(cat)}
 									className={cn(
-										"rounded-lg px-3 py-1 text-xs font-bold transition-all duration-200 cursor-pointer select-none",
+										"rounded-lg px-2 py-1.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center",
 										activeCategory === cat
 											? "bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 shadow-sm border border-zinc-200/10"
 											: "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -383,7 +444,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 												type="button"
 												onClick={() => pickTemplate(customerType, t)}
 												className={cn(
-													"rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
+													"rounded-full border px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
 													isSelected
 														? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-350 shadow-[0_0_8px_rgba(20,184,166,0.06)]"
 														: "border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
@@ -407,7 +468,7 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 												type="button"
 												onClick={() => pickTemplate(advisorType, t)}
 												className={cn(
-													"rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
+													"rounded-full border px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer select-none",
 													isSelected
 														? "border-teal-500 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-350 shadow-[0_0_8px_rgba(20,184,166,0.06)]"
 														: "border-zinc-200 bg-white text-zinc-650 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
@@ -420,12 +481,12 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 								</div>
 							</div>
 						</div>
-
+ 
 						{/* Editor & Preview Side-by-Side */}
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:col-span-2 pt-4 border-t border-zinc-100 dark:border-zinc-850">
 							{/* Editor */}
 							<div className="space-y-2">
-								<div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
+								<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
 									<span>Edit Template Message</span>
 									{activeTemplate && (
 										<span className="text-teal-650 normal-case font-bold dark:text-teal-400 flex items-center gap-1">
@@ -457,9 +518,9 @@ export function MessagingDirectoryClient({ initialPeople }: { initialPeople: Mes
 
 							{/* Preview */}
 							<div className="space-y-2">
-								<div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
+								<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
 									<span>Real-time Preview</span>
-									<div className="flex items-center gap-1.5">
+									<div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
 										<span className="text-zinc-400 normal-case font-semibold">Preview as:</span>
 										<div className="flex items-center gap-1 p-0.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg shadow-inner">
 											{(["customer", "advisor"] as const).map((r) => (

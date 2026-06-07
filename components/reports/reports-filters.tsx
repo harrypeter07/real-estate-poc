@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Input } from "@/components/ui";
+import {
+	Button,
+	Input,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui";
 import {
 	Loader2,
 	Calendar,
@@ -54,6 +62,16 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 	const isThisYear = from === thisYearStart && to === thisYearEnd;
 	const isLastMonth = from === lastMonthStart && to === lastMonthEnd;
 
+	const activeValue = isAllTime
+		? "all-time"
+		: isThisMonth
+		? "this-month"
+		: isThisYear
+		? "this-year"
+		: isLastMonth
+		? "last-month"
+		: "custom";
+
 	return (
 		<div className="flex flex-col lg:flex-row flex-wrap gap-4 items-start lg:items-center justify-between bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/50 dark:border-zinc-800/40 p-3 rounded-2xl shadow-sm">
 			{/* Period Toggle Group */}
@@ -62,7 +80,8 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 					<CalendarRange className="h-3.5 w-3.5" /> Period
 				</span>
 				
-				<div className="flex flex-wrap gap-1 bg-zinc-100/80 dark:bg-zinc-900/60 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-inner">
+				{/* Desktop buttons: hidden on mobile, shown on md and larger */}
+				<div className="hidden md:flex flex-wrap gap-1 bg-zinc-100/80 dark:bg-zinc-900/60 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-inner">
 					<button
 						type="button"
 						onClick={() => setRange("", "")}
@@ -118,6 +137,43 @@ export function ReportsFilters({ basePath = "/reports" }: { basePath?: string })
 						<History className="h-3 w-3" />
 						Last month
 					</button>
+				</div>
+
+				{/* Mobile dropdown: shown below md, hidden on md and larger */}
+				<div className="flex md:hidden w-full">
+					<Select
+						value={activeValue}
+						disabled={isPending}
+						onValueChange={(v) => {
+							if (v === "all-time") setRange("", "");
+							else if (v === "this-month") setRange(thisMonthStart, thisMonthEnd);
+							else if (v === "this-year") setRange(thisYearStart, thisYearEnd);
+							else if (v === "last-month") setRange(lastMonthStart, lastMonthEnd);
+						}}
+					>
+						<SelectTrigger className="w-full h-9.5 rounded-xl border-zinc-200/85 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 focus:ring-indigo-500/8 focus:border-indigo-500 transition-all font-bold text-xs shadow-xs text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white cursor-pointer">
+							<SelectValue placeholder="Select Period" />
+						</SelectTrigger>
+						<SelectContent className="rounded-xl border border-zinc-200 bg-white dark:bg-zinc-950 text-xs font-bold shadow-lg">
+							<SelectItem value="all-time" className="rounded-lg py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer">
+								All time
+							</SelectItem>
+							<SelectItem value="this-month" className="rounded-lg py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer">
+								This month
+							</SelectItem>
+							<SelectItem value="this-year" className="rounded-lg py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer">
+								This year
+							</SelectItem>
+							<SelectItem value="last-month" className="rounded-lg py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer">
+								Last month
+							</SelectItem>
+							{activeValue === "custom" && (
+								<SelectItem value="custom" disabled className="rounded-lg py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer opacity-70">
+									Custom Range
+								</SelectItem>
+							)}
+						</SelectContent>
+					</Select>
 				</div>
 			</div>
 

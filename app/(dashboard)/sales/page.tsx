@@ -106,13 +106,15 @@ export default async function SalesPage({
           </div>
         }
         subtitle={
-          <span className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-zinc-400 font-medium">Track transactions, collections, and payment progress.</span>
-            <span className="h-4 w-px bg-zinc-200" />
-            <span className="text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-150">
+          <div className="flex items-start sm:items-center justify-between sm:justify-start gap-2.5 mt-1.5 w-full min-w-0">
+            <span className="text-xs text-zinc-400 font-medium leading-normal flex-1 sm:flex-none min-w-0">
+              Track transactions, collections, and payment progress.
+            </span>
+            <span className="hidden sm:block h-3.5 w-px bg-zinc-200 shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full border border-teal-150 shrink-0 whitespace-nowrap self-start sm:self-auto">
               {filteredSales.length} Transactions
             </span>
-          </span>
+          </div>
         }
         action={
           <Link href="/sales/new">

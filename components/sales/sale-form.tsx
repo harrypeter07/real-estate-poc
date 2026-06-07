@@ -1151,7 +1151,7 @@ export function SaleForm({
                               />
                             </div>
                             <span className="w-20 text-right font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
-                              {row.commission_percentage.toFixed(2)}%
+                              {row.commission_percentage.toFixed(1)}%
                             </span>
                           </div>
                         </div>
@@ -1207,7 +1207,7 @@ export function SaleForm({
                         !advisorRateInvalid ? (
                           <p className="text-[10px] text-zinc-655 mt-1 bg-zinc-100/60 dark:bg-zinc-800/40 rounded px-2 py-1 flex flex-wrap justify-between font-medium">
                             <span>Share: {formatCurrencyShort(Number(field.value ?? 0) - plotBaseRatePerSqft)}/sqft</span>
-                            <span>Commission: {((Math.max(0, Number(field.value ?? 0) - plotBaseRatePerSqft) / Number(field.value ?? 1)) * 100).toFixed(2)}%</span>
+                            <span>Commission: {((Math.max(0, Number(field.value ?? 0) - plotBaseRatePerSqft) / Number(field.value ?? 1)) * 100).toFixed(1)}%</span>
                           </p>
                         ) : null}
                         {touched.advisor_id && <FormMessage />}

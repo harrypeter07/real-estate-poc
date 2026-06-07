@@ -177,7 +177,7 @@ export async function POST(req: Request) {
 			return NextResponse.json({ error: payErr?.message || "Failed to log payment" }, { status: 400 });
 		}
 
-		// 2. If emi_id is provided, update emi_schedule, otherwise distribute to oldest unpaid EMIs
+		// 2. If emi_id is provided, update emi_schedule
 		if (emi_id) {
 			const { data: emi } = await supabase
 				.from("emi_schedule")
@@ -198,44 +198,6 @@ export async function POST(req: Request) {
 						updated_at: new Date().toISOString(),
 					})
 					.eq("id", emi_id);
-			}
-		} else {
-			// Distribute amount to oldest pending/partial/overdue EMIs
-			const { data: unpaidEmis } = await supabase
-				.from("emi_schedule")
-				.select("id, emi_amount, paid_amount")
-				.eq("sale_id", sale_id)
-				.in("status", ["pending", "partial", "overdue"])
-				.order("due_date", { ascending: true });
-
-			if (unpaidEmis && unpaidEmis.length > 0) {
-				let remainingPayment = Number(amount);
-				for (const emi of unpaidEmis) {
-					if (remainingPayment <= 0) break;
-
-					const emiAmount = Number(emi.emi_amount || 0);
-					const currentPaid = Number(emi.paid_amount || 0);
-					const emiRemaining = emiAmount - currentPaid;
-
-					if (emiRemaining <= 0) continue;
-
-					const allocation = Math.min(remainingPayment, emiRemaining);
-					const newPaid = currentPaid + allocation;
-					const status = newPaid >= emiAmount ? "paid" : "partial";
-
-					await supabase
-						.from("emi_schedule")
-						.update({
-							paid_amount: newPaid,
-							status,
-							payment_id: payment.id,
-							paid_date: payment_date || new Date().toISOString().split("T")[0],
-							updated_at: new Date().toISOString(),
-						})
-						.eq("id", emi.id);
-
-					remainingPayment -= allocation;
-				}
 			}
 		}
 

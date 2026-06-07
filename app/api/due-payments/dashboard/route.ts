@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessId } from "@/lib/auth/current-business";
 import fs from "fs";
-import path from "path";
 
 export async function GET(req: Request) {
 	try {
@@ -17,7 +16,7 @@ export async function GET(req: Request) {
 		}
 
 		const businessId = await getCurrentBusinessId();
-		const logFile = path.join(process.cwd(), "debug_dues.log");
+		const logFile = "c:\\Sinfra\\real-estate-poc\\debug_dues.log";
 		fs.appendFileSync(logFile, `[${new Date().toISOString()}] GET /api/due-payments/dashboard. User: ${user.email}, BusinessId: ${businessId}\n`);
 
 		if (!businessId) {
@@ -71,10 +70,9 @@ export async function GET(req: Request) {
 		// 3. Fetch due reminders to get last follow-up dates
 		const { data: reminders } = await supabase
 			.from("due_payment_reminders")
-			.select("id, sale_id, last_reminder_sent, reminder_count, notes")
+			.select("sale_id, last_reminder_sent, reminder_count, notes")
 			.in("sale_id", saleIds)
 			.eq("is_resolved", false);
-
 
 		const reminderMap: Record<string, any> = {};
 		for (const r of reminders || []) {
@@ -150,7 +148,6 @@ export async function GET(req: Request) {
 			const lastFollowUp = reminderMap[sale.id];
 
 			const record = {
-				id: lastFollowUp?.id || null,
 				customer_id: sale.customers?.id || null,
 				customer_name: sale.customers?.name || "—",
 				customer_phone: sale.customers?.phone || "—",
@@ -204,7 +201,7 @@ export async function GET(req: Request) {
 		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Dashboard data count: ${dashboardData.length}\n`);
 		return NextResponse.json(dashboardData);
 	} catch (err: any) {
-		const logFile = path.join(process.cwd(), "debug_dues.log");
+		const logFile = "c:\\Sinfra\\real-estate-poc\\debug_dues.log";
 		fs.appendFileSync(logFile, `[${new Date().toISOString()}] Exception occurred: ${err.message}\n`);
 		return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
 	}

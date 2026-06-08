@@ -887,7 +887,7 @@ export function PlotLayoutGrid({
 							) : null}
 
 							{multiSelectMode || readOnly ? null : (
-								<div className="grid grid-cols-2 gap-2 mb-4">
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
 									{/* Row 1: Primary Action (Sell / Book or Collect Payment) */}
 									{(selectedStatus === "token" || selectedStatus === "sold_without_data") && selectedPlot.sale ? (
 										<Button

@@ -401,8 +401,8 @@ export function CustomerDocuments({
         <div className="grid grid-cols-1 gap-4">
           
           {/* Row 1: Aadhaar Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-4">
-            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          <div className="flex flex-row items-center justify-between p-3.5 sm:p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-3">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
               <div className="p-3 bg-teal-50 text-teal-650 rounded-xl border border-teal-100 shrink-0">
                 <span className="text-xl">📄</span>
               </div>
@@ -422,26 +422,28 @@ export function CustomerDocuments({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-center">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {aadhaarUrl && (
                 <>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                    className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => viewKycDoc(aadhaarUrl)}
                   >
-                    <Eye className="h-4 w-4 shrink-0" /> View
+                    <Eye className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">View</span>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                    className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => downloadKycDoc(aadhaarUrl, `Aadhaar_${customerName.replace(/\s+/g, "_")}${aadhaarUrl.endsWith(".pdf") ? ".pdf" : ".jpg"}`)}
                   >
-                    <Download className="h-4 w-4 shrink-0" /> Download
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">Download</span>
                   </Button>
                 </>
               )}
@@ -454,21 +456,21 @@ export function CustomerDocuments({
                   className="hidden"
                   disabled={uploadingField === "aadhaar"}
                 />
-                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-teal-200 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-300 text-teal-700 transition-all duration-200 active:scale-98 ${uploadingField === "aadhaar" ? "opacity-50 pointer-events-none" : ""}`}>
+                <span className={`inline-flex items-center justify-center h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-teal-200 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-300 text-teal-700 transition-all duration-200 active:scale-98 ${uploadingField === "aadhaar" ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingField === "aadhaar" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-teal-650" />
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5" />
                   )}
-                  {aadhaarUrl ? "Replace" : "Upload"}
+                  <span className="hidden sm:inline">{aadhaarUrl ? "Replace" : "Upload"}</span>
                 </span>
               </label>
             </div>
           </div>
 
           {/* Row 2: PAN Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-4">
-            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          <div className="flex flex-row items-center justify-between p-3.5 sm:p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-3">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
               <div className="p-3 bg-indigo-50 text-indigo-650 rounded-xl border border-indigo-100 shrink-0">
                 <span className="text-xl">🪪</span>
               </div>
@@ -488,26 +490,28 @@ export function CustomerDocuments({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-center">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {panUrl && (
                 <>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                    className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => viewKycDoc(panUrl)}
                   >
-                    <Eye className="h-4 w-4 shrink-0" /> View
+                    <Eye className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">View</span>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                    className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => downloadKycDoc(panUrl, `PAN_${customerName.replace(/\s+/g, "_")}${panUrl.endsWith(".pdf") ? ".pdf" : ".jpg"}`)}
                   >
-                    <Download className="h-4 w-4 shrink-0" /> Download
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">Download</span>
                   </Button>
                 </>
               )}
@@ -520,22 +524,22 @@ export function CustomerDocuments({
                   className="hidden"
                   disabled={uploadingField === "pan"}
                 />
-                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 text-indigo-700 transition-all duration-200 active:scale-98 ${uploadingField === "pan" ? "opacity-50 pointer-events-none" : ""}`}>
+                <span className={`inline-flex items-center justify-center h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 text-indigo-700 transition-all duration-200 active:scale-98 ${uploadingField === "pan" ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingField === "pan" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-650" />
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5" />
                   )}
-                  {panUrl ? "Replace" : "Upload"}
+                  <span className="hidden sm:inline">{panUrl ? "Replace" : "Upload"}</span>
                 </span>
               </label>
             </div>
           </div>
 
           {/* Row 3: Customer Photo */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-4">
-            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-              <div className="h-14 w-14 rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 shrink-0 shadow-inner flex items-center justify-center">
+          <div className="flex flex-row items-center justify-between p-3.5 sm:p-4.5 rounded-2xl border border-zinc-200 bg-white hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.02)] transition-all duration-200 gap-3">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+              <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 shrink-0 shadow-inner flex items-center justify-center">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Customer photo" className="h-full w-full object-cover" />
                 ) : (
@@ -558,26 +562,28 @@ export function CustomerDocuments({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-center">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {photoUrl && (
                 <>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                    className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => viewKycDoc(photoUrl)}
                   >
-                    <Eye className="h-4 w-4 shrink-0" /> View
+                    <Eye className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">View</span>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
+                    className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 border-zinc-200 text-zinc-700 bg-zinc-50/50 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm active:scale-98 cursor-pointer"
                     onClick={() => downloadKycDoc(photoUrl, `Photo_${customerName.replace(/\s+/g, "_")}.jpg`)}
                   >
-                    <Download className="h-4 w-4 shrink-0" /> Download
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">Download</span>
                   </Button>
                 </>
               )}
@@ -590,13 +596,13 @@ export function CustomerDocuments({
                   className="hidden"
                   disabled={uploadingField === "photo"}
                 />
-                <span className={`inline-flex items-center justify-center h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-300 text-emerald-700 transition-all duration-200 active:scale-98 ${uploadingField === "photo" ? "opacity-50 pointer-events-none" : ""}`}>
+                <span className={`inline-flex items-center justify-center h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-sm border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-300 text-emerald-700 transition-all duration-200 active:scale-98 ${uploadingField === "photo" ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingField === "photo" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-650" />
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5" />
                   )}
-                  {photoUrl ? "Replace Photo" : "Upload Photo"}
+                  <span className="hidden sm:inline">{photoUrl ? "Replace Photo" : "Upload Photo"}</span>
                 </span>
               </label>
             </div>

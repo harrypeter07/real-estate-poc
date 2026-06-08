@@ -49,16 +49,57 @@ export function CommissionsFilters() {
 	const thisYearStart = `${now.getFullYear()}-01-01`;
 	const thisYearEnd = thisMonthEnd;
 
+	const isAllTime = !from && !to;
+	const isThisMonth = from === thisMonthStart && to === thisMonthEnd;
+	const isThisYear = from === thisYearStart && to === thisYearEnd;
+
+	const activeValue = isAllTime
+		? "all-time"
+		: isThisMonth
+		? "this-month"
+		: isThisYear
+		? "this-year"
+		: "custom";
+
+	function handlePeriodChange(v: string) {
+		if (v === "all-time") {
+			setCustomFrom("");
+			setCustomTo("");
+			setSelectedStatus("all");
+			startTransition(() => {
+				router.push("/commissions");
+			});
+		} else if (v === "this-month") {
+			const params = new URLSearchParams();
+			params.set("from", thisMonthStart);
+			params.set("to", thisMonthEnd);
+			if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
+			startTransition(() => {
+				router.push(`/commissions?${params.toString()}`);
+			});
+		} else if (v === "this-year") {
+			const params = new URLSearchParams();
+			params.set("from", thisYearStart);
+			params.set("to", thisYearEnd);
+			if (selectedStatus && selectedStatus !== "all") params.set("status", selectedStatus);
+			startTransition(() => {
+				router.push(`/commissions?${params.toString()}`);
+			});
+		}
+	}
+
 	return (
 		<div className="bg-white border border-zinc-200/80 p-4 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.01)] space-y-4">
 			<div className="flex flex-col lg:flex-row flex-wrap gap-4 items-start lg:items-center justify-between">
 				{/* Period Filter Buttons */}
-				<div className="flex flex-wrap gap-2 items-center">
+				<div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
 					<div className="flex items-center gap-1.5 text-zinc-400 mr-1.5">
 						<Clock className="h-3.5 w-3.5 text-zinc-400" />
 						<span className="text-[10px] uppercase font-black tracking-wider">Period:</span>
 					</div>
-					<div className="bg-zinc-100/70 p-1 rounded-xl flex gap-1 border border-zinc-200/40 w-fit">
+					
+					{/* Desktop buttons: hidden on mobile, shown on md and larger */}
+					<div className="hidden md:flex bg-zinc-100/70 p-1 rounded-xl gap-1 border border-zinc-200/40 w-fit">
 						<button
 							type="button"
 							onClick={() => {
@@ -121,6 +162,35 @@ export function CommissionsFilters() {
 						>
 							This year
 						</button>
+					</div>
+
+					{/* Mobile dropdown: shown below md, hidden on md and larger */}
+					<div className="flex md:hidden w-full">
+						<Select
+							value={activeValue}
+							disabled={isPending}
+							onValueChange={handlePeriodChange}
+						>
+							<SelectTrigger className="w-full h-9.5 rounded-xl border-zinc-200 bg-white hover:border-zinc-300 focus:ring-4 focus:ring-teal-500/8 focus:border-teal-500 transition-all font-bold text-xs shadow-2xs text-zinc-700 hover:text-zinc-950 cursor-pointer">
+								<SelectValue placeholder="Select Period" />
+							</SelectTrigger>
+							<SelectContent className="rounded-xl border border-zinc-200 bg-white text-xs font-bold shadow-lg">
+								<SelectItem value="all-time" className="rounded-lg py-2 hover:bg-zinc-50 cursor-pointer">
+									All time
+								</SelectItem>
+								<SelectItem value="this-month" className="rounded-lg py-2 hover:bg-zinc-50 cursor-pointer">
+									This month
+								</SelectItem>
+								<SelectItem value="this-year" className="rounded-lg py-2 hover:bg-zinc-50 cursor-pointer">
+									This year
+								</SelectItem>
+								{activeValue === "custom" && (
+									<SelectItem value="custom" disabled className="rounded-lg py-2 hover:bg-zinc-50 cursor-pointer opacity-70">
+										Custom Range
+									</SelectItem>
+								)}
+							</SelectContent>
+						</Select>
 					</div>
 				</div>
 

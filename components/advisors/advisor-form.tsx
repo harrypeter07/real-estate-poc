@@ -332,7 +332,7 @@ export function AdvisorForm({
 
 	return (
 		<Card className="max-w-3xl w-full mx-auto border border-zinc-200/80 bg-white/70 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_40px_rgb(0,0,0,0.06)] hover:border-zinc-300/80">
-			<CardHeader className="relative border-b border-zinc-150 bg-zinc-50/50 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+			<CardHeader className="relative border-b border-zinc-150 bg-zinc-50/50 p-4 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
 				<div className="space-y-1.5">
 					<CardTitle className="text-xl sm:text-2xl font-bold text-zinc-950 flex items-center gap-2.5">
 						<span className="h-9 w-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100 shadow-sm shrink-0">
@@ -365,11 +365,11 @@ export function AdvisorForm({
 					</Button>
 				) : null}
 			</CardHeader>
-			<CardContent className="p-6 sm:p-8">
+			<CardContent className="p-4 sm:p-8">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 						{variant === "sub" && mode === "create" ? (
-							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-5 space-y-4 shadow-inner">
+							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-inner">
 								<div className="flex items-center gap-2 border-b border-zinc-200/60 pb-3">
 									<div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
 										<Users className="h-4 w-4" />
@@ -380,11 +380,11 @@ export function AdvisorForm({
 								<div className="space-y-3.5">
 									<div>
 										<label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">Registration Mode</label>
-										<div className="inline-flex p-1 bg-zinc-200/60 dark:bg-zinc-800 rounded-xl border border-zinc-200 w-full sm:w-auto">
+										<div className="flex flex-col sm:inline-flex sm:flex-row p-1 bg-zinc-200/60 dark:bg-zinc-800 rounded-xl border border-zinc-200 w-full sm:w-auto gap-1 sm:gap-0">
 											<button
 												type="button"
 												onClick={() => setSubMode("new")}
-												className={`flex-1 sm:flex-none h-8 px-4 text-xs font-bold rounded-lg transition-all duration-250 flex items-center justify-center gap-1.5 select-none cursor-pointer ${
+												className={`w-full sm:w-auto sm:flex-none h-9 sm:h-8 px-4 text-xs font-bold rounded-lg transition-all duration-250 flex items-center justify-center gap-1.5 select-none cursor-pointer ${
 													subMode === "new"
 														? "bg-teal-600 text-white shadow-sm font-extrabold"
 														: "text-zinc-600 hover:text-zinc-900 hover:bg-white/40"
@@ -396,7 +396,7 @@ export function AdvisorForm({
 											<button
 												type="button"
 												onClick={() => setSubMode("existing")}
-												className={`flex-1 sm:flex-none h-8 px-4 text-xs font-bold rounded-lg transition-all duration-250 flex items-center justify-center gap-1.5 select-none cursor-pointer ${
+												className={`w-full sm:w-auto sm:flex-none h-9 sm:h-8 px-4 text-xs font-bold rounded-lg transition-all duration-250 flex items-center justify-center gap-1.5 select-none cursor-pointer ${
 													subMode === "existing"
 														? "bg-teal-600 text-white shadow-sm font-extrabold"
 														: "text-zinc-600 hover:text-zinc-900 hover:bg-white/40"
@@ -507,7 +507,7 @@ export function AdvisorForm({
 						) : null}
 
 						{subMode !== "existing" ? (
-							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/20 p-5 space-y-4 shadow-sm">
+							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/20 p-4 sm:p-5 space-y-4 shadow-sm">
 								<div className="flex items-center gap-2 border-b border-zinc-200/60 pb-3">
 									<div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
 										<User className="h-4 w-4" />
@@ -638,7 +638,7 @@ export function AdvisorForm({
 						) : null}
 
 						{mode === "create" && subMode !== "existing" && (
-							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-5 space-y-4 shadow-sm">
+							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-4 sm:p-5 space-y-4 shadow-sm">
 								<div className="flex items-center gap-2 border-b border-zinc-200/60 pb-3">
 									<div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
 										<Lock className="h-4 w-4" />
@@ -702,7 +702,7 @@ export function AdvisorForm({
 						)}
 
 						{subMode !== "existing" ? (
-							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/20 p-5 space-y-4 shadow-sm">
+							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/20 p-4 sm:p-5 space-y-4 shadow-sm">
 								<div className="flex items-center gap-2 border-b border-zinc-200/60 pb-3">
 									<div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
 										<MapPin className="h-4 w-4" />
@@ -734,7 +734,7 @@ export function AdvisorForm({
 						) : null}
 
 						{subMode !== "existing" ? (
-							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-5 space-y-3.5 shadow-sm">
+							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-4 sm:p-5 space-y-3.5 shadow-sm">
 								<div className="flex items-center gap-2 border-b border-zinc-200/60 pb-3">
 									<div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
 										<Award className="h-4 w-4" />
@@ -749,7 +749,7 @@ export function AdvisorForm({
 						) : null}
 
 						{subMode !== "existing" ? (
-							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/20 p-5 space-y-4 shadow-sm">
+							<div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/20 p-4 sm:p-5 space-y-4 shadow-sm">
 								<div className="flex items-center gap-2 border-b border-zinc-200/60 pb-3">
 									<div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
 										<FileText className="h-4 w-4" />
@@ -781,7 +781,7 @@ export function AdvisorForm({
 							</div>
 						) : null}
 
-						<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3 border-t border-zinc-150 bg-zinc-50/50 p-6 -mx-6 -mb-6 mt-4">
+						<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-zinc-150 bg-zinc-50/50 p-4 sm:p-6 -mx-4 sm:-mx-8 -mb-4 sm:-mb-8 mt-6">
 							<Button
 								type="button"
 								variant="outline"

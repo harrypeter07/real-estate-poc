@@ -223,14 +223,91 @@ export async function deleteProject(id: string): Promise<ActionResponse> {
 	const supabase = await createClient();
 	if (!supabase) return { success: false, error: "Database connection failed" };
 
-	const { error } = await supabase.from("projects").delete().eq("id", id);
+	try {
+		// 1. Get all plot IDs for this project
+		const { data: plots, error: plotsError } = await supabase
+			.from("plots")
+			.select("id")
+			.eq("project_id", id);
 
-	if (error) {
-		return { success: false, error: error.message };
+		if (plotsError) {
+			return { success: false, error: `Failed to fetch plots: ${plotsError.message}` };
+		}
+
+		const plotIds = (plots ?? []).map((p: any) => p.id);
+
+		if (plotIds.length > 0) {
+			// 2. Get all sale IDs for these plots
+			const { data: sales, error: salesError } = await supabase
+				.from("plot_sales")
+				.select("id")
+				.in("plot_id", plotIds);
+
+			if (salesError) {
+				return { success: false, error: `Failed to fetch sales: ${salesError.message}` };
+			}
+
+			const saleIds = (sales ?? []).map((s: any) => s.id);
+
+			if (saleIds.length > 0) {
+				// 3. Delete advisor commissions for these sales
+				const { error: commsError } = await supabase
+					.from("advisor_commissions")
+					.delete()
+					.in("sale_id", saleIds);
+
+				if (commsError) {
+					return { success: false, error: `Failed to delete commissions: ${commsError.message}` };
+				}
+
+				// 4. Delete plot sales (cascades to payments, emi_schedule, payment_penalties, due_payment_reminders)
+				const { error: salesDeleteError } = await supabase
+					.from("plot_sales")
+					.delete()
+					.in("id", saleIds);
+
+				if (salesDeleteError) {
+					return { success: false, error: `Failed to delete sales: ${salesDeleteError.message}` };
+				}
+			}
+		}
+
+		// 5. Set project_id to NULL in enquiry_site_visits to prevent restriction
+		const { error: visitsError } = await supabase
+			.from("enquiry_site_visits")
+			.update({ project_id: null })
+			.eq("project_id", id);
+
+		if (visitsError) {
+			return { success: false, error: `Failed to update site visits: ${visitsError.message}` };
+		}
+
+		// 6. Delete project documents
+		const { error: docsError } = await supabase
+			.from("project_documents")
+			.delete()
+			.eq("project_id", id);
+
+		if (docsError && !docsError.message.includes("does not exist")) {
+			return { success: false, error: `Failed to delete project documents: ${docsError.message}` };
+		}
+
+		// 7. Delete the project (cascades to plots & advisor_project_commissions)
+		const { error: projectError } = await supabase
+			.from("projects")
+			.delete()
+			.eq("id", id);
+
+		if (projectError) {
+			return { success: false, error: `Failed to delete project: ${projectError.message}` };
+		}
+
+		revalidatePath("/projects");
+		return { success: true };
+	} catch (err: any) {
+		console.error("deleteProject unhandled error:", err);
+		return { success: false, error: err.message ?? "An unexpected error occurred during project deletion." };
 	}
-
-	revalidatePath("/projects");
-	return { success: true };
 }
 
 // ─── GET ALL ──────────────────────────────────────────────────────────────────

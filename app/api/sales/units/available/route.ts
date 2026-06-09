@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 			.from("plots")
 			.select(`
 				*,
-				projects(id, name)
+				projects(id, name, emi_months)
 			`)
 			.eq("status", "available");
 
@@ -46,6 +46,7 @@ export async function GET(req: Request) {
 			id: p.id,
 			project_id: p.project_id,
 			project_name: p.projects?.name || "—",
+			project_emi_months: p.projects?.emi_months || 0,
 			plot_number: p.plot_number,
 			size_sqft: p.size_sqft,
 			rate_per_sqft: p.rate_per_sqft,

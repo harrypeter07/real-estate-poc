@@ -161,10 +161,13 @@ export function CreateBookingWizard({ customers, advisors }: WizardProps) {
 		}, {});
 	}, [plots, selectedProjectFilter, plotSearchQuery]);
 
-	// Set initial sale amount when plot changes
+	// Set initial sale amount and project default EMI months when plot changes
 	useEffect(() => {
 		if (selectedPlotDetails) {
 			setTotalSaleAmount(Number(selectedPlotDetails.total_amount));
+			if (selectedPlotDetails.project_emi_months !== undefined) {
+				setEmiMonths(Number(selectedPlotDetails.project_emi_months ?? 0));
+			}
 		}
 	}, [selectedPlotDetails]);
 

@@ -69,7 +69,6 @@ export function SaleForm({
   const [splitWithChild, setSplitWithChild] = useState(false);
   const [selectedChildAdvisorIds, setSelectedChildAdvisorIds] = useState<string[]>([]);
   const [subComboKey, setSubComboKey] = useState(0);
-  const [preferredCustomerSubAdvisorId, setPreferredCustomerSubAdvisorId] = useState<string | null>(null);
   const showFillMock = false;
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
@@ -159,7 +158,7 @@ export function SaleForm({
     (advisorAssignments ?? []).forEach((a) => {
       if (a.project_id === selectedProjectId) set.add(a.advisor_id);
     });
-    return set.size > 0 ? set : null;
+    return set;
   }, [advisorAssignments, selectedProjectId]);
 
   const filteredPlots = useMemo(() => {
@@ -172,7 +171,7 @@ export function SaleForm({
   }, [allowedProjectIdsForAdvisor, plots, soldByAdmin]);
 
   const filteredAdvisors = useMemo(() => {
-    if (!allowedAdvisorIdsForProject) {
+    if (allowedAdvisorIdsForProject === null) {
       return advisors;
     }
     return (advisors as any[]).filter((a) => allowedAdvisorIdsForProject.has(a.id));
@@ -181,6 +180,18 @@ export function SaleForm({
   useEffect(() => {
     console.log("[SaleForm] Raw advisors from props:", advisors);
   }, [advisors]);
+
+  // Pre-populate emi_months from selected plot's project defaults
+  useEffect(() => {
+    if (selectedPlot) {
+      const projEmiMonths = (selectedPlot as any).projects?.emi_months;
+      if (projEmiMonths !== undefined && projEmiMonths !== null && projEmiMonths > 0) {
+        form.setValue("emi_months", projEmiMonths);
+      } else {
+        form.setValue("emi_months", null);
+      }
+    }
+  }, [selectedPlot, form]);
 
   // keep selections consistent when filters change
   useEffect(() => {
@@ -211,26 +222,6 @@ export function SaleForm({
     }
   }, [soldByAdmin, form]);
 
-  // Autofill advisor from selected customer.
-  // If customer is tagged to a sub-advisor, auto-pick parent as main and preselect the sub.
-  useEffect(() => {
-    if (soldByAdmin || !selectedCustomerId) {
-      setPreferredCustomerSubAdvisorId(null);
-      return;
-    }
-    const customer = (customers as any[]).find((c) => c.id === selectedCustomerId);
-    const customerAdvisorId = String(customer?.advisor_id ?? "").trim();
-    if (!customerAdvisorId) {
-      setPreferredCustomerSubAdvisorId(null);
-      return;
-    }
-    const linked = (advisors as any[]).find((a) => a.id === customerAdvisorId);
-    if (!linked?.id) return;
-    // Always select the customer's linked advisor directly, regardless of whether they have a parent advisor
-    form.setValue("advisor_id", linked.id);
-    setPreferredCustomerSubAdvisorId(null);
-  }, [advisors, customers, form, selectedCustomerId, soldByAdmin]);
-
   useEffect(() => {
     if (!selectedAdvisorId || soldByAdmin) {
       setSubOptions([]);
@@ -257,15 +248,6 @@ export function SaleForm({
     if (!selectedAdvisorId || soldByAdmin) return;
     setSubAdvisorIds((prev) => prev.filter((id) => subOptions.some((s) => s.id === id)));
   }, [selectedAdvisorId, soldByAdmin, subOptions]);
-
-  useEffect(() => {
-    if (!preferredCustomerSubAdvisorId || soldByAdmin) return;
-    if (!subOptions.some((s) => s.id === preferredCustomerSubAdvisorId)) return;
-    setSubAdvisorIds((prev) =>
-      prev.includes(preferredCustomerSubAdvisorId) ? prev : [...prev, preferredCustomerSubAdvisorId]
-    );
-    setPreferredCustomerSubAdvisorId(null);
-  }, [preferredCustomerSubAdvisorId, soldByAdmin, subOptions]);
 
   // Reset custom amounts when advisor, project, or phase changes
   useEffect(() => {
@@ -295,6 +277,8 @@ export function SaleForm({
     if (months >= 1 && remaining > 0) {
       const computed = Math.ceil(remaining / months);
       form.setValue("monthly_emi", computed);
+    } else {
+      form.setValue("monthly_emi", 0);
     }
   }, [emiMonths, remaining, form, selectedPhase]);
 
@@ -1509,7 +1493,7 @@ export function SaleForm({
                           name="emi_months"
                           render={({ field }) => (
                             <FormItem className="min-w-0">
-                              <FormLabel className="text-xs font-semibold text-zinc-500">EMI Months</FormLabel>
+                              <FormLabel className="text-xs font-semibold text-zinc-500 whitespace-nowrap">EMI Months</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -1537,7 +1521,7 @@ export function SaleForm({
                         name="monthly_emi"
                         render={({ field }) => (
                           <FormItem className="min-w-0">
-                            <FormLabel className="text-xs font-semibold text-zinc-500">Monthly EMI</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-zinc-500 whitespace-nowrap">Monthly EMI</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -1561,7 +1545,7 @@ export function SaleForm({
                         name="emi_day"
                         render={({ field }) => (
                           <FormItem className="min-w-0">
-                            <FormLabel className="text-xs font-semibold text-zinc-500">EMI Day (1-31)</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-zinc-500 whitespace-nowrap">EMI Day (1-31)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"

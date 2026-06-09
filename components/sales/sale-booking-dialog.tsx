@@ -21,11 +21,13 @@ export function SaleBookingDialog({
   projectName,
   plot,
   projectId,
+  projectEmiMonths,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectName: string;
   projectId: string;
+  projectEmiMonths?: number;
   plot: {
     id: string;
     plot_number: string;
@@ -40,7 +42,6 @@ export function SaleBookingDialog({
   const [customers, setCustomers] = useState<any[]>([]);
   const [advisors, setAdvisorsState] = useState<any[]>([]);
   const [advisorAssignments, setAdvisorAssignments] = useState<any[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   const plotTypeLabelCap = useMemo(() => {
     const t = String(plot.type || "Plot").trim();
@@ -50,9 +51,6 @@ export function SaleBookingDialog({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-
-    // Cache to keep modal opening instant on repeated clicks.
-    if (hasLoaded) return;
 
     setLoading(true);
     Promise.all([
@@ -65,7 +63,6 @@ export function SaleBookingDialog({
         setCustomers(c as any[]);
         setAdvisorsState(a as any[]);
         setAdvisorAssignments(assignments as any[]);
-        setHasLoaded(true);
       })
       .catch((e: any) => {
         toast.error("Failed to load required data", {
@@ -78,7 +75,7 @@ export function SaleBookingDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, projectId, hasLoaded]);
+  }, [open, projectId]);
 
   const plotsForForm = useMemo(() => {
     return [
@@ -93,10 +90,11 @@ export function SaleBookingDialog({
         projects: {
           id: projectId,
           name: projectName,
+          emi_months: projectEmiMonths,
         },
       },
     ];
-  }, [plot, projectId, projectName]);
+  }, [plot, projectId, projectName, projectEmiMonths]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -154,6 +154,7 @@ export default async function AdvisorProjectDetailPage({ params, searchParams }:
 							projectId={project.id}
 							initialPlotId={plotId}
 							projectType={project.project_type}
+							projectEmiMonths={project.emi_months}
 						/>
 					</CardContent>
 				</Card>

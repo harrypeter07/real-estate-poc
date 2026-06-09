@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2, Plus, Pencil, X, Save, Users, IndianRupee, TrendingUp } from "lucide-react";
 import {
@@ -92,6 +93,7 @@ export function ProjectAdvisorAssignments({
 	minPlotRatePerSqft: number;
 }) {
 	const MAX_RATE = 9_999_999_999.99;
+	const router = useRouter();
 	const [saving, setSaving] = useState(false);
 	const [advisorId, setAdvisorId] = useState<string>("");
 	const [commissionRate, setCommissionRate] = useState<number>(0);
@@ -213,6 +215,7 @@ export function ProjectAdvisorAssignments({
 				return;
 			}
 			toast.success("Advisor assigned to project");
+			router.refresh();
 			setAdvisorId("");
 			setCommissionRate(0);
 			setCommissionPct(5);
@@ -231,6 +234,7 @@ export function ProjectAdvisorAssignments({
 				return;
 			}
 			toast.success("Advisor removed from project");
+			router.refresh();
 		} finally {
 			setSaving(false);
 		}
@@ -294,6 +298,7 @@ export function ProjectAdvisorAssignments({
 				return;
 			}
 			toast.success("Rates updated");
+			router.refresh();
 			onCancelEdit();
 		} finally {
 			setSaving(false);

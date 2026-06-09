@@ -67,6 +67,7 @@ interface PlotLayoutGridProps {
 	/** Hide plot CRUD, sales, bulk edit (e.g. advisor read-only project view). */
 	readOnly?: boolean;
 	projectType?: string | null;
+	projectEmiMonths?: number;
 }
 
 type StatusKey = "available" | "token" | "sold" | "sold_without_data";
@@ -359,6 +360,7 @@ export function PlotLayoutGrid({
 	initialPlotId,
 	readOnly = false,
 	projectType,
+	projectEmiMonths,
 }: PlotLayoutGridProps) {
 	const getUnitLabels = (type?: string | null) => {
 		const t = (type || "Plot").toLowerCase().trim();
@@ -1316,6 +1318,7 @@ export function PlotLayoutGrid({
 									projectName={projectName}
 									projectId={projectId}
 									plot={selectedPlot as any}
+									projectEmiMonths={projectEmiMonths}
 								/>
 							)}
 						</>

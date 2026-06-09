@@ -205,6 +205,7 @@ export default async function ProjectDetailPage({
 							projectId={project.id}
 							initialPlotId={plotId}
 							projectType={project.project_type}
+							projectEmiMonths={project.emi_months}
 						/>
 					</CardContent>
 				</Card>

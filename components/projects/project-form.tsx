@@ -866,6 +866,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 								)}
 								{activeTab !== "notes" ? (
 									<Button
+										key="btn-next"
 										type="button"
 										variant="outline"
 										onClick={() => {
@@ -878,6 +879,7 @@ export function ProjectForm({ mode, initialData }: ProjectFormProps) {
 									</Button>
 								) : (
 									<Button
+										key="btn-submit"
 										type="submit"
 										disabled={loading || (mode === "edit" && !form.formState.isDirty)}
 										className={`rounded-xl h-10 px-6 font-bold shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98] cursor-pointer bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed`}

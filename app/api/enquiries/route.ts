@@ -22,6 +22,7 @@ export async function GET(req: Request) {
 
 		const url = new URL(req.url);
 		const pipelineStage = url.searchParams.get("pipeline_stage");
+		const projectId = url.searchParams.get("project_id");
 		const advisorId = url.searchParams.get("advisor_id");
 		const leadSource = url.searchParams.get("lead_source");
 		const dateFrom = url.searchParams.get("date_from");
@@ -43,6 +44,9 @@ export async function GET(req: Request) {
 
 		if (pipelineStage && pipelineStage !== "all") {
 			query = query.eq("pipeline_stage", pipelineStage);
+		}
+		if (projectId && projectId !== "all") {
+			query = query.eq("project_id", projectId);
 		}
 		if (advisorId && advisorId !== "all") {
 			query = query.eq("assigned_advisor_id", advisorId);

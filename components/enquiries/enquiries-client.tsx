@@ -132,9 +132,14 @@ export function EnquiriesClient({
 
 	// Fetch CRM pipeline counts
 	const { data: pipelineData, refetch: refetchPipeline } = useQuery({
-		queryKey: ["enquiry-pipeline"],
+		queryKey: ["enquiry-pipeline", debouncedQuery, projectFilter, statusFilter],
 		queryFn: async () => {
-			const res = await fetch("/api/enquiries/pipeline");
+			const params = new URLSearchParams({
+				search: debouncedQuery,
+				project_id: projectFilter,
+				pipeline_stage: statusFilter,
+			});
+			const res = await fetch(`/api/enquiries/pipeline?${params.toString()}`);
 			if (!res.ok) throw new Error("Failed to fetch pipeline board");
 			return res.json();
 		},

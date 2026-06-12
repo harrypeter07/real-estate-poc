@@ -590,3 +590,40 @@ export async function upgradeTempCustomerToCustomer(opts: {
 
 	return upgradeEnquiryToCustomer({ enquiryId, customerId: customer.id });
 }
+
+export async function getTodaysFollowUps(): Promise<
+	Array<{
+		id: string;
+		name: string;
+		phone: string;
+		category: string;
+		follow_up_date: string;
+		details: string | null;
+	}>
+> {
+	const supabase = await createClient();
+	if (!supabase) return [];
+
+	const businessId = await getCurrentBusinessId();
+	if (!businessId) return [];
+
+	// Get local date string YYYY-MM-DD
+	const today = new Date();
+	const offset = today.getTimezoneOffset();
+	const localToday = new Date(today.getTime() - offset * 60 * 1000);
+	const todayStr = localToday.toISOString().slice(0, 10);
+
+	const { data, error } = await supabase
+		.from("enquiry_customers")
+		.select("id, name, phone, category, follow_up_date, details")
+		.eq("business_id", businessId)
+		.eq("is_active", true)
+		.eq("follow_up_date", todayStr);
+
+	if (error) {
+		console.error("Error fetching today's followups:", error);
+		return [];
+	}
+
+	return (data ?? []) as any;
+}

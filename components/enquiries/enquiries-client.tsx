@@ -765,6 +765,11 @@ export function EnquiriesClient({
 				onOpenChange={setCreateOpen}
 				projects={projects}
 				advisors={advisors}
+				onSuccess={() => {
+					refetch();
+					refetchPipeline();
+					router.refresh();
+				}}
 			/>
 
 			<EnquiryTempCustomersModal

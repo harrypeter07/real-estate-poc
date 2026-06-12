@@ -55,6 +55,8 @@ export const metadata: Metadata = {
 
 import { LoadingBar } from "@/components/layout/loading-bar";
 import QueryProvider from "@/components/providers/query-provider";
+import PWAProvider from "@/components/providers/pwa-provider";
+import FollowUpNotifier from "@/components/providers/follow-up-notifier";
 import { GlobalSearchListener } from "@/components/shared/global-search-listener";
 
 export default function RootLayout({
@@ -70,11 +72,14 @@ export default function RootLayout({
 		>
 			<body className={inter.className} suppressHydrationWarning>
 				<QueryProvider>
-					<LoadingBar />
-					<GlobalSearchListener />
-					{children}
-					<BusinessDocumentTitle />
-					<Toaster position="top-right" richColors closeButton />
+					<PWAProvider>
+						<LoadingBar />
+						<GlobalSearchListener />
+						<FollowUpNotifier />
+						{children}
+						<BusinessDocumentTitle />
+						<Toaster position="top-right" richColors closeButton />
+					</PWAProvider>
 				</QueryProvider>
 			</body>
 		</html>

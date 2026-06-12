@@ -41,11 +41,13 @@ export function EnquiryCreateModal({
 	onOpenChange,
 	projects,
 	advisors,
+	onSuccess,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	projects: Array<{ id: string; name: string }>;
 	advisors: Array<{ id: string; name: string }>;
+	onSuccess?: () => void;
 }) {
 	const router = useRouter();
 	const [saving, setSaving] = useState(false);
@@ -220,7 +222,11 @@ export function EnquiryCreateModal({
 			// Clear local form so next open starts empty.
 			setForm({ ...emptyForm });
 			onOpenChange(false);
-			router.refresh();
+			if (onSuccess) {
+				onSuccess();
+			} else {
+				router.refresh();
+			}
 		} finally {
 			setSaving(false);
 		}

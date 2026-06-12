@@ -19,7 +19,12 @@ export async function GET(req: Request) {
 			return NextResponse.json({ error: "Business ID not found" }, { status: 400 });
 		}
 
-		const { data: enquiries, error } = await supabase
+		const url = new URL(req.url);
+		const pipelineStage = url.searchParams.get("pipeline_stage");
+		const projectId = url.searchParams.get("project_id");
+		const search = url.searchParams.get("search");
+
+		let query = supabase
 			.from("enquiry_customers")
 			.select(`
 				*,
@@ -27,6 +32,18 @@ export async function GET(req: Request) {
 				advisors(id, name)
 			`)
 			.eq("business_id", businessId);
+
+		if (pipelineStage && pipelineStage !== "all") {
+			query = query.eq("pipeline_stage", pipelineStage);
+		}
+		if (projectId && projectId !== "all") {
+			query = query.eq("project_id", projectId);
+		}
+		if (search) {
+			query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
+		}
+
+		const { data: enquiries, error } = await query;
 
 		if (error) {
 			return NextResponse.json({ error: error.message }, { status: 400 });

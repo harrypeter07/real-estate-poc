@@ -12,11 +12,11 @@ export function isSuperAdmin(user: User | null): boolean {
 
 export async function requireSuperAdmin() {
 	const supabase = await createClient();
-	if (!supabase) redirect("/login");
+	if (!supabase) redirect("/superadmin-login");
 	const {
 		data: { user },
 	} = await supabase.auth.getUser();
-	if (!isSuperAdmin(user)) redirect("/login");
+	if (!isSuperAdmin(user)) redirect("/superadmin-login");
 	return { supabase, user: user! };
 }
 

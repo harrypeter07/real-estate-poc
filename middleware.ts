@@ -12,7 +12,11 @@ function isFreshSuperAdminSession(saVal: string | undefined): boolean {
 }
 
 function getModuleKeyForPath(pathname: string): string | null {
-  if (pathname.startsWith("/superadmin") || pathname.startsWith("/login")) return null;
+  if (
+    pathname.startsWith("/superadmin") ||
+    pathname.startsWith("/login")
+  )
+    return null;
 
   if (
     pathname.startsWith("/projects") ||
@@ -78,8 +82,23 @@ export async function middleware(request: NextRequest) {
   );
 
   const { pathname } = request.nextUrl;
-  const isCriticalPath = 
-    pathname.startsWith("/superadmin") || 
+
+  // Super admin console (the protected app area) vs. the dedicated super admin
+  // login flow. These share the "/superadmin" text prefix, so distinguish them
+  // explicitly: the console is "/superadmin" or "/superadmin/...", while the
+  // login lives at "/superadmin-login" and "/superadmin-login/verify".
+  const isSaConsolePath =
+    pathname === "/superadmin" || pathname.startsWith("/superadmin/");
+  const isSaLoginPath =
+    pathname === "/superadmin-login" || pathname.startsWith("/superadmin-login/");
+  const isSaVerifyPath = pathname === "/superadmin-login/verify";
+
+  // Pages that anyone (even logged-out) may load.
+  const isPublicAuthPath = pathname === "/login" || isSaLoginPath;
+
+  const isCriticalPath =
+    isSaConsolePath ||
+    isSaLoginPath ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/settings");
 
@@ -92,9 +111,10 @@ export async function middleware(request: NextRequest) {
     user = session?.user ?? null;
   }
 
-  if (!user && pathname !== "/login") {
+  // Not logged in: send to the correct login door.
+  if (!user && !isPublicAuthPath) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = isSaConsolePath ? "/superadmin-login" : "/login";
     return NextResponse.redirect(url);
   }
 
@@ -102,27 +122,24 @@ export async function middleware(request: NextRequest) {
     (user?.user_metadata as any)?.role ?? (user?.app_metadata as any)?.role;
   const roleLower = String(role || "").toLowerCase();
 
-  if (user && roleLower !== "superadmin" && pathname.startsWith("/superadmin")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
   const saCookie = request.cookies.get(SA_SESSION_COOKIE)?.value;
   const mfaPending = !!request.cookies.get(SA_MFA_PENDING_COOKIE)?.value;
 
-  if (
-    user &&
-    roleLower === "superadmin" &&
-    pathname.startsWith("/superadmin") &&
-    !pathname.startsWith("/api/auth/superadmin-session-end") &&
-    !pathname.startsWith("/api/auth/superadmin-signout")
-  ) {
+  // A logged-in non-super-admin has no business on super admin pages
+  // (neither the console nor the super admin login flow).
+  if (user && roleLower !== "superadmin" && (isSaConsolePath || isSaLoginPath)) {
+    const url = request.nextUrl.clone();
+    url.pathname = roleLower === "advisor" ? "/advisor" : "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  // Super admin reaching the console: enforce the short, MFA-backed session.
+  if (user && roleLower === "superadmin" && isSaConsolePath) {
     if (isFreshSuperAdminSession(saCookie)) {
       /* allow */
     } else if (mfaPending) {
       const url = request.nextUrl.clone();
-      url.pathname = "/login/superadmin-mfa";
+      url.pathname = "/superadmin-login/verify";
       return NextResponse.redirect(url);
     } else {
       const url = request.nextUrl.clone();
@@ -132,25 +149,32 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (user && pathname.startsWith("/login/superadmin-mfa")) {
-    if (roleLower !== "superadmin") {
+  // Super admin moving through the dedicated login flow: keep the steps ordered.
+  if (user && roleLower === "superadmin" && isSaLoginPath) {
+    if (isFreshSuperAdminSession(saCookie)) {
       const url = request.nextUrl.clone();
-      url.pathname = "/dashboard";
+      url.pathname = "/superadmin";
       return NextResponse.redirect(url);
     }
-    if (!mfaPending) {
+    if (mfaPending && !isSaVerifyPath) {
       const url = request.nextUrl.clone();
-      url.pathname = "/login";
+      url.pathname = "/superadmin-login/verify";
+      return NextResponse.redirect(url);
+    }
+    if (!mfaPending && isSaVerifyPath) {
+      // Reached the second step without finishing the first one.
+      const url = request.nextUrl.clone();
+      url.pathname = "/superadmin-login";
       return NextResponse.redirect(url);
     }
   }
 
+  // Confine super admins to their own surfaces.
   if (user && roleLower === "superadmin") {
     const allowed =
+      isSaConsolePath ||
+      isSaLoginPath ||
       pathname === "/login" ||
-      pathname.startsWith("/login/superadmin-mfa") ||
-      pathname === "/superadmin" ||
-      pathname.startsWith("/superadmin/") ||
       pathname.startsWith("/_next") ||
       pathname.startsWith("/api/auth/superadmin-session-end") ||
       pathname.startsWith("/api/auth/superadmin-signout");
@@ -180,21 +204,17 @@ export async function middleware(request: NextRequest) {
   // Module check moved to page/layout level for better performance and to allow loading states to show.
   // The sidebar already filters these links, so this check in middleware was redundant and slow.
 
+  // Authenticated users landing on the public login page get routed home.
   if (user && pathname === "/login") {
     if (roleLower === "superadmin") {
+      // Super admins do not sign in here — push them to their own flow.
       if (isFreshSuperAdminSession(saCookie)) {
         const url = request.nextUrl.clone();
         url.pathname = "/superadmin";
         return NextResponse.redirect(url);
       }
-      if (mfaPending) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/login/superadmin-mfa";
-        return NextResponse.redirect(url);
-      }
       const url = request.nextUrl.clone();
-      url.pathname = "/api/auth/superadmin-session-end";
-      url.searchParams.set("reason", "stale");
+      url.pathname = mfaPending ? "/superadmin-login/verify" : "/superadmin-login";
       return NextResponse.redirect(url);
     }
 

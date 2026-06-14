@@ -50,7 +50,11 @@ async function finalizeNonSuperAdminLogin(
 	redirect("/dashboard");
 }
 
-/** Step 1 only: email/phone + password. Super admins continue at /login/superadmin-mfa */
+/**
+ * Public admin / advisor login (email or phone + password).
+ * Super admin accounts are rejected here and must use signInSuperAdmin
+ * via the dedicated /superadmin-login entry point.
+ */
 export async function signInWithEmailOrPhone(
 	identifier: string,
 	password: string,
@@ -192,17 +196,14 @@ export async function signInWithEmailOrPhone(
 		const { data: roleUser } = await supabase.auth.getUser();
 		const role = readRole(roleUser.user);
 		if (role === "superadmin") {
-			if (!isSuperadminMfaConfigured()) {
-				await supabase.auth.signOut();
-				await recordLoginFailure(keyHash);
-				return {
-					success: false,
-					error:
-						"Super admin two-step sign-in is not configured. Set SUPERADMIN_TOTP_SECRET or SUPERADMIN_SECOND_PASSWORD.",
-				};
-			}
-			await setSuperAdminMfaPendingCookie();
-			redirect("/login/superadmin-mfa");
+			// Super admins are not allowed through the public admin login.
+			// They must use the dedicated /superadmin-login entry point.
+			await supabase.auth.signOut();
+			await recordLoginFailure(keyHash);
+			return {
+				success: false,
+				error: "Super admins must sign in from the super admin console login page.",
+			};
 		}
 
 		await finalizeNonSuperAdminLogin(supabase, keyHash, role);
@@ -228,21 +229,91 @@ export async function signInWithEmailOrPhone(
 	const role = readRole(roleUser.user);
 
 	if (role === "superadmin") {
-		if (!isSuperadminMfaConfigured()) {
-			await supabase.auth.signOut();
-			await recordLoginFailure(keyHash);
-			return {
-				success: false,
-				error:
-					"Super admin two-step sign-in is not configured. Set SUPERADMIN_TOTP_SECRET or SUPERADMIN_SECOND_PASSWORD.",
-			};
-		}
-		await setSuperAdminMfaPendingCookie();
-		redirect("/login/superadmin-mfa");
+		// Super admins are not allowed through the public admin login.
+		// They must use the dedicated /superadmin-login entry point.
+		await supabase.auth.signOut();
+		await recordLoginFailure(keyHash);
+		return {
+			success: false,
+			error: "Super admins must sign in from the super admin console login page.",
+		};
 	}
 
 	await finalizeNonSuperAdminLogin(supabase, keyHash, role);
 	return { success: true };
+}
+
+/**
+ * Super admin step 1: email + password from the dedicated /superadmin-login page.
+ * Only super admin accounts are accepted; any other role is rejected and signed out.
+ * On success the second step continues at /superadmin-login/verify.
+ */
+export async function signInSuperAdmin(
+	identifier: string,
+	password: string,
+): Promise<AuthResult> {
+	const supabase = await createClient();
+	if (!supabase) return { success: false, error: "Database connection failed" };
+
+	const idRaw = sanitizeLoginIdentifier(identifier);
+	if (!idRaw || idRaw.length < 3) {
+		return { success: false, error: "Enter email or phone" };
+	}
+
+	// Super admin accounts authenticate by email. Phone-based (advisor) login is not allowed here.
+	if (!idRaw.includes("@")) {
+		return {
+			success: false,
+			error: "Super admins must sign in with their email address.",
+		};
+	}
+
+	const rawPassword = typeof password === "string" ? password.trim() : "";
+	if (rawPassword.length > 500) {
+		return { success: false, error: "Invalid credentials." };
+	}
+
+	const email = idRaw.toLowerCase();
+	const keyHash = hashLoginThrottleKey(`email:${email}`);
+	const gate = await assertLoginAllowed(keyHash);
+	if (!gate.ok) return { success: false, error: gate.error };
+
+	const { error } = await supabase.auth.signInWithPassword({
+		email,
+		password: rawPassword,
+	});
+
+	if (error) {
+		await recordLoginFailure(keyHash);
+		return { success: false, error: "Invalid credentials." };
+	}
+
+	const { data: roleUser } = await supabase.auth.getUser();
+	const role = readRole(roleUser.user);
+
+	if (role !== "superadmin") {
+		// Not a super admin — do not establish a session through this door.
+		await supabase.auth.signOut();
+		await recordLoginFailure(keyHash);
+		return {
+			success: false,
+			error: "This login is for super admin accounts only. Please use the main login page.",
+		};
+	}
+
+	if (!isSuperadminMfaConfigured()) {
+		await supabase.auth.signOut();
+		await recordLoginFailure(keyHash);
+		return {
+			success: false,
+			error:
+				"Super admin two-step sign-in is not configured. Set SUPERADMIN_TOTP_SECRET or SUPERADMIN_SECOND_PASSWORD.",
+		};
+	}
+
+	await clearLoginThrottle(keyHash);
+	await setSuperAdminMfaPendingCookie();
+	redirect("/superadmin-login/verify");
 }
 
 /** Step 2: only after password sign-in + sa_mfa_pending cookie */

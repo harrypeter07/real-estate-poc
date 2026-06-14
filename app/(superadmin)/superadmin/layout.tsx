@@ -31,7 +31,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 			});
 			if (!res.ok) throw new Error("Sign out failed");
 			toast.success("Signed out");
-			router.push("/login");
+			router.push("/superadmin-login");
 			router.refresh();
 		} catch {
 			toast.error("Could not sign out", { description: "Try again or clear site cookies." });

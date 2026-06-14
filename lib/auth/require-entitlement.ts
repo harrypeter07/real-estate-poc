@@ -39,10 +39,21 @@ export async function requireEntitlement(moduleKey: ModuleKey) {
 		.eq("module_key", moduleKey)
 		.maybeSingle();
 
+	// Check user-level override
+	const { data: userRow } = await supabase
+		.from("user_modules")
+		.select("enabled")
+		.eq("auth_user_id", user.id)
+		.eq("module_key", moduleKey)
+		.maybeSingle();
+
 	// If business scoping is not set up yet for this tenant, keep old behavior (do not hard-block).
 	if (error) return { supabase, user, moduleKey };
 
-	if (!row?.enabled) {
+	const isBizDisabled = !row?.enabled;
+	const isUserDisabled = userRow?.enabled === false;
+
+	if (isBizDisabled || isUserDisabled) {
 		// Use a consistent forbidden UX.
 		redirect("/dashboard?forbidden=module");
 	}

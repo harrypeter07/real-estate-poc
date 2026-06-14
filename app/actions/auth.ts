@@ -239,6 +239,41 @@ export async function signInWithEmailOrPhone(
 		};
 	}
 
+	if (roleUser.user) {
+		const adminClient = createAdminClient();
+		if (adminClient) {
+			if (role === "admin") {
+				const { data: adminCheck } = await adminClient
+					.from("business_admins")
+					.select("is_active")
+					.eq("auth_user_id", roleUser.user.id)
+					.maybeSingle();
+				if (!adminCheck || !adminCheck.is_active) {
+					await supabase.auth.signOut();
+					await recordLoginFailure(keyHash);
+					return {
+						success: false,
+						error: "Your admin account is disabled. Please contact the superadmin.",
+					};
+				}
+			} else if (role === "advisor") {
+				const { data: advisorCheck } = await adminClient
+					.from("advisors")
+					.select("is_active")
+					.eq("auth_user_id", roleUser.user.id)
+					.maybeSingle();
+				if (!advisorCheck || !advisorCheck.is_active) {
+					await supabase.auth.signOut();
+					await recordLoginFailure(keyHash);
+					return {
+						success: false,
+						error: "Your advisor account has been disabled. Please contact support.",
+					};
+				}
+			}
+		}
+	}
+
 	await finalizeNonSuperAdminLogin(supabase, keyHash, role);
 	return { success: true };
 }

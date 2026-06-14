@@ -116,7 +116,6 @@ export default function SuperAdminVerifyPage() {
 														placeholder="6-digit code or passphrase"
 														type="text"
 														autoComplete="one-time-code"
-														inputMode="numeric"
 														className="font-mono tracking-widest"
 														autoFocus
 														{...field}

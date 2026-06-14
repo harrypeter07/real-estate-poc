@@ -2,6 +2,8 @@ import { getNextEmiDueDate } from "@/lib/utils/emi";
 
 export type SaleLikeForDue = {
 	remaining_amount?: unknown;
+	total_sale_amount?: unknown;
+	amount_paid?: unknown;
 	monthly_emi?: unknown;
 	emi_day?: unknown;
 	token_date?: string | null;
@@ -25,7 +27,9 @@ export function computePaymentDueMeta(
 	is_payment_due: boolean;
 	followup_date: string | null;
 } {
-	const remaining = Number(sale.remaining_amount ?? 0);
+	const remaining = sale.remaining_amount !== null && sale.remaining_amount !== undefined
+		? Number(sale.remaining_amount)
+		: Number(sale.total_sale_amount ?? 0) - Number(sale.amount_paid ?? 0);
 	const followup =
 		typeof sale.followup_date === "string" && sale.followup_date.trim()
 			? sale.followup_date.trim().slice(0, 10)

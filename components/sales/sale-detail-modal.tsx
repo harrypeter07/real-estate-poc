@@ -283,7 +283,11 @@ export function SaleDetailModal({
 							<div className="text-right">
 								<p className="text-xs text-zinc-500">Remaining</p>
 								<p className="font-semibold text-red-600">
-									{formatCurrency(sale.remaining_amount ?? sale.total_sale_amount)}
+									{formatCurrency(
+										sale.remaining_amount !== null && sale.remaining_amount !== undefined
+											? sale.remaining_amount
+											: Number(sale.total_sale_amount) - Number(sale.amount_paid ?? 0)
+									)}
 								</p>
 							</div>
 						</div>

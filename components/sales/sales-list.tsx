@@ -327,15 +327,20 @@ export function SalesList({
 																Paid: {formatCurrency(sale.amount_paid)}
 															</span>
 															
-															{Number(sale.remaining_amount) > 0 ? (
-																<div className="text-[10px] text-zinc-400 font-bold pl-0.5">
-																	Remaining: <span className="text-red-500 font-mono font-black">{formatCurrency(sale.remaining_amount)}</span>
-																</div>
-															) : (
-																<div className="text-[9px] text-teal-650 font-black uppercase tracking-wider bg-teal-50/50 px-2 py-0.5 rounded-lg border border-teal-100/30 w-fit">
-																	Fully Settled
-																</div>
-															)}
+															{(() => {
+																const remaining = sale.remaining_amount !== null && sale.remaining_amount !== undefined
+																	? Number(sale.remaining_amount)
+																	: Number(sale.total_sale_amount) - Number(sale.amount_paid ?? 0);
+																return remaining > 0 ? (
+																	<div className="text-[10px] text-zinc-400 font-bold pl-0.5">
+																		Remaining: <span className="text-red-500 font-mono font-black">{formatCurrency(remaining)}</span>
+																	</div>
+																) : (
+																	<div className="text-[9px] text-teal-650 font-black uppercase tracking-wider bg-teal-50/50 px-2 py-0.5 rounded-lg border border-teal-100/30 w-fit">
+																		Fully Settled
+																	</div>
+																);
+															})()}
 														</div>
 													</div>
 												</div>

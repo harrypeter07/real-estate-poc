@@ -93,7 +93,7 @@ async function countByEq(
 ) {
 	const { count, error } = await (supabase as any)
 		.from(table)
-		.select("id", { head: true, count: "exact" })
+		.select(column, { head: true, count: "exact" })
 		.eq(column, value);
 	if (error) throw new Error(error.message);
 	return Number(count ?? 0);
@@ -718,18 +718,32 @@ export async function saGetBusinessModules(params: {
 		const businessId = String(params.business_id ?? "").trim();
 		if (!businessId) return { ok: false, error: "Business is required" };
 
-		const { data, error } = await supabase
+		// 1. Fetch all modules from the system catalog
+		const { data: allModules, error: modulesErr } = await supabase
+			.from("modules")
+			.select("key, name")
+			.order("key", { ascending: true });
+		if (modulesErr) return { ok: false, error: modulesErr.message };
+
+		// 2. Fetch the current configuration for this business
+		const { data: bizEntitlements, error: entErr } = await supabase
 			.from("business_modules")
-			.select("module_key, enabled, modules(name)")
-			.eq("business_id", businessId)
-			.order("module_key", { ascending: true });
-		if (error) return { ok: false, error: error.message };
-		const mapped =
-			(data ?? []).map((r: any) => ({
-				module_key: r.module_key,
-				enabled: !!r.enabled,
-				name: r.modules?.name ?? r.module_key,
-			})) ?? [];
+			.select("module_key, enabled")
+			.eq("business_id", businessId);
+		if (entErr) return { ok: false, error: entErr.message };
+
+		const entMap = new Map<string, boolean>();
+		for (const row of bizEntitlements ?? []) {
+			entMap.set(row.module_key, !!row.enabled);
+		}
+
+		// 3. Merge catalog modules with business state (default to false if not configured yet)
+		const mapped = (allModules ?? []).map((m: any) => ({
+			module_key: m.key,
+			enabled: entMap.has(m.key) ? !!entMap.get(m.key) : false,
+			name: m.name ?? m.key,
+		}));
+
 		return { ok: true, data: mapped };
 	} catch (e: any) {
 		return { ok: false, error: e?.message ?? "Failed" };
@@ -976,6 +990,198 @@ export async function saListAuditLogs(params: {
 		if (error) return { ok: false, error: error.message };
 		const enriched = await enrichAuditLogRows(supabase, (data ?? []) as AuditLogRowDb[]);
 		return { ok: true, data: enriched };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saGetUserModules(params: {
+	business_id: string;
+	auth_user_id: string;
+}): Promise<SAResult<Array<{
+	module_key: string;
+	name: string;
+	enabled: boolean;
+	business_enabled: boolean;
+	user_enabled: boolean | null;
+}>>> {
+	try {
+		const { supabase } = await requireSA();
+		const businessId = String(params.business_id ?? "").trim();
+		const authUserId = String(params.auth_user_id ?? "").trim();
+		if (!businessId) return { ok: false, error: "Business is required" };
+		if (!authUserId) return { ok: false, error: "User is required" };
+
+		const { data: allModules, error: modulesErr } = await supabase
+			.from("modules")
+			.select("key, name")
+			.order("key", { ascending: true });
+		if (modulesErr) return { ok: false, error: modulesErr.message };
+
+		const { data: bizEnts, error: entErr } = await supabase
+			.from("business_modules")
+			.select("module_key, enabled")
+			.eq("business_id", businessId);
+		if (entErr) return { ok: false, error: entErr.message };
+
+		const bizMap = new Map<string, boolean>();
+		for (const row of bizEnts ?? []) {
+			bizMap.set(row.module_key, !!row.enabled);
+		}
+
+		const { data: userEnts, error: userErr } = await supabase
+			.from("user_modules")
+			.select("module_key, enabled")
+			.eq("auth_user_id", authUserId);
+		if (userErr) return { ok: false, error: userErr.message };
+
+		const userMap = new Map<string, boolean>();
+		for (const row of userEnts ?? []) {
+			userMap.set(row.module_key, !!row.enabled);
+		}
+
+		const mapped = (allModules ?? []).map((m: any) => {
+			const bizEnabled = bizMap.has(m.key) ? !!bizMap.get(m.key) : false;
+			const userOverride = userMap.has(m.key) ? !!userMap.get(m.key) : null;
+			const finalEnabled = userOverride !== null ? userOverride : bizEnabled;
+
+			return {
+				module_key: m.key,
+				name: m.name ?? m.key,
+				enabled: finalEnabled,
+				business_enabled: bizEnabled,
+				user_enabled: userOverride,
+			};
+		});
+
+		return { ok: true, data: mapped };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saToggleUserModule(input: {
+	business_id: string;
+	auth_user_id: string;
+	module_key: string;
+	enabled: boolean | null;
+}): Promise<SAResult<true>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const businessId = String(input.business_id ?? "").trim();
+		const authUserId = String(input.auth_user_id ?? "").trim();
+		const moduleKey = String(input.module_key ?? "").trim();
+
+		if (!businessId) return { ok: false, error: "Business is required" };
+		if (!authUserId) return { ok: false, error: "User is required" };
+		if (!moduleKey) return { ok: false, error: "Module is required" };
+
+		const { data: before } = await supabase
+			.from("user_modules")
+			.select("business_id, auth_user_id, module_key, enabled")
+			.eq("auth_user_id", authUserId)
+			.eq("module_key", moduleKey)
+			.maybeSingle();
+
+		if (input.enabled === null) {
+			const { error } = await supabase
+				.from("user_modules")
+				.delete()
+				.eq("auth_user_id", authUserId)
+				.eq("module_key", moduleKey);
+			if (error) return { ok: false, error: error.message };
+		} else {
+			const { error } = await supabase
+				.from("user_modules")
+				.upsert({
+					business_id: businessId,
+					auth_user_id: authUserId,
+					module_key: moduleKey,
+					enabled: input.enabled,
+				});
+			if (error) return { ok: false, error: error.message };
+		}
+
+		await audit({
+			actorId: user.id,
+			action: "module.toggle",
+			targetBusinessId: businessId,
+			targetAdminAuthUserId: authUserId,
+			before,
+			after: { business_id: businessId, auth_user_id: authUserId, module_key: moduleKey, enabled: input.enabled },
+		});
+
+		return { ok: true, data: true };
+	} catch (e: any) {
+		return { ok: false, error: e?.message ?? "Failed" };
+	}
+}
+
+export async function saSetUserModulesBulk(input: {
+	business_id: string;
+	auth_user_id: string;
+	modules: Array<{
+		module_key: string;
+		business_enabled: boolean;
+		user_enabled: boolean | null;
+	}>;
+}): Promise<SAResult<true>> {
+	try {
+		const { supabase, user } = await requireSA();
+		const businessId = String(input.business_id ?? "").trim();
+		const authUserId = String(input.auth_user_id ?? "").trim();
+		if (!businessId || !authUserId) return { ok: false, error: "Business and User are required" };
+
+		// 1. Update business_modules bulk
+		const bizEnts = input.modules.map((m) => ({
+			business_id: businessId,
+			module_key: m.module_key,
+			enabled: m.business_enabled,
+		}));
+		if (bizEnts.length) {
+			const { error } = await supabase.from("business_modules").upsert(bizEnts);
+			if (error) return { ok: false, error: error.message };
+		}
+
+		// 2. Update user_modules bulk (delete nulls, upsert others)
+		const userUpserts = [];
+		const userDeletes = [];
+		for (const m of input.modules) {
+			if (m.user_enabled === null) {
+				userDeletes.push(m.module_key);
+			} else {
+				userUpserts.push({
+					business_id: businessId,
+					auth_user_id: authUserId,
+					module_key: m.module_key,
+					enabled: m.user_enabled,
+				});
+			}
+		}
+
+		if (userDeletes.length) {
+			const { error } = await supabase
+				.from("user_modules")
+				.delete()
+				.eq("auth_user_id", authUserId)
+				.in("module_key", userDeletes);
+			if (error) return { ok: false, error: error.message };
+		}
+
+		if (userUpserts.length) {
+			const { error } = await supabase.from("user_modules").upsert(userUpserts);
+			if (error) return { ok: false, error: error.message };
+		}
+
+		await audit({
+			actorId: user.id,
+			action: "module.toggle",
+			targetBusinessId: businessId,
+			targetAdminAuthUserId: authUserId,
+			after: { business_id: businessId, auth_user_id: authUserId, modules: input.modules },
+		});
+
+		return { ok: true, data: true };
 	} catch (e: any) {
 		return { ok: false, error: e?.message ?? "Failed" };
 	}

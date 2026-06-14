@@ -44,12 +44,20 @@ export function Sidebar({ open, onClose, items }: SidebarProps) {
         .from("business_modules")
         .select("module_key, enabled")
         .eq("enabled", true);
+      const { data: userRows } = await supabase
+        .from("user_modules")
+        .select("module_key, enabled")
+        .eq("auth_user_id", user.id);
       if (cancelled) return;
       if (error) {
         setEnabledModules(null); // fallback: don't hide nav if not configured
         return;
       }
-      setEnabledModules(new Set((rows ?? []).map((r: any) => String(r.module_key))));
+      const disabledUserKeys = new Set((userRows ?? []).filter((r: any) => !r.enabled).map((r: any) => String(r.module_key)));
+      const enabledKeys = (rows ?? [])
+        .map((r: any) => String(r.module_key))
+        .filter((key) => !disabledUserKeys.has(key));
+      setEnabledModules(new Set(enabledKeys));
     }
     void load();
     const interval = window.setInterval(() => {

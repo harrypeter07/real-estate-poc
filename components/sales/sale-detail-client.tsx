@@ -280,7 +280,10 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 			finLines.push(...doc.splitTextToSize(`Registry Fee: Rs. ${registryVal.toLocaleString("en-IN")}`, 170));
 			finLines.push(...doc.splitTextToSize(`Grand Total: Rs. ${totalWithRegistry.toLocaleString("en-IN")}`, 170));
 		}
-		finLines.push(...doc.splitTextToSize(`Outstanding Balance: Rs. ${sale.remaining_amount.toLocaleString("en-IN")}`, 170));
+		const remainingVal = sale.remaining_amount !== null && sale.remaining_amount !== undefined
+			? Number(sale.remaining_amount)
+			: Number(sale.total_sale_amount || 0) - (Number(sale.amount_paid || 0) - registryVal);
+		finLines.push(...doc.splitTextToSize(`Outstanding Balance: Rs. ${remainingVal.toLocaleString("en-IN")}`, 170));
 
 		const finBlockHeight = 8 + finLines.length * 5.5 + 4;
 		doc.setFillColor(248, 250, 252);
@@ -353,6 +356,10 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 	const schedule = emiData?.schedule || [];
 	const summary = emiData?.summary || { total_emis: 0, paid_emis: 0, overdue_emis: 0, pending_emis: 0, partial_emis: 0, total_emi_amount: 0, total_paid: 0, total_remaining: 0, total_penalty: 0 };
 	const payments = paymentHistory?.data || [];
+
+	const remainingAmount = sale.remaining_amount !== null && sale.remaining_amount !== undefined
+		? Number(sale.remaining_amount)
+		: Number(sale.total_sale_amount || 0) - (Number(sale.amount_paid || 0) - Number(sale.registry_amount || 0));
 
 	return (
 		<div className="space-y-6">
@@ -447,7 +454,7 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 					<div className="absolute top-0 left-0 w-1.5 h-full bg-red-500" />
 					<CardContent className="p-4 pl-5">
 						<p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider">Outstanding Dues</p>
-						<p className="text-lg font-black text-red-500 font-mono mt-1">{formatCurrency(sale.remaining_amount || 0)}</p>
+						<p className="text-lg font-black text-red-500 font-mono mt-1">{formatCurrency(remainingAmount)}</p>
 					</CardContent>
 				</Card>
 
@@ -569,7 +576,7 @@ export function SaleDetailClient({ initialSale, advisors }: SaleDetailClientProp
 						</div>
 
 						{/* Registry Details section (only shows when all EMIs are paid / remaining is 0) */}
-						{Number(sale.remaining_amount || 0) <= 0 && (
+						{remainingAmount <= 0 && (
 							<Card className="rounded-2xl border-zinc-200/85 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
 								<CardContent className="p-5 space-y-4">
 									<div className="flex items-center justify-between pb-2.5 border-b border-zinc-100">

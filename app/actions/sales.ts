@@ -19,12 +19,21 @@ export async function getAdvisorCommissionRate(
 	projectId: string,
 	phase: "token" | "full_payment"
 ): Promise<number> {
+	// Fetch advisor to check parent_advisor_id fallback
+	const { data: currentAdv } = await supabase
+		.from("advisors")
+		.select("parent_advisor_id, commission_token, commission_full_payment")
+		.eq("id", advisorId)
+		.maybeSingle();
+
+	const effectiveAdvisorId = currentAdv?.parent_advisor_id || advisorId;
+
 	// 1. Try to find project-specific override
 	const { data: projComm } = await supabase
 		.from("advisor_project_commissions")
 		.select("commission_token, commission_full_payment")
 		.eq("project_id", projectId)
-		.eq("advisor_id", advisorId)
+		.eq("advisor_id", effectiveAdvisorId)
 		.maybeSingle();
 
 	let rate = 0;
@@ -34,13 +43,17 @@ export async function getAdvisorCommissionRate(
 
 	// 2. If rate is 0/null, fall back to global advisor settings
 	if (!rate) {
-		const { data: adv } = await supabase
-			.from("advisors")
-			.select("commission_token, commission_full_payment")
-			.eq("id", advisorId)
-			.maybeSingle();
-		if (adv) {
-			rate = Number(phase === "token" ? adv.commission_token : adv.commission_full_payment);
+		if (currentAdv?.parent_advisor_id) {
+			const { data: parentAdv } = await supabase
+				.from("advisors")
+				.select("commission_token, commission_full_payment")
+				.eq("id", currentAdv.parent_advisor_id)
+				.maybeSingle();
+			if (parentAdv) {
+				rate = Number(phase === "token" ? parentAdv.commission_token : parentAdv.commission_full_payment);
+			}
+		} else if (currentAdv) {
+			rate = Number(phase === "token" ? currentAdv.commission_token : currentAdv.commission_full_payment);
 		}
 	}
 
@@ -158,11 +171,20 @@ export async function createSale(
 	let faceRate = plotBaseRate;
 	if (!soldByAdmin) {
 		// Advisor must be assigned to this project (project-wise commission)
+		// If advisor is a sub-advisor, we check the parent advisor's assignment
+		const { data: sellingAdvisor } = await supabase
+			.from("advisors")
+			.select("parent_advisor_id")
+			.eq("id", parsed.data.advisor_id ?? "")
+			.maybeSingle();
+
+		const effectiveAdvisorId = sellingAdvisor?.parent_advisor_id || parsed.data.advisor_id || "";
+
 		const { data: assignment } = await supabase
 			.from("advisor_project_commissions")
 			.select("*")
 			.eq("project_id", plotRow.project_id)
-			.eq("advisor_id", parsed.data.advisor_id ?? "")
+			.eq("advisor_id", effectiveAdvisorId)
 			.maybeSingle();
 
 		if (!assignment) {

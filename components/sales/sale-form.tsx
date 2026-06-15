@@ -300,12 +300,17 @@ export function SaleForm({
 
   const advisorAssignment = useMemo(() => {
     if (!selectedAdvisorId || !selectedProjectId) return null;
-    return (
-      (advisorAssignments ?? []).find(
-        (a) => a.advisor_id === selectedAdvisorId && a.project_id === selectedProjectId
-      ) ?? null
+    const advisor = (advisors as any[]).find((a) => a.id === selectedAdvisorId);
+    let assignment = (advisorAssignments ?? []).find(
+      (a) => a.advisor_id === selectedAdvisorId && a.project_id === selectedProjectId
     );
-  }, [advisorAssignments, selectedAdvisorId, selectedProjectId]);
+    if (!assignment && advisor?.parent_advisor_id) {
+      assignment = (advisorAssignments ?? []).find(
+        (a) => a.advisor_id === advisor.parent_advisor_id && a.project_id === selectedProjectId
+      );
+    }
+    return assignment ?? null;
+  }, [advisorAssignments, selectedAdvisorId, selectedProjectId, advisors]);
 
   const assignmentDefaultRate = Number((advisorAssignment as any)?.commission_rate ?? 0);
 
@@ -383,10 +388,8 @@ export function SaleForm({
     const mainAdvisor = (advisors as any[]).find((a) => a.id === selectedAdvisorId);
     if (!mainAdvisor) return [];
 
-    // Fetch project assignment for selected advisor
-    const assignment = (advisorAssignments ?? []).find(
-      (a) => a.advisor_id === selectedAdvisorId && a.project_id === selectedProjectId
-    );
+    // Fetch project assignment using the memo (which includes fallback logic)
+    const assignment = advisorAssignment;
 
     // Get main advisor rate from project assignment or fall back to profile default, then to 5%
     let mainRate = 0;
@@ -399,6 +402,15 @@ export function SaleForm({
     }
     if (!mainRate) {
       mainRate = Number(selectedPhase === "token" ? mainAdvisor.commission_token : mainAdvisor.commission_full_payment);
+    }
+    if (!mainRate) {
+      const parentAdvisorId = mainAdvisor.parent_advisor_id;
+      if (parentAdvisorId) {
+        const parentAdvisor = (advisors as any[]).find((a) => a.id === parentAdvisorId);
+        if (parentAdvisor) {
+          mainRate = Number(selectedPhase === "token" ? parentAdvisor.commission_token : parentAdvisor.commission_full_payment);
+        }
+      }
     }
     if (!mainRate) {
       mainRate = 5.0; // default 5%
@@ -415,11 +427,11 @@ export function SaleForm({
     // Check if we are splitting with parent advisor
     if (hasParentAdvisor && splitWithParent) {
       // Selected advisor is the sub-advisor (gets subRate)
-      // Parent advisor is the advisor (gets mainRate)
+      // Parent advisor is the advisor (gets mainRate - subRate)
       const parentAdvisor = (advisors as any[]).find((a) => a.id === mainAdvisor.parent_advisor_id);
       
       const subAmount = (subRate / 100) * profit;
-      const mainAmount = (mainRate / 100) * profit;
+      const mainAmount = (Math.max(0, mainRate - subRate) / 100) * profit;
 
       const customSub = customAmounts[mainAdvisor.id];
       const subFinalAmount = customSub !== undefined && customSub !== "" ? Number(customSub) : subAmount;
@@ -449,13 +461,14 @@ export function SaleForm({
     }
     // Check if we are splitting with child advisor
     else if (splitWithChild && selectedChildAdvisorIds.length > 0) {
-      // Selected advisor is the advisor (gets mainRate)
-      // Selected child advisors are the sub-advisors (they split subRate equally)
+      // Selected advisor is the advisor (gets mainRate - subRate * count)
+      // Selected child advisors are the sub-advisors (each gets subRate)
       const childAdvisors = selectedChildAdvisorIds
         .map((id) => (advisors as any[]).find((a) => a.id === id))
         .filter(Boolean);
 
-      const mainAmount = (mainRate / 100) * profit;
+      const childCount = childAdvisors.length;
+      const mainAmount = (Math.max(0, mainRate - subRate * childCount) / 100) * profit;
       const subAmount = (subRate / 100) * profit;
 
       const customMain = customAmounts[mainAdvisor.id];
@@ -470,12 +483,10 @@ export function SaleForm({
         level: 0, // advisor
       });
 
-      const dividedSubAmount = subAmount / childAdvisors.length;
-
       childAdvisors.forEach((childAdvisor) => {
         const customChild = customAmounts[childAdvisor.id];
         const childFinalAmount =
-          customChild !== undefined && customChild !== "" ? Number(customChild) : dividedSubAmount;
+          customChild !== undefined && customChild !== "" ? Number(customChild) : subAmount;
 
         splits.push({
           advisor_id: childAdvisor.id,
@@ -1105,41 +1116,44 @@ export function SaleForm({
                       Commission is split up the advisor parent chain. Rates are determined by advisor profile and project commission rates.
                     </p>
                     <div className="space-y-2 pt-1 border-t border-amber-200/40">
-                      {calculatedSplits.map((row) => (
-                        <div key={row.advisor_id} className="flex justify-between items-center text-xs gap-4 py-1.5 border-b border-amber-200/20 last:border-0">
-                          <div className="flex flex-col flex-1">
-                            <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                             {row.name} {row.level === 0 ? (splitWithParent && hasParentAdvisor ? "(Sub-advisor)" : "(Advisor)") : (splitWithParent && hasParentAdvisor ? "(Advisor)" : "(Sub-advisor)")}
-                            </span>
-                            <span className="text-[9px] text-zinc-400 font-mono">
-                              Code: {row.code}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex items-center">
-                              <span className="absolute left-1.5 text-[10px] text-zinc-450 pointer-events-none">₹</span>
-                              <input
-                                type="text"
-                                className="w-24 h-7 text-right pr-2 pl-4 text-xs font-mono rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                                value={customAmounts[row.advisor_id] !== undefined ? customAmounts[row.advisor_id] : Math.round(row.amount).toString()}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  // Allow only digits, single decimal point
-                                  if (/^\d*\.?\d*$/.test(val)) {
-                                    setCustomAmounts((prev) => ({
-                                      ...prev,
-                                      [row.advisor_id]: val,
-                                    }));
-                                  }
-                                }}
-                              />
+                      {calculatedSplits.map((row) => {
+                        const profitPct = finance.profit > 0 ? (row.amount / finance.profit) * 100 : 0;
+                        return (
+                          <div key={row.advisor_id} className="flex justify-between items-center text-xs gap-4 py-1.5 border-b border-amber-200/20 last:border-0">
+                            <div className="flex flex-col flex-1">
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                               {row.name} {row.level === 0 ? (splitWithParent && hasParentAdvisor ? "(Sub-advisor)" : "(Advisor)") : (splitWithParent && hasParentAdvisor ? "(Advisor)" : "(Sub-advisor)")}
+                              </span>
+                              <span className="text-[9px] text-zinc-400 font-mono">
+                                Code: {row.code}
+                              </span>
                             </div>
-                            <span className="w-20 text-right font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs">
-                              {Number(row.commission_percentage.toFixed(3))}%
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex items-center">
+                                <span className="absolute left-1.5 text-[10px] text-zinc-450 pointer-events-none">₹</span>
+                                <input
+                                  type="text"
+                                  className="w-24 h-7 text-right pr-2 pl-4 text-xs font-mono rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                                  value={customAmounts[row.advisor_id] !== undefined ? customAmounts[row.advisor_id] : Math.round(row.amount).toString()}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    // Allow only digits, single decimal point
+                                    if (/^\d*\.?\d*$/.test(val)) {
+                                      setCustomAmounts((prev) => ({
+                                        ...prev,
+                                        [row.advisor_id]: val,
+                                      }));
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <span className="w-24 text-right font-mono font-bold text-zinc-850 dark:text-zinc-150 bg-amber-100/40 dark:bg-amber-950/20 px-2 py-1 rounded shadow-3xs" title={`${Number(row.commission_percentage.toFixed(3))}% of sale`}>
+                                {Number(profitPct.toFixed(1))}% of profit
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {commissionSplitOverflow && (
                       <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-50 dark:bg-red-950/25 border border-red-200 dark:border-red-900/30 text-red-650 dark:text-red-400 text-[10px] font-bold mt-1.5">

@@ -1,9 +1,38 @@
 import type { MetadataRoute } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentBusinessId } from "@/lib/auth/current-business";
 
-export default function manifest(): MetadataRoute.Manifest {
+export const dynamic = "force-dynamic";
+
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+	let businessName = "CRM";
+	let businessShortName = "CRM";
+	try {
+		const businessId = await getCurrentBusinessId();
+		if (businessId) {
+			const supabase = await createClient();
+			if (supabase) {
+				const { data } = await supabase
+					.from("businesses")
+					.select("display_name, name")
+					.eq("id", businessId)
+					.maybeSingle();
+				if (data) {
+					const name = data.display_name || data.name || "";
+					if (name) {
+						businessName = `${name} CRM`;
+						businessShortName = name;
+					}
+				}
+			}
+		}
+	} catch (e) {
+		console.error("Error retrieving business name for manifest:", e);
+	}
+
 	return {
-		name: "Manish Group CRM",
-		short_name: "MG CRM",
+		name: businessName,
+		short_name: businessShortName,
 		description: "CRM system for real estate plot management, advisor commissions, and customer follow-ups.",
 		start_url: "/",
 		display: "standalone",
@@ -23,3 +52,4 @@ export default function manifest(): MetadataRoute.Manifest {
 		],
 	};
 }
+

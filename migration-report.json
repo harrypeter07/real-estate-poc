@@ -1,0 +1,337 @@
+[
+  {
+    "table": "businesses",
+    "status": "OK",
+    "sourceRowCount": 5,
+    "migratedRowCount": 5,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 1841
+  },
+  {
+    "table": "modules",
+    "status": "OK",
+    "sourceRowCount": 9,
+    "migratedRowCount": 9,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 1772
+  },
+  {
+    "table": "business_admins",
+    "status": "FAILED",
+    "sourceRowCount": 490,
+    "migratedRowCount": 0,
+    "failedRowCount": 490,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 75330
+  },
+  {
+    "table": "business_modules",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "staff",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "staff_attendance",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "hr_employees",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "hr_attendance",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "hr_payout_batches",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "hr_employee_payouts",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "advisors",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "projects",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "plots",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "enquiry_customers",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "customers",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "plot_sales",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "advisor_commissions",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "advisor_commission_payments",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "advisor_project_commissions",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "customer_documents",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "office_expenses",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "payments",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "project_documents",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "reminders",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "superadmin_audit_logs",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  },
+  {
+    "table": "_app_kv",
+    "status": "FAILED",
+    "reason": "current transaction is aborted, commands ignored until end of transaction block",
+    "sourceRowCount": 0,
+    "migratedRowCount": 0,
+    "failedRowCount": 0,
+    "skippedColumns": {
+      "onlyInOld": [],
+      "onlyInNew": []
+    },
+    "durationMs": 0
+  }
+]

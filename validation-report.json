@@ -1,0 +1,158 @@
+[
+  {
+    "table": "businesses",
+    "sourceCount": 5,
+    "destCount": 5,
+    "match": true
+  },
+  {
+    "table": "modules",
+    "sourceCount": 9,
+    "destCount": 9,
+    "match": true
+  },
+  {
+    "table": "business_admins",
+    "sourceCount": 490,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "business_modules",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "staff",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "staff_attendance",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "hr_employees",
+    "sourceCount": 0,
+    "destCount": 1,
+    "match": true
+  },
+  {
+    "table": "hr_attendance",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "hr_payout_batches",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "hr_employee_payouts",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "advisors",
+    "sourceCount": 0,
+    "destCount": 23,
+    "match": true
+  },
+  {
+    "table": "projects",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "plots",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "enquiry_customers",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "customers",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "plot_sales",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "advisor_commissions",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "advisor_commission_payments",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "advisor_project_commissions",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "customer_documents",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "office_expenses",
+    "sourceCount": 0,
+    "destCount": 10,
+    "match": true
+  },
+  {
+    "table": "payments",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "project_documents",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "reminders",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "superadmin_audit_logs",
+    "sourceCount": 0,
+    "destCount": 0,
+    "match": true
+  },
+  {
+    "table": "_app_kv",
+    "sourceCount": 0,
+    "destCount": 1,
+    "match": true
+  }
+]
